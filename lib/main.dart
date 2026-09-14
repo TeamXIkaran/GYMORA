@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:karan_fitness/feature/auth/screens/splash_screen.dart';
+import 'package:karan_fitness/config/routes/app_routes.dart';
+import 'package:provider/provider.dart';
+
+import 'package:karan_fitness/config/routes/app_router.dart';
+import 'package:karan_fitness/config/theme/app_theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // Add your providers here later.
+        //
+        // ChangeNotifierProvider(
+        //   create: (_) => AuthProvider(),
+        // ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -10,10 +27,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-      home: SplashScreen(),
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+
+      title: 'GYMO Fitness',
+
+      theme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
+
+      routerConfig: AppRouter.router,
     );
   }
 }
