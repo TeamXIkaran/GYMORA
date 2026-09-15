@@ -20,8 +20,8 @@ class AppConstants {
   static const String baseVideo = 'assets/videos';
 
   // Images
-  static const String logo = '$baseImg/logo.jpg';
-  static const String appLogo = '$baseImg/logo.jpg';
+  static const String logo = 'karan gym logo.jpg';
+  static const String appLogo = 'karan gym logo.jpg';
 
   // Role Images
   static const String ownerImage = '$baseImg/owner.png';

@@ -154,6 +154,9 @@ dev_dependencies:
   json_serializable: ^6.11.0
   freezed: ^3.2.0
 
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
+
 # ==============================================================
 # FLUTTER
 # ==============================================================
@@ -164,10 +167,28 @@ flutter:
   # ============================================================
   # ASSETS
   # ============================================================
-
+  # Add asset directories only when they actually exist in the project.
   assets:
     - assets/
     - assets/images/
     - assets/icons/
     - assets/videos/
-    - .env
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/karan gym logo.jpg"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/karan gym logo.jpg"
+  adaptive_icon_foreground_inset: 24
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/karan gym logo.jpg
+  color_dark: "#FFFFFF"
+  image_dark: assets/images/karan gym logo.jpg
+  android: true
+  ios: true
+  android_gravity: center
+  fullscreen: true
