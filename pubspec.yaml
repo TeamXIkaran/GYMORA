@@ -177,17 +177,16 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/karan gym logo.jpg"
+  image_path: "assets/images/app_logo.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/karan gym logo.jpg"
-  adaptive_icon_foreground_inset: 24
+  adaptive_icon_foreground: "assets/images/app_logo.png"
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/karan gym logo.jpg
+  image: assets/images/splash_logo.png
   color_dark: "#FFFFFF"
-  image_dark: assets/images/karan gym logo.jpg
+  image_dark: assets/images/splash_logo.png
   android: true
   ios: true
   android_gravity: center
