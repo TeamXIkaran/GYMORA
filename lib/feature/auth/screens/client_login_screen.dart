@@ -1,6 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:karan_fitness/config/theme/app_colors.dart';
+import 'package:karan_fitness/feature/auth/providers/auth_provider.dart';
+import 'package:karan_fitness/mixins/login_mixins.dart';
+
+import 'package:provider/provider.dart';
 
 class ClientLoginScreen extends StatefulWidget {
   const ClientLoginScreen({super.key});
@@ -10,11 +15,9 @@ class ClientLoginScreen extends StatefulWidget {
 }
 
 class _ClientLoginScreenState extends State<ClientLoginScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, LoginMixin {
   // ── Theme color ──
   static const Color _accent = AppColors.clientPrimary;
-  static const Color _accentBright = AppColors.clientBright;
-  static const Color _accentDark = AppColors.clientDark;
 
   // ── State ──
   bool _obscurePassword = true;
@@ -42,7 +45,6 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
   late final Animation<double> _forgotOpacity;
   late final Animation<double> _ctaOpacity;
   late final Animation<double> _ctaSlide;
-  late final Animation<double> _socialOpacity;
 
   @override
   void initState() {
@@ -103,12 +105,6 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
         curve: const Interval(0.4, 0.7, curve: Curves.easeOut),
       ),
     );
-    _socialOpacity = Tween(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fieldsCtrl,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
-      ),
-    );
 
     _ctaCtrl = AnimationController(
       vsync: this,
@@ -166,6 +162,16 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     super.dispose();
   }
 
+  void _handleLogin() {
+    if (isSubmitting) return;
+    performLogin(
+      emailCtrl: _emailCtrl,
+      passwordCtrl: _passwordCtrl,
+      role: 'client',
+      successRoute: 'clientDashboard', // ← your route name
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,10 +224,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                       _buildForgotPassword(),
                       const SizedBox(height: 32),
                       _buildCTA(),
-                      const SizedBox(height: 28),
-                      _buildDivider(),
-                      const SizedBox(height: 24),
-                      _buildSocialRow(),
+
                       const SizedBox(height: 32),
                       _buildSignUpLink(),
                       const SizedBox(height: 20),
@@ -235,10 +238,6 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
       ),
     );
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // WIDGETS
-  // ════════════════════════════════════════════════════════════════
 
   Widget _buildGlowPulse() {
     return AnimatedBuilder(
@@ -428,6 +427,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
               prefixIcon: Icons.lock_outline_rounded,
               obscure: _obscurePassword,
               textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _handleLogin(),
               suffixIcon: GestureDetector(
                 onTap: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
@@ -454,7 +454,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
         child: Align(
           alignment: Alignment.centerRight,
           child: GestureDetector(
-            onTap: () {},
+            onTap: () {
+              context.pushNamed('forgetpassword');
+            },
             child: Text(
               "Forgot Password?",
               style: TextStyle(
@@ -471,104 +473,20 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
   }
 
   Widget _buildCTA() {
-    return AnimatedBuilder(
-      animation: _ctaCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _ctaOpacity.value,
-        child: Transform.translate(
-          offset: Offset(0, _ctaSlide.value),
-          child: _ClientShimmerButton(
-            shimmerCtrl: _shimmerCtrl,
-            label: "Sign In",
-            enabled: true,
-            onPressed: () {},
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return AnimatedBuilder(
-      animation: _fieldsCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _socialOpacity.value,
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: 0.12),
-                    ],
-                  ),
-                ),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return AnimatedBuilder(
+          animation: _ctaCtrl,
+          builder: (_, _) => Opacity(
+            opacity: _ctaOpacity.value,
+            child: Transform.translate(
+              offset: Offset(0, _ctaSlide.value),
+              child: _ClientShimmerButton(
+                shimmerCtrl: _shimmerCtrl,
+                label: auth.isLoading ? "Signing In..." : "Sign In",
+                enabled: !auth.isLoading && !isSubmitting,
+                onPressed: _handleLogin,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                "OR",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.12),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialRow() {
-    return AnimatedBuilder(
-      animation: _fieldsCtrl,
-      builder: (_, _) {
-        final opacity = _socialOpacity.value;
-        return Opacity(
-          opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, 15 * (1 - opacity)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ClientSocialButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  label: "Google",
-                  onTap: () {},
-                ),
-                const SizedBox(width: 16),
-                _ClientSocialButton(
-                  icon: Icons.apple_rounded,
-                  label: "Apple",
-                  onTap: () {},
-                ),
-                const SizedBox(width: 16),
-                _ClientSocialButton(
-                  icon: Icons.phone_android_rounded,
-                  label: "Phone",
-                  onTap: () {},
-                ),
-              ],
             ),
           ),
         );
@@ -581,35 +499,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
       animation: _ctaCtrl,
       builder: (_, _) => Opacity(
         opacity: _ctaOpacity.value,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account? ",
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            GestureDetector(
-              onTap: () {},
-              child: Text(
-                "Sign Up",
-                style: TextStyle(
-                  color: _accent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  shadows: [
-                    Shadow(
-                      color: _accent.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          
+            
           ],
         ),
       ),
@@ -618,8 +510,19 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
 }
 
 // ══════════════════════════════════════════════════════════════════
-// CLIENT GLASS TEXT FIELD
+// All private widgets below are identical to your original —
+// _ClientGlassTextField, _ClientShieldLogo, _ClientShieldPainter,
+// _ClientShimmerButton, _ClientParticlePainter, _Scanlines, _Vignette
+// Copy them from your original client_login_screen.dart unchanged.
 // ══════════════════════════════════════════════════════════════════
+
+// ── PASTE YOUR ORIGINAL PRIVATE WIDGETS HERE ──
+// _ClientGlassTextField + _ClientGlassTextFieldState
+// _ClientShieldLogo + _ClientShieldPainter
+// _ClientShimmerButton
+// _ClientParticlePainter + _ClientParticle
+// _Scanlines + _ScanlinePainter
+// _Vignette
 
 class _ClientGlassTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -745,57 +648,6 @@ class _ClientGlassTextFieldState extends State<_ClientGlassTextField> {
             horizontal: 16,
             vertical: 16,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// CLIENT SOCIAL BUTTON
-// ══════════════════════════════════════════════════════════════════
-
-class _ClientSocialButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ClientSocialButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 90,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 24),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:karan_fitness/config/routes/app_router.dart';
 import 'package:karan_fitness/feature/auth/screens/client_login_screen.dart';
+import 'package:karan_fitness/feature/auth/screens/forgot_password_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/owner_login_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/role_selection_screen.dart';
 
@@ -64,6 +65,13 @@ class AppRouter {
         name: 'clientLogin',
         builder: (context, state) {
           return const ClientLoginScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.forgetPasswordRoute,
+        name: 'forgetpassword',
+        builder: (context, state) {
+          return const ForgotPasswordScreen();
         },
       ),
     ],

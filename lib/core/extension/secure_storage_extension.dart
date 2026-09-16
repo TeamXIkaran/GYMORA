@@ -1,42 +1,24 @@
-import 'package:flutter/material.dart';
-import 'package:karan_fitness/core/service/secure_storage_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-extension SecureStorageExtensions on BuildContext {
-  SecureStorageService get _storage => SecureStorageService();
+class SecureStorageExtension {
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
-  Future<String?> getCurrentEmployeeId() async {
-    final userData = await _storage.getUserData();
-    return userData?['employeeId']?.toString();
+  static const String _tokenKey = 'auth_token';
+
+  Future<void> saveToken(String token) async {
+    await _storage.write(key: _tokenKey, value: token);
   }
 
-  Future<String?> getCurrentUsername() async {
-    final userData = await _storage.getUserData();
-    return userData?['username']?.toString();
+  Future<String?> getToken() async {
+    return await _storage.read(key: _tokenKey);
   }
 
-  Future<String?> getCurrentUserEmail() async {
-    final userData = await _storage.getUserData();
-    return userData?['email']?.toString();
+  Future<void> deleteToken() async {
+    await _storage.delete(key: _tokenKey);
   }
 
-  Future<String?> getCurrentUserRole() async {
-    final userData = await _storage.getUserData();
-    return userData?['role']?.toString().toLowerCase();
-  }
-
-  Future<Map<String, dynamic>?> getCurrentUserData() async {
-    return _storage.getUserData();
-  }
-
-  Future<bool> isOwner() async {
-    return await getCurrentUserRole() == 'owner';
-  }
-
-  Future<bool> isTrainer() async {
-    return await getCurrentUserRole() == 'trainer';
-  }
-
-  Future<bool> isClient() async {
-    return await getCurrentUserRole() == 'client';
+  Future<bool> hasToken() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
   }
 }

@@ -1,6 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:karan_fitness/config/theme/app_colors.dart';
+import 'package:karan_fitness/feature/auth/providers/auth_provider.dart';
+
+import 'package:karan_fitness/mixins/login_mixins.dart';
+
+import 'package:provider/provider.dart';
 
 class OwnerLoginScreen extends StatefulWidget {
   const OwnerLoginScreen({super.key});
@@ -10,7 +16,7 @@ class OwnerLoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<OwnerLoginScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, LoginMixin {
   // ── State ──
   bool _obscurePassword = true;
   final _emailCtrl = TextEditingController();
@@ -37,7 +43,6 @@ class _LoginScreenState extends State<OwnerLoginScreen>
   late final Animation<double> _forgotOpacity;
   late final Animation<double> _ctaOpacity;
   late final Animation<double> _ctaSlide;
-  late final Animation<double> _socialOpacity;
 
   @override
   void initState() {
@@ -47,7 +52,6 @@ class _LoginScreenState extends State<OwnerLoginScreen>
   }
 
   void _initAnimations() {
-    // ── Logo: 700ms ──
     _logoCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -63,7 +67,6 @@ class _LoginScreenState extends State<OwnerLoginScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
 
-    // ── Heading: 600ms ──
     _headingCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -78,7 +81,6 @@ class _LoginScreenState extends State<OwnerLoginScreen>
       CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
     );
 
-    // ── Fields: 1400ms (staggered) ──
     _fieldsCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -101,14 +103,7 @@ class _LoginScreenState extends State<OwnerLoginScreen>
         curve: const Interval(0.4, 0.7, curve: Curves.easeOut),
       ),
     );
-    _socialOpacity = Tween(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fieldsCtrl,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
-      ),
-    );
 
-    // ── CTA: 700ms ──
     _ctaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -122,19 +117,16 @@ class _LoginScreenState extends State<OwnerLoginScreen>
       end: 0.0,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOutCubic));
 
-    // ── Particles (continuous) ──
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
 
-    // ── Glow pulse (continuous) ──
     _glowPulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
     )..repeat(reverse: true);
 
-    // ── Button shimmer (continuous) ──
     _shimmerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -144,13 +136,10 @@ class _LoginScreenState extends State<OwnerLoginScreen>
   Future<void> _startSequence() async {
     await Future.delayed(const Duration(milliseconds: 200));
     _logoCtrl.forward();
-
     await Future.delayed(const Duration(milliseconds: 400));
     _headingCtrl.forward();
-
     await Future.delayed(const Duration(milliseconds: 300));
     _fieldsCtrl.forward();
-
     await Future.delayed(const Duration(milliseconds: 600));
     _ctaCtrl.forward();
   }
@@ -171,6 +160,16 @@ class _LoginScreenState extends State<OwnerLoginScreen>
     super.dispose();
   }
 
+  void _handleLogin() {
+    if (isSubmitting) return;
+    performLogin(
+      emailCtrl: _emailCtrl,
+      passwordCtrl: _passwordCtrl,
+      role: 'owner',
+      successRoute: 'ownerDashboard', // ← your route name
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,7 +180,6 @@ class _LoginScreenState extends State<OwnerLoginScreen>
         decoration: const BoxDecoration(gradient: AppColors.darkGradient),
         child: Stack(
           children: [
-            // ── Floating particles ──
             AnimatedBuilder(
               animation: _particleCtrl,
               builder: (_, _) => CustomPaint(
@@ -189,17 +187,9 @@ class _LoginScreenState extends State<OwnerLoginScreen>
                 painter: _ParticlePainter(_particleCtrl.value),
               ),
             ),
-
-            // ── Ambient glow behind logo ──
             _buildGlowPulse(),
-
-            // ── Scanlines overlay ──
             const _Scanlines(),
-
-            // ── Vignette ──
             const _Vignette(),
-
-            // ── Main content ──
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -219,55 +209,23 @@ class _LoginScreenState extends State<OwnerLoginScreen>
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.06,
                       ),
-
-                      // ── Shield Logo ──
                       _buildLogo(),
-
                       const SizedBox(height: 14),
-
-                      // ── Brand Name ──
                       _buildBrandText(),
-
                       const SizedBox(height: 40),
-
-                      // ── Heading ──
                       _buildHeading(),
-
                       const SizedBox(height: 32),
-
-                      // ── Email field ──
                       _buildEmailField(),
-
                       const SizedBox(height: 16),
-
-                      // ── Password field ──
                       _buildPasswordField(),
-
                       const SizedBox(height: 12),
-
-                      // ── Forgot password ──
                       _buildForgotPassword(),
-
                       const SizedBox(height: 32),
-
-                      // ── CTA ──
                       _buildCTA(),
 
-                      const SizedBox(height: 28),
-
-                      // ── Divider ──
-                      _buildDivider(),
-
                       const SizedBox(height: 24),
-
-                      // ── Social logins ──
-                      _buildSocialRow(),
-
                       const SizedBox(height: 32),
-
-                      // ── Sign up link ──
                       _buildSignUpLink(),
-
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -456,6 +414,7 @@ class _LoginScreenState extends State<OwnerLoginScreen>
               prefixIcon: Icons.lock_outline_rounded,
               obscure: _obscurePassword,
               textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _handleLogin(),
               suffixIcon: GestureDetector(
                 onTap: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
@@ -483,7 +442,7 @@ class _LoginScreenState extends State<OwnerLoginScreen>
           alignment: Alignment.centerRight,
           child: GestureDetector(
             onTap: () {
-              // Navigate to forgot password
+              context.pushNamed('forgetpassword');
             },
             child: Text(
               "Forgot Password?",
@@ -501,106 +460,20 @@ class _LoginScreenState extends State<OwnerLoginScreen>
   }
 
   Widget _buildCTA() {
-    return AnimatedBuilder(
-      animation: _ctaCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _ctaOpacity.value,
-        child: Transform.translate(
-          offset: Offset(0, _ctaSlide.value),
-          child: _ShimmerButton(
-            shimmerCtrl: _shimmerCtrl,
-            label: "Sign In",
-            enabled: true,
-            onPressed: () {
-              // Handle login
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return AnimatedBuilder(
-      animation: _fieldsCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _socialOpacity.value,
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: 0.12),
-                    ],
-                  ),
-                ),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return AnimatedBuilder(
+          animation: _ctaCtrl,
+          builder: (_, _) => Opacity(
+            opacity: _ctaOpacity.value,
+            child: Transform.translate(
+              offset: Offset(0, _ctaSlide.value),
+              child: _ShimmerButton(
+                shimmerCtrl: _shimmerCtrl,
+                label: auth.isLoading ? "Signing In..." : "Sign In",
+                enabled: !auth.isLoading && !isSubmitting,
+                onPressed: _handleLogin,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                "OR",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.12),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialRow() {
-    return AnimatedBuilder(
-      animation: _fieldsCtrl,
-      builder: (_, _) {
-        final opacity = _socialOpacity.value;
-        return Opacity(
-          opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, 15 * (1 - opacity)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _SocialButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  label: "Google",
-                  onTap: () {},
-                ),
-                const SizedBox(width: 16),
-                _SocialButton(
-                  icon: Icons.apple_rounded,
-                  label: "Apple",
-                  onTap: () {},
-                ),
-                const SizedBox(width: 16),
-                _SocialButton(
-                  icon: Icons.phone_android_rounded,
-                  label: "Phone",
-                  onTap: () {},
-                ),
-              ],
             ),
           ),
         );
@@ -613,39 +486,10 @@ class _LoginScreenState extends State<OwnerLoginScreen>
       animation: _ctaCtrl,
       builder: (_, _) => Opacity(
         opacity: _ctaOpacity.value,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account? ",
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                // Navigate to sign up
-              },
-              child: Text(
-                "Sign Up",
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  shadows: [
-                    Shadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                    ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          
                   ],
                 ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -785,58 +629,7 @@ class _GlassTextFieldState extends State<_GlassTextField> {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// SOCIAL LOGIN BUTTON
-// ══════════════════════════════════════════════════════════════════
-
-class _SocialButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 90,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 24),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// SHIELD LOGO (reused from role selection)
+// SHIELD LOGO
 // ══════════════════════════════════════════════════════════════════
 
 class _ShieldLogo extends StatelessWidget {
@@ -1177,7 +970,7 @@ class _Particle {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// SCANLINES
+// SCANLINES & VIGNETTE
 // ══════════════════════════════════════════════════════════════════
 
 class _Scanlines extends StatelessWidget {
@@ -1208,10 +1001,6 @@ class _ScanlinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
-// ══════════════════════════════════════════════════════════════════
-// VIGNETTE
-// ══════════════════════════════════════════════════════════════════
 
 class _Vignette extends StatelessWidget {
   const _Vignette();

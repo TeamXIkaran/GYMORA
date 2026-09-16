@@ -618,25 +618,7 @@ class _SplashScreenState extends State<SplashScreen>
                   context.pushNamed('role-selection');
                 },
               ),
-              const SizedBox(height: 16),
-              Text(
-                "Already a member?",
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 4),
-              GestureDetector(
-                onTap: () {
-                  // Navigate to sign in
-                },
-                child: const Text(
-                  "Sign In",
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 10),
             ],
           ),
         ),
