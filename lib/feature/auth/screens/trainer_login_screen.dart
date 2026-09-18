@@ -1,6 +1,7 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:karan_fitness/config/theme/app_colors.dart';
 import 'package:karan_fitness/feature/auth/providers/auth_provider.dart';
 import 'package:karan_fitness/mixins/login_mixins.dart';
@@ -21,8 +22,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
 
   // ── State ──
   bool _obscurePassword = true;
+
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
@@ -38,97 +41,113 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
   // ── Animations ──
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
+
   late final Animation<double> _headingOpacity;
   late final Animation<double> _headingSlide;
+
   late final Animation<double> _field1Opacity;
   late final Animation<double> _field2Opacity;
-  late final Animation<double> _forgotOpacity;
+
   late final Animation<double> _ctaOpacity;
   late final Animation<double> _ctaSlide;
 
   @override
   void initState() {
     super.initState();
+
     _initAnimations();
     _startSequence();
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // ANIMATIONS
+  // ══════════════════════════════════════════════════════════════════════
+
   void _initAnimations() {
+    // ── Logo ──
     _logoCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _logoOpacity = Tween(begin: 0.0, end: 1.0).animate(
+
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _logoCtrl,
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _logoScale = Tween(
+
+    _logoScale = Tween<double>(
       begin: 0.6,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
 
+    // ── Heading ──
     _headingCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _headingOpacity = Tween(begin: 0.0, end: 1.0).animate(
+
+    _headingOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _headingCtrl,
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _headingSlide = Tween(begin: 20.0, end: 0.0).animate(
+
+    _headingSlide = Tween<double>(begin: 20.0, end: 0.0).animate(
       CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
     );
 
+    // ── Fields ──
     _fieldsCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    _field1Opacity = Tween(begin: 0.0, end: 1.0).animate(
+
+    _field1Opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
         curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
       ),
     );
-    _field2Opacity = Tween(begin: 0.0, end: 1.0).animate(
+
+    _field2Opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
         curve: const Interval(0.2, 0.55, curve: Curves.easeOut),
       ),
     );
-    _forgotOpacity = Tween(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fieldsCtrl,
-        curve: const Interval(0.4, 0.7, curve: Curves.easeOut),
-      ),
-    );
 
+    // ── CTA ──
     _ctaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _ctaOpacity = Tween(
+
+    _ctaOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOut));
-    _ctaSlide = Tween(
+
+    _ctaSlide = Tween<double>(
       begin: 30.0,
       end: 0.0,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOutCubic));
 
+    // ── Particles ──
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
 
+    // ── Glow ──
     _glowPulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
     )..repeat(reverse: true);
 
+    // ── Shimmer ──
     _shimmerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2500),
@@ -137,14 +156,25 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
 
   Future<void> _startSequence() async {
     await Future.delayed(const Duration(milliseconds: 200));
+
     _logoCtrl.forward();
+
     await Future.delayed(const Duration(milliseconds: 400));
+
     _headingCtrl.forward();
+
     await Future.delayed(const Duration(milliseconds: 300));
+
     _fieldsCtrl.forward();
+
     await Future.delayed(const Duration(milliseconds: 600));
+
     _ctaCtrl.forward();
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // DISPOSE
+  // ══════════════════════════════════════════════════════════════════════
 
   @override
   void dispose() {
@@ -155,22 +185,34 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     _particleCtrl.dispose();
     _glowPulseCtrl.dispose();
     _shimmerCtrl.dispose();
+
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+
     _emailFocus.dispose();
     _passwordFocus.dispose();
+
     super.dispose();
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // LOGIN
+  // ══════════════════════════════════════════════════════════════════════
+
   void _handleLogin() {
     if (isSubmitting) return;
+
     performLogin(
       emailCtrl: _emailCtrl,
       passwordCtrl: _passwordCtrl,
       role: 'trainer',
-      successRoute: 'trainerDashboard', // ← your route name
+      successRoute: 'trainerDashboard',
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ══════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -182,6 +224,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         decoration: const BoxDecoration(gradient: AppColors.darkGradient),
         child: Stack(
           children: [
+            // ── Particles ──
             AnimatedBuilder(
               animation: _particleCtrl,
               builder: (_, _) => CustomPaint(
@@ -189,9 +232,16 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                 painter: _TrainerParticlePainter(_particleCtrl.value),
               ),
             ),
+
+            // ── Glow ──
             _buildGlowPulse(),
+
+            // ── Scanlines ──
             const _Scanlines(),
+
+            // ── Vignette ──
             const _Vignette(),
+
             SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -211,22 +261,40 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.06,
                       ),
+
+                      // Logo
                       _buildLogo(),
+
                       const SizedBox(height: 14),
+
+                      // Brand
                       _buildBrandText(),
+
                       const SizedBox(height: 40),
+
+                      // Heading
                       _buildHeading(),
-                      const SizedBox(height: 32),
-                      _buildEmailField(),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(),
-                      const SizedBox(height: 12),
-                      _buildForgotPassword(),
-                      const SizedBox(height: 32),
-                      _buildCTA(),
 
                       const SizedBox(height: 32),
+
+                      // Gym ID
+                      _buildEmailField(),
+
+                      const SizedBox(height: 16),
+
+                      // Password
+                      _buildPasswordField(),
+
+                      const SizedBox(height: 12),
+
+                      // Sign In
+                      _buildCTA(),
+
+                      const SizedBox(height: 28),
+
+                      // Owner access
                       _buildSignUpLink(),
+
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -238,6 +306,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       ),
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // GLOW
+  // ══════════════════════════════════════════════════════════════════════
 
   Widget _buildGlowPulse() {
     return AnimatedBuilder(
@@ -273,6 +345,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // LOGO
+  // ══════════════════════════════════════════════════════════════════════
+
   Widget _buildLogo() {
     return AnimatedBuilder(
       animation: _logoCtrl,
@@ -280,9 +356,13 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         opacity: _logoOpacity.value,
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
-      child: _TrainerShieldLogo(size: 72),
+      child: const _TrainerShieldLogo(size: 72),
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // BRAND
+  // ══════════════════════════════════════════════════════════════════════
 
   Widget _buildBrandText() {
     return AnimatedBuilder(
@@ -320,7 +400,9 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
               ),
             ],
           ),
+
           const SizedBox(height: 2),
+
           Text(
             "FITNESS",
             style: TextStyle(
@@ -334,6 +416,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       ),
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // HEADING
+  // ══════════════════════════════════════════════════════════════════════
 
   Widget _buildHeading() {
     return AnimatedBuilder(
@@ -354,7 +440,9 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                   letterSpacing: 0.5,
                 ),
               ),
+
               const SizedBox(height: 4),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -370,9 +458,12 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                   const Text("💪", style: TextStyle(fontSize: 22)),
                 ],
               ),
+
               const SizedBox(height: 8),
+
               Text(
                 "Track your clients, workouts and progress.",
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -386,11 +477,16 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // GYM ID
+  // ══════════════════════════════════════════════════════════════════════
+
   Widget _buildEmailField() {
     return AnimatedBuilder(
       animation: _fieldsCtrl,
       builder: (_, _) {
         final opacity = _field1Opacity.value;
+
         return Opacity(
           opacity: opacity,
           child: Transform.translate(
@@ -398,12 +494,13 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
             child: _TrainerGlassTextField(
               controller: _emailCtrl,
               focusNode: _emailFocus,
-              hint: "Email or Phone",
-              prefixIcon: Icons.email_outlined,
+              hint: "Gym ID",
+              prefixIcon: Icons.api,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
-              onSubmitted: (_) =>
-                  FocusScope.of(context).requestFocus(_passwordFocus),
+              onSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocus);
+              },
             ),
           ),
         );
@@ -411,11 +508,16 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // PASSWORD
+  // ══════════════════════════════════════════════════════════════════════
+
   Widget _buildPasswordField() {
     return AnimatedBuilder(
       animation: _fieldsCtrl,
       builder: (_, _) {
         final opacity = _field2Opacity.value;
+
         return Opacity(
           opacity: opacity,
           child: Transform.translate(
@@ -429,8 +531,11 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _handleLogin(),
               suffixIcon: GestureDetector(
-                onTap: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                onTap: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
                 child: Icon(
                   _obscurePassword
                       ? Icons.visibility_off_rounded
@@ -446,31 +551,9 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     );
   }
 
-  Widget _buildForgotPassword() {
-    return AnimatedBuilder(
-      animation: _fieldsCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _forgotOpacity.value,
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            onTap: () {
-              context.pushNamed('forgetpassword');
-            },
-            child: Text(
-              "Forgot Password?",
-              style: TextStyle(
-                color: _accent.withValues(alpha: 0.85),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // ══════════════════════════════════════════════════════════════════════
+  // CTA
+  // ══════════════════════════════════════════════════════════════════════
 
   Widget _buildCTA() {
     return Consumer<AuthProvider>(
@@ -494,38 +577,219 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // GET GYM ID FROM OWNER
+  // ══════════════════════════════════════════════════════════════════════
+
   Widget _buildSignUpLink() {
     return AnimatedBuilder(
       animation: _ctaCtrl,
       builder: (_, _) => Opacity(
         opacity: _ctaOpacity.value,
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          
-            
-        ]
-        
-    
+        child: Column(
+          children: [
+            Text(
+              "Don't have Gym ID & Password?",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+
+            const SizedBox(height: 7),
+
+            GestureDetector(
+              onTap: _showOwnerInfoDialog,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings_outlined,
+                    color: _accent,
+                    size: 18,
+                  ),
+
+                  const SizedBox(width: 6),
+
+                  Text(
+                    "Get it from Gym Owner",
+                    style: TextStyle(
+                      color: _accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+
+                  const SizedBox(width: 4),
+
+                  Icon(Icons.arrow_forward_rounded, color: _accent, size: 16),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // OWNER INFO DIALOG
+  // ══════════════════════════════════════════════════════════════════════
+
+  void _showOwnerInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF081521),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: _accent.withValues(alpha: 0.25),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withValues(alpha: 0.15),
+                  blurRadius: 30,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _accent.withValues(alpha: 0.12),
+                    border: Border.all(color: _accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: _accent,
+                    size: 31,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Title
+                const Text(
+                  "Gym Access Required",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Description
+                Text(
+                  "Your Gym ID and Password are provided "
+                  "by your gym owner or administrator.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                    height: 1.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Info box
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.035),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.07),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: _accent,
+                        size: 19,
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: Text(
+                          "Ask your gym owner to create your "
+                          "trainer account and share your login "
+                          "credentials with you.",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 12,
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Got it button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      "GOT IT",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// All private widgets below are identical to your original —
-// _TrainerGlassTextField, _TrainerShieldLogo, _TrainerShieldPainter,
-// _TrainerShimmerButton, _TrainerParticlePainter, _Scanlines, _Vignette
-// Copy them from your original trainer_login_screen.dart unchanged.
-// They are omitted here to keep this file focused on the auth changes.
-// ══════════════════════════════════════════════════════════════════
-
-// ── PASTE YOUR ORIGINAL PRIVATE WIDGETS HERE ──
-// _TrainerGlassTextField + _TrainerGlassTextFieldState
-// _TrainerShieldLogo + _TrainerShieldPainter
-// _TrainerShimmerButton
-// _TrainerParticlePainter + _TrainerParticle
-// _Scanlines + _ScanlinePainter
-// _Vignette
+// ═══════════════════════════════════════════════════════════════════════════
+// GLASS TEXT FIELD
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _TrainerGlassTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -556,21 +820,28 @@ class _TrainerGlassTextField extends StatefulWidget {
 
 class _TrainerGlassTextFieldState extends State<_TrainerGlassTextField> {
   static const Color _accent = AppColors.trainerPrimary;
+
   bool _isFocused = false;
 
   @override
   void initState() {
     super.initState();
+
     widget.focusNode.addListener(_onFocusChange);
   }
 
   void _onFocusChange() {
-    setState(() => _isFocused = widget.focusNode.hasFocus);
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
   }
 
   @override
   void dispose() {
     widget.focusNode.removeListener(_onFocusChange);
+
     super.dispose();
   }
 
@@ -657,12 +928,13 @@ class _TrainerGlassTextFieldState extends State<_TrainerGlassTextField> {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// TRAINER SHIELD LOGO — Orange/Yellow themed
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAINER SHIELD LOGO
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _TrainerShieldLogo extends StatelessWidget {
   final double size;
+
   const _TrainerShieldLogo({required this.size});
 
   @override
@@ -694,6 +966,7 @@ class _TrainerShieldPainter extends CustomPainter {
     final h = size.height;
     final cx = w / 2;
 
+    // Outer shield
     final outerPath = Path()
       ..moveTo(cx, h * 0.03)
       ..lineTo(w * 0.93, h * 0.22)
@@ -703,14 +976,14 @@ class _TrainerShieldPainter extends CustomPainter {
       ..lineTo(w * 0.07, h * 0.22)
       ..close();
 
-    // Orange/amber gradient
     final outerGrad = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [const Color(0xFFEE9D2D), const Color(0xFF6B4A0F)],
+      colors: const [Color(0xFFEE9D2D), Color(0xFF6B4A0F)],
     ).createShader(Rect.fromLTWH(0, 0, w, h));
 
     canvas.drawPath(outerPath, Paint()..shader = outerGrad);
+
     canvas.drawPath(
       outerPath,
       Paint()
@@ -719,6 +992,7 @@ class _TrainerShieldPainter extends CustomPainter {
         ..color = Colors.white.withValues(alpha: 0.12),
     );
 
+    // Inner shield
     final innerPath = Path()
       ..moveTo(cx, h * 0.09)
       ..lineTo(w * 0.86, h * 0.26)
@@ -731,10 +1005,11 @@ class _TrainerShieldPainter extends CustomPainter {
     final innerGrad = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [const Color(0xFF2A1A08), const Color(0xFF120A03)],
+      colors: const [Color(0xFF2A1A08), Color(0xFF120A03)],
     ).createShader(Rect.fromLTWH(0, 0, w, h));
 
     canvas.drawPath(innerPath, Paint()..shader = innerGrad);
+
     canvas.drawPath(
       innerPath,
       Paint()
@@ -743,14 +1018,11 @@ class _TrainerShieldPainter extends CustomPainter {
         ..color = AppColors.trainerPrimary.withValues(alpha: 0.25),
     );
 
+    // Metal gradient
     final metalGrad = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [
-        const Color(0xFFEEEEEE),
-        const Color(0xFF999999),
-        const Color(0xFFCCCCCC),
-      ],
+      colors: const [Color(0xFFEEEEEE), Color(0xFF999999), Color(0xFFCCCCCC)],
     ).createShader(Rect.fromLTWH(w * 0.3, h * 0.3, w * 0.4, h * 0.4));
 
     // K letter
@@ -774,9 +1046,10 @@ class _TrainerShieldPainter extends CustomPainter {
         ..shader = metalGrad
         ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 3),
     );
+
     canvas.drawPath(kPath, Paint()..shader = metalGrad);
 
-    // Heartbeat line — orange accent
+    // Heartbeat line
     final hbPaint = Paint()
       ..color = AppColors.trainerPrimary.withValues(alpha: 0.45)
       ..strokeWidth = 1.5
@@ -808,6 +1081,7 @@ class _TrainerShieldPainter extends CustomPainter {
       ),
       dbPaint,
     );
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(w * 0.21, h * 0.49, w * 0.08, h * 0.05),
@@ -815,6 +1089,7 @@ class _TrainerShieldPainter extends CustomPainter {
       ),
       dbPaint,
     );
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(w * 0.79, h * 0.47, w * 0.06, h * 0.09),
@@ -822,6 +1097,7 @@ class _TrainerShieldPainter extends CustomPainter {
       ),
       dbPaint,
     );
+
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(w * 0.71, h * 0.49, w * 0.08, h * 0.05),
@@ -832,12 +1108,14 @@ class _TrainerShieldPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// TRAINER SHIMMER CTA — Orange/Yellow gradient
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAINER SHIMMER BUTTON
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _TrainerShimmerButton extends StatelessWidget {
   final AnimationController shimmerCtrl;
@@ -884,6 +1162,7 @@ class _TrainerShimmerButton extends StatelessWidget {
                   animation: shimmerCtrl,
                   builder: (_, _) {
                     final dx = (shimmerCtrl.value * 3 - 1);
+
                     return Positioned.fill(
                       child: FractionallySizedBox(
                         alignment: Alignment(dx, 0),
@@ -903,6 +1182,7 @@ class _TrainerShimmerButton extends StatelessWidget {
                     );
                   },
                 ),
+
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -922,7 +1202,9 @@ class _TrainerShimmerButton extends StatelessWidget {
                             letterSpacing: 1.5,
                           ),
                         ),
+
                         const SizedBox(width: 10),
+
                         const Icon(
                           Icons.arrow_forward_rounded,
                           color: Color(0xFF1A0F00),
@@ -941,9 +1223,9 @@ class _TrainerShimmerButton extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// TRAINER PARTICLES — Orange/Yellow
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAINER PARTICLES
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _TrainerParticlePainter extends CustomPainter {
   final double time;
@@ -958,10 +1240,13 @@ class _TrainerParticlePainter extends CustomPainter {
       final x =
           (p.baseX * size.width + sin(time * 2 * pi + p.phase) * 12) %
           size.width;
+
       final rawY = p.baseY * size.height - (time * size.height * p.speed);
+
       final y = rawY % size.height;
 
-      final lifeFrac = (y / size.height);
+      final lifeFrac = y / size.height;
+
       final opacity = p.opacity * lifeFrac;
 
       final paint = Paint()
@@ -978,7 +1263,9 @@ class _TrainerParticlePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TrainerParticlePainter old) => true;
+  bool shouldRepaint(covariant _TrainerParticlePainter old) {
+    return true;
+  }
 }
 
 class _TrainerParticle {
@@ -992,6 +1279,7 @@ class _TrainerParticle {
 
   _TrainerParticle(int seed) {
     final r = Random(seed * 17 + 42);
+
     baseX = r.nextDouble();
     baseY = r.nextDouble();
     speed = r.nextDouble() * 0.4 + 0.1;
@@ -1002,9 +1290,9 @@ class _TrainerParticle {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// SCANLINES & VIGNETTE (shared)
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// SCANLINES
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _Scanlines extends StatelessWidget {
   const _Scanlines();
@@ -1026,14 +1314,21 @@ class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.black;
+
     for (double y = 0; y < size.height; y += 4) {
       canvas.drawRect(Rect.fromLTWH(0, y, size.width, 2), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIGNETTE
+// ═══════════════════════════════════════════════════════════════════════════
 
 class _Vignette extends StatelessWidget {
   const _Vignette();

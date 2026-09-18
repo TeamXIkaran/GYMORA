@@ -22,12 +22,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-
-      title: 'GYMO Fitness',
-
+      title: 'Karan Fitness',
       theme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
-
       routerConfig: AppRouter.router,
     );
   }

@@ -4,10 +4,19 @@ import 'package:karan_fitness/config/routes/app_router.dart';
 import 'package:karan_fitness/feature/auth/screens/client_login_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/forgot_password_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/owner_login_screen.dart';
+import 'package:karan_fitness/feature/auth/screens/purchase_membership_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/role_selection_screen.dart';
 
 import 'package:karan_fitness/feature/auth/screens/splash_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/trainer_login_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/member_ship_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/owner_dashboard_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/owner_members_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/owner_notification_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/owner_settings_screen.dart';
+import 'package:karan_fitness/feature/owner/screens/owner_trainers_screen.dart';
+import 'package:karan_fitness/feature/trainer/screens/trainer_clients_screen.dart';
+import 'package:karan_fitness/feature/trainer/screens/trainer_dashboard_screen.dart';
 
 // Global Key for Contextless Navigation
 // Useful for session expiry, push notifications, etc.
@@ -36,14 +45,7 @@ class AppRouter {
           return const RoleSelectionScreen();
         },
       ),
-      GoRoute(
-        path: AppRoutes.roleSelectionRoute,
-        name: 'roleSelection',
-        builder: (context, state) {
-          return const RoleSelectionScreen();
-        },
-      ),
-
+      // Auth Screens
       GoRoute(
         path: AppRoutes.ownerloginRoute,
         name: 'ownerLogin',
@@ -72,6 +74,72 @@ class AppRouter {
         name: 'forgetpassword',
         builder: (context, state) {
           return const ForgotPasswordScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.purchaseMemberShipRoute,
+        name: 'purchaseMembership',
+        builder: (context, state) {
+          return const PurchaseMembershipScreen();
+        },
+      ),
+      // Owner Screens
+      GoRoute(
+        path: AppRoutes.ownerDashboardRoute,
+        name: 'ownerDashboard',
+        builder: (context, state) {
+          return const OwnerDashboardScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerMemberRoute,
+        name: 'ownerMemberScreen',
+        builder: (context, state) {
+          return const OwnerMembersScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerTrainerRoute,
+        name: 'ownerTrainerScreen',
+        builder: (context, state) {
+          return const OwnerTrainersScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.memberShipRoute,
+        name: 'memberShipScreen',
+        builder: (context, state) {
+          return const MemberShipScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerSettingRoute,
+        name: 'onwerSettingScreen',
+        builder: (context, state) {
+          return const OwnerSettingsScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerNotificationRoute,
+        name: 'onwerNotificationScreen',
+        builder: (context, state) {
+          return const OwnerNotificationScreen();
+        },
+      ),
+
+      // Trainer Screens
+      GoRoute(
+        path: AppRoutes.trainerDashboardRoute,
+        name: 'trainerDashboardScreen',
+        builder: (context, state) {
+          return const TrainerDashboardScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerClientRoute,
+        name: 'trainerClientScreen',
+        builder: (context, state) {
+          return const TrainerClientsScreen();
         },
       ),
     ],

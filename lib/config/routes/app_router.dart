@@ -8,9 +8,17 @@ class AppRoutes {
   static const String trainerloginRoute = '/trainer-login';
   static const String clientloginRoute = '/client-login';
   static const String forgetPasswordRoute = '/forget-password';
+  static const String purchaseMemberShipRoute = '/purchase-membership';
 
-  // Dashboard Routes
+  // Owner Routes
   static const String ownerDashboardRoute = '/owner-dashboard';
+  static const String ownerMemberRoute = '/owner-member';
+  static const String ownerTrainerRoute = '/owner-trainer';
+  static const String memberShipRoute = '/member-ship';
+  static const String ownerSettingRoute = '/onwer-setting';
+  static const String ownerNotificationRoute = '/onwer-notification';
+
+  // Trainer Routes
   static const String trainerDashboardRoute = '/trainer-dashboard';
-  static const String clientDashboardRoute = '/client-dashboard';
+  static const String trainerClientRoute = '/trainer-client';
 }
