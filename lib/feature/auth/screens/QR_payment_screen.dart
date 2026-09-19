@@ -2,9 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
 
-import 'package:karan_fitness/config/theme/app_colors.dart';
-import 'package:karan_fitness/feature/auth/widgets/gradient_button_widget.dart';
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLAN MODEL

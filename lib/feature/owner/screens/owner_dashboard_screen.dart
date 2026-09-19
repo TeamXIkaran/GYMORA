@@ -2,10 +2,11 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:karan_fitness/config/theme/app_colors.dart';
-import 'package:karan_fitness/feature/owner/screens/member_ship_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_members_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_trainers_screen.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
+
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});

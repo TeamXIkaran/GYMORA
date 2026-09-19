@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
-import 'package:karan_fitness/config/theme/app_colors.dart';
 
 /// Frosted-glass styled text field with focus-aware accent coloring.
 class GlassTextField extends StatefulWidget {

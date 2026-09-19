@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:karan_fitness/config/routes/app_router.dart';
-import 'package:karan_fitness/feature/auth/screens/QR_payment_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/client_login_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/forgot_password_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/gym_details_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/owner_login_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/purchase_membership_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/role_selection_screen.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/QR_payment_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/client_login_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/forgot_password_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/gym_details_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/owner_login_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/purchase_membership_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/role_selection_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_dashboard_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_notification_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_settings_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_dashboard_screen.dart';
 
-import 'package:karan_fitness/feature/auth/screens/splash_screen.dart';
-import 'package:karan_fitness/feature/auth/screens/trainer_login_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/member_ship_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_dashboard_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_members_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_notification_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_settings_screen.dart';
-import 'package:karan_fitness/feature/owner/screens/owner_trainers_screen.dart';
-import 'package:karan_fitness/feature/trainer/screens/trainer_clients_screen.dart';
-import 'package:karan_fitness/feature/trainer/screens/trainer_dashboard_screen.dart';
 
 // Global Key for Contextless Navigation
 // Useful for session expiry, push notifications, etc.

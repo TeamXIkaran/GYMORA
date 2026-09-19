@@ -5,8 +5,8 @@ class AppConstants {
   // APP INFORMATION
   // ============================================================
 
-  static const String appName = 'GYMO Fitness';
-  static const String appShortName = 'GYMO';
+  static const String appName = 'GYMORA FITNESS MANAGEMENT';
+  static const String appShortName = 'GYMORA';
   static const String appTagline = 'STRONGER TOGETHER';
   static const String appVersion = '1.0.0';
 

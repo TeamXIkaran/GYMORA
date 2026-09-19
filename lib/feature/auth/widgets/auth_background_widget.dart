@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/Vignette_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/particle_painter_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/scan_line_widget.dart';
 
-import 'package:karan_fitness/config/theme/app_colors.dart';
-import 'package:karan_fitness/feature/auth/widgets/Vignette_widget.dart';
-import 'package:karan_fitness/feature/auth/widgets/particle_painter_widget.dart';
-import 'package:karan_fitness/feature/auth/widgets/scan_line_widget.dart';
 
 
 /// Standard dark background stack used by every auth screen.

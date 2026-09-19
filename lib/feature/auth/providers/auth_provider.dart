@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:karan_fitness/core/api/network/auth_service.dart';
-import 'package:karan_fitness/core/extension/secure_storage_extension.dart';
-import 'package:karan_fitness/core/model/user_model.dart';
+import 'package:gymora_fitness_management/core/api/network/auth_service.dart';
+import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
+import 'package:gymora_fitness_management/core/model/user_model.dart';
+
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 

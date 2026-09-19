@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
-import 'package:karan_fitness/config/theme/app_colors.dart';
+
 
 /// "KARAN FITNESS" brand wordmark with the "K" highlighted in [accentColor].
 class BrandText extends StatelessWidget {

@@ -2,12 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/ShieldLogo_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/brand_text_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
 
-import 'package:karan_fitness/config/theme/app_colors.dart';
-import 'package:karan_fitness/feature/auth/widgets/ShieldLogo_widget.dart';
-import 'package:karan_fitness/feature/auth/widgets/auth_background_widget.dart';
-import 'package:karan_fitness/feature/auth/widgets/brand_text_widget.dart';
-import 'package:karan_fitness/feature/auth/widgets/shimmer_button_widget.dart';
 
 class _RoleOption {
   final String key;

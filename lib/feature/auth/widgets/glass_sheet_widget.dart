@@ -1,7 +1,8 @@
 // ── Reusable Private Widgets ──
 
 import 'package:flutter/material.dart';
-import 'package:karan_fitness/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+
 
 class GlassSheet extends StatelessWidget {
   final Widget child;

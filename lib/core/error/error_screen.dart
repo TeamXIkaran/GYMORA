@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/constants/app_constants.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
-import 'package:karan_fitness/config/constants/app_constants.dart';
-import 'package:karan_fitness/config/routes/app_router.dart';
-import 'package:karan_fitness/config/theme/app_colors.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String error;

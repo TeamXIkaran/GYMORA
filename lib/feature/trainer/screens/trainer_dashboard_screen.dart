@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:karan_fitness/config/theme/app_colors.dart';
-import 'package:karan_fitness/feature/trainer/screens/trainer_clients_screen.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
+
 
 class TrainerDashboardScreen extends StatefulWidget {
   const TrainerDashboardScreen({super.key});

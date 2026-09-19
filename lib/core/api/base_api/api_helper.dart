@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
+import 'package:gymora_fitness_management/core/error/app_exception.dart';
+import 'package:gymora_fitness_management/core/service/logger_service.dart';
+import 'package:gymora_fitness_management/core/service/secure_storage_service.dart';
+import 'package:gymora_fitness_management/core/service/session_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:karan_fitness/core/api/base_api/api_response.dart';
-import 'package:karan_fitness/core/error/app_exception.dart';
-import 'package:karan_fitness/core/service/logger_service.dart';
-import 'package:karan_fitness/core/service/secure_storage_service.dart';
-import 'package:karan_fitness/core/service/session_manager.dart';
+
 
 class ApiHelper {
   static const String _defaultBaseUrl =

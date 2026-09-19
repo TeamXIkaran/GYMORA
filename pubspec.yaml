@@ -1,5 +1,5 @@
-name: karan_fitness
-description: "GYMO - Gym Management & Fitness App"
+name: gymora_fitness_management
+description: "GYMORA FITNESS MANAGEMENT is a comprehensive fitness management application designed to help users achieve their health and wellness goals. With features such as workout tracking, nutrition planning, and progress monitoring, GYMORA provides a holistic approach to fitness. Whether you're a beginner or an experienced athlete, GYMORA offers personalized guidance and support to help you stay motivated and reach your full potential. "
 publish_to: "none"
 
 version: 1.0.0+1
@@ -177,17 +177,22 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_logo.png"
+  image_path: "assets/images/gym_logo.png"
   remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/app_logo.png"
+  adaptive_icon_foreground: "assets/images/gym_logo.png"
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/splash_logo.png
+  image: assets/images/gym_logo.png
+
   color_dark: "#FFFFFF"
-  image_dark: assets/images/splash_logo.png
+  image_dark: assets/images/gym_logo.png
+
   android: true
   ios: true
+
   android_gravity: center
+  ios_content_mode: center
+
   fullscreen: true

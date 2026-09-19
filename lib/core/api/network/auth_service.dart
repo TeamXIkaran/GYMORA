@@ -1,6 +1,8 @@
-import 'package:karan_fitness/core/api/base_api/api_helper.dart';
-import 'package:karan_fitness/core/api/base_api/api_response.dart';
-import 'package:karan_fitness/core/model/user_model.dart';
+
+
+import 'package:gymora_fitness_management/core/api/base_api/api_helper.dart';
+import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
+import 'package:gymora_fitness_management/core/model/user_model.dart';
 
 class AuthService {
   final ApiHelper _api;

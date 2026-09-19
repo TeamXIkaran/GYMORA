@@ -1,5 +1,6 @@
 
-import 'package:karan_fitness/config/constants/app_constants.dart';
+
+import 'package:gymora_fitness_management/config/constants/app_constants.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter/foundation.dart';
 

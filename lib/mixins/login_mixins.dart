@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:karan_fitness/feature/auth/providers/auth_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
+
 
 import 'package:provider/provider.dart';
 

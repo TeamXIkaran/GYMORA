@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:karan_fitness/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+
 
 class OwnerNotificationScreen extends StatelessWidget {
   const OwnerNotificationScreen({super.key});
