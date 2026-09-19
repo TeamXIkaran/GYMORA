@@ -48,7 +48,7 @@ class GlassTextField extends StatefulWidget {
     this.validator,
     this.prefixText,
     this.textCapitalization = TextCapitalization.none,
-    this.inputFormatters,
+    this.inputFormatters, 
   });
 
   @override

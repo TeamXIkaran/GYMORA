@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/ShieldLogo_widget.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/brand_text_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
-import 'package:gymora_fitness_management/mixins/login_mixins.dart';
 
 
 import 'package:provider/provider.dart';
@@ -20,17 +17,14 @@ class OwnerLoginScreen extends StatefulWidget {
 }
 
 class _OwnerLoginScreenState extends State<OwnerLoginScreen>
-    with TickerProviderStateMixin, LoginMixin {
+    with TickerProviderStateMixin {
   // ── Theme color ──
   static const Color _accent = AppColors.primary;
-
-  // ── Shield colors ──
-  static const _outerShield = [Color(0xFFD4213F), Color(0xFF6B0F20)];
-  static const _innerShield = [Color(0xFF2A080F), Color(0xFF120308)];
   static const _buttonGradient = [Color(0xFFE62B52), Color(0xFF8B1528)];
 
   // ── State ──
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   final _gymIdCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -173,26 +167,40 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
     super.dispose();
   }
 
-  // ── Login ──
+  // ── Login via OwnerProvider ──
 
-  void _handleLogin() {
-    if (isSubmitting) return;
+  Future<void> _handleLogin() async {
+    if (_isSubmitting) return;
 
-    if (_gymIdCtrl.text.trim().isEmpty) {
+    final gymId = _gymIdCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (gymId.isEmpty) {
       _showMessage('Please enter your Gym ID');
       return;
     }
-    if (_passwordCtrl.text.isEmpty) {
+    if (password.isEmpty) {
       _showMessage('Please enter your password');
       return;
     }
 
-    performLogin(
-      emailCtrl: _gymIdCtrl,
-      passwordCtrl: _passwordCtrl,
-      role: 'owner',
-      successRoute: 'ownerDashboard',
-    );
+    setState(() => _isSubmitting = true);
+
+    final ownerProvider = context.read<OwnerProvider>();
+    final success = await ownerProvider.login(gymId: gymId, password: password);
+
+    if (!mounted) return;
+
+    setState(() => _isSubmitting = false);
+
+    if (success) {
+      _showMessage('Login successful! Welcome back.');
+      context.goNamed('ownerDashboard');
+    } else {
+      _showMessage(
+        ownerProvider.errorMessage ?? 'Login failed. Please try again.',
+      );
+    }
   }
 
   void _showMessage(String message) {
@@ -266,6 +274,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
     );
   }
 
+  // ── GYMORA LOGO ──
   Widget _buildLogo() {
     return AnimatedBuilder(
       animation: _logoCtrl,
@@ -273,20 +282,63 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
         opacity: _logoOpacity.value,
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
-      child: const ShieldLogo(
-        size: 72,
-        outerGradientColors: _outerShield,
-        innerGradientColors: _innerShield,
-        accentColor: _accent,
+      child: Image.asset(
+        'assets/images/gymora_logo.png',
+        width: 90,
+        height: 90,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.6)],
+            ),
+          ),
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.white,
+            size: 40,
+          ),
+        ),
       ),
     );
   }
 
+  // ── GYMORA BRAND TEXT ──
   Widget _buildBrandText() {
     return AnimatedBuilder(
       animation: _logoCtrl,
       builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
-      child: const BrandText(accentColor: _accent),
+      child: Column(
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.7)],
+            ).createShader(bounds),
+            child: const Text(
+              'GYMORA',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'F I T N E S S   M A N A G E M E N T',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -412,8 +464,10 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
   }
 
   Widget _buildCTA() {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
+    return Consumer<OwnerProvider>(
+      builder: (context, ownerProv, _) {
+        final loading = ownerProv.isLoading || _isSubmitting;
+
         return AnimatedBuilder(
           animation: _ctaCtrl,
           builder: (_, _) => Opacity(
@@ -424,8 +478,8 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
                 shimmerCtrl: _shimmerCtrl,
                 gradientColors: _buttonGradient,
                 accentColor: _accent,
-                label: auth.isLoading ? "Signing In..." : "Sign In",
-                enabled: !auth.isLoading && !isSubmitting,
+                label: loading ? "Signing In..." : "Sign In",
+                enabled: !loading,
                 onPressed: _handleLogin,
               ),
             ),

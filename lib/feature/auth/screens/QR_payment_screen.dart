@@ -1,34 +1,12 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
-
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PLAN MODEL
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _Plan {
-  final String name;
-  final String price;
-  final String duration;
-  final Color color;
-  final String? badge;
-
-  const _Plan({
-    required this.name,
-    required this.price,
-    required this.duration,
-    required this.color,
-    this.badge,
-  });
-}
+import 'package:gymora_fitness_management/feature/auth/providers/payment_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
+import 'package:provider/provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// QR PAYMENT SCREEN
+// QR PAYMENT SCREEN — PaymentProvider Integration
 // ═══════════════════════════════════════════════════════════════════════════
 
 class QRPaymentScreen extends StatefulWidget {
@@ -42,608 +20,611 @@ class QRPaymentScreen extends StatefulWidget {
 
 class _QRPaymentScreenState extends State<QRPaymentScreen>
     with TickerProviderStateMixin {
-  // ═══════════════════════════════════════════════════════════════════════
-  // ANIMATION
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Theme ──
+  static const Color _accent = AppColors.primary;
 
-  late final AnimationController _shimmerCtrl;
-  late final AnimationController _pulseCtrl;
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════════════
-
+  // ── State ──
+  bool _paymentSubmitted = false;
   bool _isProcessing = false;
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PLAN
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Animation Controllers ──
+  late final AnimationController _logoCtrl;
+  late final AnimationController _qrCtrl;
+  late final AnimationController _detailsCtrl;
+  late final AnimationController _ctaCtrl;
+  late final AnimationController _particleCtrl;
+  late final AnimationController _glowPulseCtrl;
+  late final AnimationController _scanLineCtrl;
 
-  late final _Plan _plan;
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Animations ──
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _qrOpacity;
+  late final Animation<double> _qrScale;
+  late final Animation<double> _detailsOpacity;
+  late final Animation<double> _ctaOpacity;
+  late final Animation<double> _ctaSlide;
 
   @override
   void initState() {
     super.initState();
+    _initAnimations();
+    _startSequence();
+  }
 
-    _plan = _createPlan();
-
-    _shimmerCtrl = AnimationController(
+  void _initAnimations() {
+    _logoCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 700),
+    );
+    _logoOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _logoCtrl,
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    _logoScale = Tween<double>(
+      begin: 0.6,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
+
+    _qrCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _qrOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _qrCtrl,
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    _qrScale = Tween<double>(
+      begin: 0.8,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _qrCtrl, curve: Curves.easeOutBack));
+
+    _detailsCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _detailsOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _detailsCtrl, curve: Curves.easeOut));
+
+    _ctaCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _ctaOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOut));
+    _ctaSlide = Tween<double>(
+      begin: 30,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOutCubic));
+
+    _particleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
     )..repeat();
 
-    _pulseCtrl = AnimationController(
+    _glowPulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 3000),
     )..repeat(reverse: true);
+
+    _scanLineCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CREATE PLAN
-  // ═══════════════════════════════════════════════════════════════════════
-
-  _Plan _createPlan() {
-    final data = widget.planData;
-
-    // Fallback only if no plan was passed.
-    if (data == null) {
-      return const _Plan(
-        name: 'PRO',
-        price: '10,000',
-        duration: '3 Months',
-        color: Color(0xFFE62B52),
-        badge: 'POPULAR',
-      );
-    }
-
-    final planName = data['name']?.toString() ?? 'PRO';
-
-    final price = data['price']?.toString() ?? '10,000';
-
-    final duration = data['duration']?.toString() ?? '3 Months';
-
-    final badge = data['badge']?.toString();
-
-    Color color;
-
-    // First try to use the actual color sent from
-    // PurchaseMembershipScreen.
-
-    final colorValue = data['color'];
-
-    if (colorValue is int) {
-      color = Color(colorValue);
-    } else {
-      // Fallback based on plan name.
-
-      switch (planName.toUpperCase()) {
-        case 'STARTER':
-          color = const Color(0xFF9C27B0);
-          break;
-
-        case 'ELITE':
-          color = const Color(0xFFFFB31A);
-          break;
-
-        case 'PRO':
-        default:
-          color = const Color(0xFFE62B52);
-          break;
-      }
-    }
-
-    return _Plan(
-      name: planName,
-      price: price,
-      duration: duration,
-      color: color,
-      badge: badge,
-    );
+  Future<void> _startSequence() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    _logoCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 400));
+    _qrCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 300));
+    _detailsCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 400));
+    _ctaCtrl.forward();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PAYMENT
-  // ═══════════════════════════════════════════════════════════════════════
+  @override
+  void dispose() {
+    _logoCtrl.dispose();
+    _qrCtrl.dispose();
+    _detailsCtrl.dispose();
+    _ctaCtrl.dispose();
+    _particleCtrl.dispose();
+    _glowPulseCtrl.dispose();
+    _scanLineCtrl.dispose();
+    super.dispose();
+  }
 
-  Future<void> _simulatePayment() async {
+  // ─────────────────────────────────────────────────────────────────────
+  // SUBMIT PAYMENT VIA PROVIDER
+  // ─────────────────────────────────────────────────────────────────────
+
+  Future<void> _submitPayment() async {
     if (_isProcessing) return;
 
-    setState(() {
-      _isProcessing = true;
-    });
+    setState(() => _isProcessing = true);
 
-    // TODO:
-    // Replace this with your actual payment gateway.
+    final paymentProvider = context.read<PaymentProvider>();
 
-    await Future.delayed(const Duration(seconds: 2));
+    final data = widget.planData ?? {};
+    final ownerId = data['ownerId']?.toString() ?? '';
+    final gymId = data['gymId']?.toString() ?? '';
+    final plan = data['plan']?.toString() ?? '';
+    final amount = data['amount'] is num
+        ? data['amount'] as num
+        : num.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+
+    debugPrint('═══════════════════════════════════════════');
+    debugPrint('QR PAYMENT SCREEN: Submitting payment...');
+    debugPrint('ownerId: $ownerId');
+    debugPrint('gymId: $gymId');
+    debugPrint('plan: $plan');
+    debugPrint('amount: $amount');
+    debugPrint('═══════════════════════════════════════════');
+
+    final success = await paymentProvider.submitPayment(
+      ownerId: ownerId,
+      gymId: gymId,
+      plan: plan,
+      amount: amount,
+    );
 
     if (!mounted) return;
 
     setState(() {
       _isProcessing = false;
+      _paymentSubmitted = success;
     });
 
+    if (success) {
+      debugPrint('QR PAYMENT: Payment submitted successfully!');
+      debugPrint('Last Payment: ${paymentProvider.lastPayment}');
+
+      _showMessage('Payment submitted successfully! Awaiting approval.');
+
+      // Navigate to owner login after a short delay
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
+        context.goNamed('ownerLogin');
+      }
+    } else {
+      debugPrint('QR PAYMENT: Payment submission failed!');
+      debugPrint('Error: ${paymentProvider.errorMessage}');
+      _showMessage(
+        paymentProvider.errorMessage ?? 'Payment failed. Please try again.',
+      );
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Payment Successful! '
-          '${_plan.name} plan activated.',
-        ),
+        content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: AppColors.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-
-    await Future.delayed(const Duration(milliseconds: 700));
-
-    if (!mounted) return;
-
-    // After payment → Owner Login
-
-    context.goNamed('ownerLogin');
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // DISPOSE
-  // ═══════════════════════════════════════════════════════════════════════
-
-  @override
-  void dispose() {
-    _shimmerCtrl.dispose();
-    _pulseCtrl.dispose();
-
-    super.dispose();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
+  // ─────────────────────────────────────────────────────────────────────
   // BUILD
-  // ═══════════════════════════════════════════════════════════════════════
+  // ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final plan = _plan;
+    final data = widget.planData ?? {};
+    final planName = data['plan']?.toString() ?? 'Plan';
+    final amount = data['amount']?.toString() ?? '0';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(gradient: AppColors.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ═══════════════════════════════════════════════════════════
-              // APP BAR
-              // ═══════════════════════════════════════════════════════════
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (!_isProcessing) {
-                          context.pop();
-                        }
-                      },
+        child: AuthBackground(
+          accentColor: _accent,
+          particleAnimation: _particleCtrl,
+          glowPulseAnimation: _glowPulseCtrl,
+          glowTopFraction: 0.08,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              child: Column(
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+
+                  // ── Back Button ──
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
                       child: Container(
-                        width: 40,
-                        height: 40,
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
                           color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
                         ),
                         child: const Icon(
-                          Icons.arrow_back_rounded,
+                          Icons.arrow_back_ios_new_rounded,
                           color: Colors.white,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
-                    ),
-
-                    const Spacer(),
-
-                    const Text(
-                      'Payment',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    const SizedBox(width: 40),
-                  ],
-                ),
-              ),
-
-              // ═══════════════════════════════════════════════════════════
-              // CONTENT
-              // ═══════════════════════════════════════════════════════════
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 20,
-                    ),
-                    child: Column(
-                      children: [
-                        // ═══════════════════════════════
-                        // QR CODE
-                        // ═══════════════════════════════
-                        AnimatedBuilder(
-                          animation: _pulseCtrl,
-                          builder: (context, child) {
-                            final value = _pulseCtrl.value;
-
-                            return Container(
-                              width: 220,
-                              height: 220,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: plan.color.withValues(
-                                      alpha: 0.1 + (0.1 * value),
-                                    ),
-                                    blurRadius: 30 + (10 * value),
-                                    spreadRadius: -5,
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: AnimatedBuilder(
-                                  animation: _shimmerCtrl,
-                                  builder: (context, child) {
-                                    return Stack(
-                                      children: [
-                                        CustomPaint(
-                                          size: const Size(220, 220),
-                                          painter: _QRPlaceholderPainter(),
-                                        ),
-
-                                        CustomPaint(
-                                          size: const Size(220, 220),
-                                          painter: _ScanLinePainter(
-                                            progress: _shimmerCtrl.value,
-                                            color: plan.color,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // ═══════════════════════════════
-                        // PLAN NAME
-                        // ═══════════════════════════════
-                        Text(
-                          '${plan.name} Plan',
-                          style: TextStyle(
-                            color: plan.color,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          '₹${plan.price}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          plan.duration,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 13,
-                          ),
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // ═══════════════════════════════
-                        // ORDER SUMMARY
-                        // ═══════════════════════════════
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: plan.color.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.workspace_premium_rounded,
-                                      color: plan.color,
-                                      size: 22,
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 12),
-
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          plan.name,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 3),
-
-                                        Text(
-                                          plan.duration,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.4,
-                                            ),
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  Text(
-                                    '₹${plan.price}',
-                                    style: TextStyle(
-                                      color: plan.color,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 18),
-
-                              Divider(
-                                color: Colors.white.withValues(alpha: 0.07),
-                                height: 1,
-                              ),
-
-                              const SizedBox(height: 18),
-
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Amount to Pay',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.5,
-                                      ),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-
-                                  Text(
-                                    '₹${plan.price}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // ═══════════════════════════════
-                        // SCAN INFO
-                        // ═══════════════════════════════
-                        Text(
-                          'Scan the QR code with any UPI app to pay',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // ═══════════════════════════════
-                        // PAY BUTTON
-                        // ═══════════════════════════════
-                        GradientButton(
-                          label: _isProcessing
-                              ? 'Processing...'
-                              : 'I Have Paid',
-                          color: plan.color,
-                          onPressed: _isProcessing ? null : _simulatePayment,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ═══════════════════════════════
-                        // SECURITY
-                        // ═══════════════════════════════
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.lock_outline_rounded,
-                              size: 13,
-                              color: Colors.white.withValues(alpha: 0.3),
-                            ),
-
-                            const SizedBox(width: 5),
-
-                            Text(
-                              'Secure payment',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 20),
+
+                  // ── GYMORA Logo ──
+                  _buildLogo(),
+                  const SizedBox(height: 14),
+                  _buildBrandText(),
+                  const SizedBox(height: 30),
+
+                  // ── QR Code Area ──
+                  _buildQRCode(),
+                  const SizedBox(height: 24),
+
+                  // ── Payment Details ──
+                  _buildPaymentDetails(planName, amount),
+                  const SizedBox(height: 32),
+
+                  // ── Submit Button ──
+                  _buildSubmitButton(),
+                  const SizedBox(height: 16),
+
+                  // ── Info Text ──
+                  _buildInfoText(),
+                  const SizedBox(height: 30),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// QR PLACEHOLDER
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _QRPlaceholderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rng = Random(42);
-
-    final paint = Paint()..color = Colors.black.withValues(alpha: 0.8);
-
-    const cellSize = 8.0;
-
-    final padding = size.width * 0.15;
-
-    final gridSize = size.width - (padding * 2);
-
-    final cols = (gridSize / cellSize).floor();
-
-    for (int row = 0; row < cols; row++) {
-      for (int col = 0; col < cols; col++) {
-        if (rng.nextBool()) {
-          canvas.drawRect(
-            Rect.fromLTWH(
-              padding + (col * cellSize),
-              padding + (row * cellSize),
-              cellSize - 1,
-              cellSize - 1,
+  // ── GYMORA LOGO ──
+  Widget _buildLogo() {
+    return AnimatedBuilder(
+      animation: _logoCtrl,
+      builder: (_, child) => Opacity(
+        opacity: _logoOpacity.value,
+        child: Transform.scale(scale: _logoScale.value, child: child),
+      ),
+      child: Image.asset(
+        'assets/images/gymora_logo.png',
+        width: 70,
+        height: 70,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.6)],
             ),
-            paint,
-          );
-        }
-      }
-    }
-
-    final markerPaint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    const markerSize = 22.0;
-
-    final positions = [
-      Offset(padding, padding),
-      Offset(size.width - padding - markerSize, padding),
-      Offset(padding, size.height - padding - markerSize),
-    ];
-
-    for (final position in positions) {
-      canvas.drawRect(
-        Rect.fromLTWH(position.dx, position.dy, markerSize, markerSize),
-        markerPaint,
-      );
-
-      canvas.drawRect(
-        Rect.fromLTWH(position.dx + 5, position.dy + 5, 12, 12),
-        Paint()..color = Colors.black,
-      );
-    }
+          ),
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.white,
+            size: 32,
+          ),
+        ),
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SCAN LINE
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _ScanLinePainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  const _ScanLinePainter({required this.progress, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final y = size.height * progress;
-
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          Colors.transparent,
-          color.withValues(alpha: 0.6),
-          Colors.transparent,
+  // ── GYMORA BRAND TEXT ──
+  Widget _buildBrandText() {
+    return AnimatedBuilder(
+      animation: _logoCtrl,
+      builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
+      child: Column(
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.7)],
+            ).createShader(bounds),
+            child: const Text(
+              'GYMORA',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'F I T N E S S   M A N A G E M E N T',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 3,
+            ),
+          ),
         ],
-      ).createShader(Rect.fromLTWH(0, y - 1, size.width, 2));
-
-    canvas.drawRect(Rect.fromLTWH(0, y - 1, size.width, 2), paint);
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant _ScanLinePainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+  // ── QR CODE (Real UPI QR) ──
+  Widget _buildQRCode() {
+    return AnimatedBuilder(
+      animation: _qrCtrl,
+      builder: (_, child) => Opacity(
+        opacity: _qrOpacity.value,
+        child: Transform.scale(scale: _qrScale.value, child: child),
+      ),
+      child: Container(
+        width: 260,
+        height: 310,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: _accent.withValues(alpha: 0.25),
+              blurRadius: 30,
+              spreadRadius: -5,
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Real QR Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/images/payment_qr.jpg',
+                width: 260,
+                height: 310,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_2_rounded,
+                        size: 80,
+                        color: Colors.black54,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'QR code not found',
+                        style: TextStyle(color: Colors.black54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Scan Line Animation
+            AnimatedBuilder(
+              animation: _scanLineCtrl,
+              builder: (_, _) {
+                final y = _scanLineCtrl.value * 310;
+                return Positioned(
+                  top: y,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          _accent.withValues(alpha: 0.8),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── PAYMENT DETAILS CARD ──
+  Widget _buildPaymentDetails(String planName, String amount) {
+    return AnimatedBuilder(
+      animation: _detailsCtrl,
+      builder: (_, child) =>
+          Opacity(opacity: _detailsOpacity.value, child: child),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Payment Details',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _detailRow('Plan', planName),
+            const SizedBox(height: 10),
+            _detailRow('Amount', '₹$amount'),
+            const SizedBox(height: 10),
+            _detailRow('Status', _paymentSubmitted ? 'Submitted' : 'Pending'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: _accent.withValues(alpha: 0.9),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── SUBMIT BUTTON ──
+  Widget _buildSubmitButton() {
+    return Consumer<PaymentProvider>(
+      builder: (context, paymentProv, _) {
+        final loading = paymentProv.isLoading || _isProcessing;
+
+        return AnimatedBuilder(
+          animation: _ctaCtrl,
+          builder: (_, _) => Opacity(
+            opacity: _ctaOpacity.value,
+            child: Transform.translate(
+              offset: Offset(0, _ctaSlide.value),
+              child: GestureDetector(
+                onTap: loading || _paymentSubmitted ? null : _submitPayment,
+                child: Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      colors: _paymentSubmitted
+                          ? [const Color(0xFF2ECC71), const Color(0xFF27AE60)]
+                          : [const Color(0xFFE62B52), const Color(0xFF8B1528)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            (_paymentSubmitted
+                                    ? const Color(0xFF2ECC71)
+                                    : _accent)
+                                .withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _paymentSubmitted
+                                    ? Icons.check_circle_rounded
+                                    : Icons.payment_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                _paymentSubmitted
+                                    ? 'PAYMENT SUBMITTED'
+                                    : 'CONFIRM PAYMENT',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── INFO TEXT ──
+  Widget _buildInfoText() {
+    return AnimatedBuilder(
+      animation: _ctaCtrl,
+      builder: (_, child) => Opacity(opacity: _ctaOpacity.value, child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _accent.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              color: _accent.withValues(alpha: 0.7),
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Scan the QR code to pay. Your GYMORA membership will be activated once payment is approved.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

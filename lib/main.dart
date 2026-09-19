@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/routes/app_routes.dart';
 import 'package:gymora_fitness_management/config/theme/app_theme.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/payment_provider.dart';
 
 import 'package:provider/provider.dart';
 
@@ -10,7 +12,13 @@ void main() {
 
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+
+        ChangeNotifierProvider(create: (_) => OwnerProvider()),
+
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+      ],
       child: const MyApp(),
     ),
   );

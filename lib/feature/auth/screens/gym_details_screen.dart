@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glass_sheet_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
 
+import 'package:provider/provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GYM DETAILS SCREEN
@@ -32,15 +34,10 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
   // ═══════════════════════════════════════════════════════════════════════
 
   final TextEditingController gymNameCtrl = TextEditingController();
-
   final TextEditingController gymIdCtrl = TextEditingController();
-
   final TextEditingController passwordCtrl = TextEditingController();
-
   final TextEditingController ownerNameCtrl = TextEditingController();
-
   final TextEditingController ownerEmailCtrl = TextEditingController();
-
   final TextEditingController ownerPhoneCtrl = TextEditingController();
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -59,25 +56,66 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
   // ═══════════════════════════════════════════════════════════════════════
 
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   // ═══════════════════════════════════════════════════════════════════════
-  // SUBMIT
+  // SUBMIT — Calls /api/owner/purchase
   // ═══════════════════════════════════════════════════════════════════════
 
-  void _submit() {
+  Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
     final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+    if (_isSubmitting) return;
 
-    if (!isValid) {
-      return;
+    setState(() => _isSubmitting = true);
+
+    final planName = widget.planData?['name']?.toString() ?? 'PRO';
+
+    final ownerProvider = context.read<OwnerProvider>();
+    final success = await ownerProvider.purchase(
+      gymName: gymNameCtrl.text.trim(),
+      gymId: gymIdCtrl.text.trim(),
+      password: passwordCtrl.text,
+      ownerName: ownerNameCtrl.text.trim(),
+      ownerEmail: ownerEmailCtrl.text.trim(),
+      ownerPhone: ownerPhoneCtrl.text.trim(),
+      plan: planName,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (success) {
+      debugPrint('═══════════════════════════════════════════');
+      debugPrint('🎉 [GymDetailsScreen] PURCHASE SUCCESS');
+      debugPrint('📦 OwnerId: ${ownerProvider.purchaseResponse?.ownerId}');
+      debugPrint('📦 GymId: ${ownerProvider.purchaseResponse?.gymId}');
+      debugPrint('═══════════════════════════════════════════');
+
+      // Forward plan data + purchase response to QR Payment
+      final Map<String, dynamic> paymentData = {
+        ...?widget.planData,
+        'ownerId': ownerProvider.purchaseResponse?.ownerId ?? '',
+        'gymId': ownerProvider.purchaseResponse?.gymId ?? gymIdCtrl.text.trim(),
+      };
+
+      context.pushNamed('qrScreen', extra: paymentData);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ownerProvider.errorMessage ?? 'Purchase failed. Please try again.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red.shade700,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
-
-    // IMPORTANT:
-    // Selected plan received from PurchaseMembershipScreen
-    // is forwarded to QRPaymentScreen.
-
-    context.pushNamed('qrScreen', extra: widget.planData);
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -86,99 +124,51 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
 
   String? _validateGymName(String? value) {
     final text = value?.trim() ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter gym name';
-    }
-
-    if (text.length < 3) {
-      return 'Gym name must be at least 3 characters';
-    }
-
+    if (text.isEmpty) return 'Enter gym name';
+    if (text.length < 3) return 'Gym name must be at least 3 characters';
     return null;
   }
 
   String? _validateGymId(String? value) {
     final text = value?.trim() ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter gym ID';
-    }
-
-    if (!RegExp(r'^\d+$').hasMatch(text)) {
+    if (text.isEmpty) return 'Enter gym ID';
+    if (!RegExp(r'^\d+$').hasMatch(text))
       return 'Gym ID must contain only numbers';
-    }
-
-    if (text.length < 4 || text.length > 12) {
-      return 'Gym ID must be 4–12 digits';
-    }
-
+    if (text.length < 4 || text.length > 12)
+      return 'Gym ID must be 4-12 digits';
     return null;
   }
 
   String? _validatePassword(String? value) {
     final text = value ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter password';
-    }
-
-    if (text.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-
-    if (!RegExp(r'[A-Z]').hasMatch(text)) {
+    if (text.isEmpty) return 'Enter password';
+    if (text.length < 8) return 'Password must be at least 8 characters';
+    if (!RegExp(r'[A-Z]').hasMatch(text))
       return 'Password must contain an uppercase letter';
-    }
-
-    if (!RegExp(r'\d').hasMatch(text)) {
-      return 'Password must contain a number';
-    }
-
+    if (!RegExp(r'\d').hasMatch(text)) return 'Password must contain a number';
     return null;
   }
 
   String? _validateOwnerName(String? value) {
     final text = value?.trim() ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter owner name';
-    }
-
-    if (text.length < 2) {
-      return 'Enter a valid owner name';
-    }
-
+    if (text.isEmpty) return 'Enter owner name';
+    if (text.length < 2) return 'Enter a valid owner name';
     return null;
   }
 
   String? _validateEmail(String? value) {
     final text = value?.trim() ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter Gmail address';
-    }
-
+    if (text.isEmpty) return 'Enter Gmail address';
     final gmailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
-
-    if (!gmailRegex.hasMatch(text)) {
-      return 'Enter a valid Gmail address';
-    }
-
+    if (!gmailRegex.hasMatch(text)) return 'Enter a valid Gmail address';
     return null;
   }
 
   String? _validatePhone(String? value) {
     final text = value?.trim() ?? '';
-
-    if (text.isEmpty) {
-      return 'Enter phone number';
-    }
-
-    if (!RegExp(r'^\d{10}$').hasMatch(text)) {
+    if (text.isEmpty) return 'Enter phone number';
+    if (!RegExp(r'^\d{10}$').hasMatch(text))
       return 'Enter a valid 10-digit phone number';
-    }
-
     return null;
   }
 
@@ -194,14 +184,12 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
     ownerNameCtrl.dispose();
     ownerEmailCtrl.dispose();
     ownerPhoneCtrl.dispose();
-
     _gymNameFocus.dispose();
     _gymIdFocus.dispose();
     _passwordFocus.dispose();
     _ownerNameFocus.dispose();
     _ownerEmailFocus.dispose();
     _ownerPhoneFocus.dispose();
-
     super.dispose();
   }
 
@@ -259,9 +247,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                           size: 24,
                         ),
                       ),
-
                       const SizedBox(width: 14),
-
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,9 +305,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
-                    onSubmitted: (_) {
-                      _gymIdFocus.requestFocus();
-                    },
+                    onSubmitted: (_) => _gymIdFocus.requestFocus(),
                     validator: _validateGymName,
                   ),
 
@@ -338,9 +322,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     textInputAction: TextInputAction.next,
                     maxLength: 12,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onSubmitted: (_) {
-                      _passwordFocus.requestFocus();
-                    },
+                    onSubmitted: (_) => _passwordFocus.requestFocus(),
                     validator: _validateGymId,
                   ),
 
@@ -356,9 +338,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     textInputAction: TextInputAction.next,
                     suffixIcon: IconButton(
                       onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
+                        setState(() => _obscurePassword = !_obscurePassword);
                       },
                       icon: Icon(
                         _obscurePassword
@@ -368,9 +348,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                         size: 20,
                       ),
                     ),
-                    onSubmitted: (_) {
-                      _ownerNameFocus.requestFocus();
-                    },
+                    onSubmitted: (_) => _ownerNameFocus.requestFocus(),
                     validator: _validatePassword,
                   ),
 
@@ -379,7 +357,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   const _InfoBox(
                     icon: Icons.info_outline_rounded,
                     text:
-                        'Gym ID and password will be used by the owner to log in to GYMO.',
+                        'Gym ID and password will be used by the owner to log in to GYMORA.',
                   ),
 
                   const SizedBox(height: 28),
@@ -404,9 +382,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     keyboardType: TextInputType.name,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
-                    onSubmitted: (_) {
-                      _ownerEmailFocus.requestFocus();
-                    },
+                    onSubmitted: (_) => _ownerEmailFocus.requestFocus(),
                     validator: _validateOwnerName,
                   ),
 
@@ -420,9 +396,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     accentColor: AppColors.primary,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
-                    onSubmitted: (_) {
-                      _ownerPhoneFocus.requestFocus();
-                    },
+                    onSubmitted: (_) => _ownerPhoneFocus.requestFocus(),
                     validator: _validateEmail,
                   ),
 
@@ -447,9 +421,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                     textInputAction: TextInputAction.done,
                     maxLength: 10,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onSubmitted: (_) {
-                      _submit();
-                    },
+                    onSubmitted: (_) => _submit(),
                     validator: _validatePhone,
                   ),
 
@@ -458,10 +430,16 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   // ═══════════════════════════════════════════════════════
                   // SUBMIT
                   // ═══════════════════════════════════════════════════════
-                  GradientButton(
-                    label: 'Proceed to Payment',
-                    color: AppColors.primary,
-                    onPressed: _submit,
+                  Consumer<OwnerProvider>(
+                    builder: (context, ownerProv, _) {
+                      final loading = ownerProv.isLoading || _isSubmitting;
+
+                      return GradientButton(
+                        label: loading ? 'Processing...' : 'Proceed to Payment',
+                        color: AppColors.primary,
+                        onPressed: loading ? null : _submit,
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 16),
@@ -518,12 +496,8 @@ class _SelectedPlanBox extends StatelessWidget {
     final duration = planData['duration']?.toString() ?? '3 Months';
 
     Color planColor = AppColors.primary;
-
     final colorValue = planData['color'];
-
-    if (colorValue is int) {
-      planColor = Color(colorValue);
-    }
+    if (colorValue is int) planColor = Color(colorValue);
 
     return Container(
       width: double.infinity,
@@ -553,9 +527,7 @@ class _SelectedPlanBox extends StatelessWidget {
               size: 24,
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,9 +539,7 @@ class _SelectedPlanBox extends StatelessWidget {
                     fontSize: 10,
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Text(
                   name,
                   style: TextStyle(
@@ -579,9 +549,7 @@ class _SelectedPlanBox extends StatelessWidget {
                     letterSpacing: 1,
                   ),
                 ),
-
                 const SizedBox(height: 2),
-
                 Text(
                   duration,
                   style: TextStyle(
@@ -592,7 +560,6 @@ class _SelectedPlanBox extends StatelessWidget {
               ],
             ),
           ),
-
           Text(
             '₹$price',
             style: const TextStyle(
@@ -639,9 +606,7 @@ class _PremiumSectionTitle extends StatelessWidget {
           ),
           child: Icon(icon, color: AppColors.primary, size: 18),
         ),
-
         const SizedBox(width: 11),
-
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -654,9 +619,7 @@ class _PremiumSectionTitle extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-
               const SizedBox(height: 2),
-
               Text(
                 subtitle,
                 style: TextStyle(
@@ -696,9 +659,7 @@ class _InfoBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: AppColors.primary.withValues(alpha: 0.8), size: 17),
-
           const SizedBox(width: 10),
-
           Expanded(
             child: Text(
               text,

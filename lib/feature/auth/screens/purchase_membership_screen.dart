@@ -1,32 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/glass_sheet_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
-
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PLAN MODEL
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _Plan {
-  final String name;
-  final String price;
-  final String duration;
-  final Color color;
-  final String? badge;
-
-  const _Plan({
-    required this.name,
-    required this.price,
-    required this.duration,
-    required this.color,
-    this.badge,
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PURCHASE MEMBERSHIP SCREEN
+// PURCHASE MEMBERSHIP SCREEN — GYMORA Branding
 // ═══════════════════════════════════════════════════════════════════════════
 
 class PurchaseMembershipScreen extends StatefulWidget {
@@ -37,40 +15,198 @@ class PurchaseMembershipScreen extends StatefulWidget {
       _PurchaseMembershipScreenState();
 }
 
-class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen> {
+class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
+    with TickerProviderStateMixin {
   static const Color _accent = AppColors.primary;
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PLANS
-  // ═══════════════════════════════════════════════════════════════════════
+  int _selectedPlanIndex = -1;
 
-  static const List<_Plan> _plans = [
-    _Plan(
-      name: 'STARTER',
-      price: '5,000',
-      duration: '1 Month',
-      color: Color(0xFF9C27B0),
-    ),
-    _Plan(
-      name: 'PRO',
-      price: '10,000',
-      duration: '3 Months',
-      color: Color(0xFFE62B52),
-      badge: 'POPULAR',
-    ),
-    _Plan(
-      name: 'ELITE',
-      price: '15,000',
-      duration: '6 Months',
-      color: Color(0xFFFFB31A),
-    ),
+  // Plan data
+  final List<Map<String, dynamic>> _plans = [
+    {
+      'name': 'STARTER',
+      'price': '5,000',
+      'duration': '1 Month',
+      'icon': Icons.flash_on_rounded,
+      'gradient': [const Color(0xFFE62B52), const Color(0xFF8B1528)],
+      'features': ['Basic Dashboard', 'Up to 50 Members', 'Email Support'],
+    },
+    {
+      'name': 'PRO',
+      'price': '10,000',
+      'duration': '3 Months',
+      'icon': Icons.star_rounded,
+      'gradient': [const Color(0xFF2196F3), const Color(0xFF1565C0)],
+      'features': [
+        'Advanced Dashboard',
+        'Up to 200 Members',
+        'Priority Support',
+        'Trainer Module',
+      ],
+    },
+    {
+      'name': 'ELITE',
+      'price': '15,000',
+      'duration': '6 Months',
+      'icon': Icons.workspace_premium_rounded,
+      'gradient': [const Color(0xFFFFD700), const Color(0xFFFF8C00)],
+      'features': [
+        'Full Dashboard',
+        'Unlimited Members',
+        '24/7 Support',
+        'All Modules',
+        'Analytics',
+      ],
+    },
   ];
 
-  int _selectedPlan = 1;
+  // ── Animation Controllers ──
+  late final AnimationController _logoCtrl;
+  late final AnimationController _headingCtrl;
+  late final AnimationController _cardsCtrl;
+  late final AnimationController _ctaCtrl;
+  late final AnimationController _particleCtrl;
+  late final AnimationController _glowPulseCtrl;
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // BUILD
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Animations ──
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _headingOpacity;
+  late final Animation<double> _headingSlide;
+  late final Animation<double> _card1Opacity;
+  late final Animation<double> _card2Opacity;
+  late final Animation<double> _card3Opacity;
+  late final Animation<double> _ctaOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAnimations();
+    _startSequence();
+  }
+
+  void _initAnimations() {
+    _logoCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _logoOpacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _logoCtrl,
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    _logoScale = Tween<double>(
+      begin: 0.6,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
+
+    _headingCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _headingOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOut));
+    _headingSlide = Tween<double>(begin: 20, end: 0).animate(
+      CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
+    );
+
+    _cardsCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _card1Opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _cardsCtrl,
+        curve: const Interval(0, 0.35, curve: Curves.easeOut),
+      ),
+    );
+    _card2Opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _cardsCtrl,
+        curve: const Interval(0.2, 0.55, curve: Curves.easeOut),
+      ),
+    );
+    _card3Opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _cardsCtrl,
+        curve: const Interval(0.4, 0.75, curve: Curves.easeOut),
+      ),
+    );
+
+    _ctaCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _ctaOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOut));
+
+    _particleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    _glowPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+  }
+
+  Future<void> _startSequence() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    _logoCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 400));
+    _headingCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 300));
+    _cardsCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 800));
+    _ctaCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _logoCtrl.dispose();
+    _headingCtrl.dispose();
+    _cardsCtrl.dispose();
+    _ctaCtrl.dispose();
+    _particleCtrl.dispose();
+    _glowPulseCtrl.dispose();
+    super.dispose();
+  }
+
+  void _selectPlan(int index) {
+    setState(() => _selectedPlanIndex = index);
+  }
+
+  void _proceedToGymDetails() {
+    if (_selectedPlanIndex < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select a plan first'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final plan = _plans[_selectedPlanIndex];
+    context.pushNamed(
+      'gymDetailed',
+      extra: {
+        'plan': plan['name'],
+        'amount': plan['price'].replaceAll(',', ''),
+        'duration': plan['duration'],
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,31 +215,163 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(gradient: AppColors.darkGradient),
-        child: SafeArea(
+        child: AuthBackground(
+          accentColor: _accent,
+          particleAnimation: _particleCtrl,
+          glowPulseAnimation: _glowPulseCtrl,
+          glowTopFraction: 0.08,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              child: Column(
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+
+                  // ── Back ──
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Logo ──
+                  _buildLogo(),
+                  const SizedBox(height: 14),
+                  _buildBrandText(),
+                  const SizedBox(height: 30),
+
+                  // ── Heading ──
+                  _buildHeading(),
+                  const SizedBox(height: 28),
+
+                  // ── Plan Cards ──
+                  _buildPlanCard(0, _card1Opacity),
+                  const SizedBox(height: 14),
+                  _buildPlanCard(1, _card2Opacity),
+                  const SizedBox(height: 14),
+                  _buildPlanCard(2, _card3Opacity),
+                  const SizedBox(height: 32),
+
+                  // ── Continue Button ──
+                  _buildContinueButton(),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return AnimatedBuilder(
+      animation: _logoCtrl,
+      builder: (_, child) => Opacity(
+        opacity: _logoOpacity.value,
+        child: Transform.scale(scale: _logoScale.value, child: child),
+      ),
+      child: Image.asset(
+        'assets/images/gymora_logo.png',
+        width: 70,
+        height: 70,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.6)],
+            ),
+          ),
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.white,
+            size: 32,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandText() {
+    return AnimatedBuilder(
+      animation: _logoCtrl,
+      builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
+      child: Column(
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.7)],
+            ).createShader(bounds),
+            child: const Text(
+              'GYMORA',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'F I T N E S S   M A N A G E M E N T',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeading() {
+    return AnimatedBuilder(
+      animation: _headingCtrl,
+      builder: (_, _) => Opacity(
+        opacity: _headingOpacity.value,
+        child: Transform.translate(
+          offset: Offset(0, _headingSlide.value),
           child: Column(
             children: [
-              _buildAppBar(),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-
-                      _buildTitle(),
-
-                      const SizedBox(height: 24),
-
-                      _buildPlanCards(),
-
-                      const SizedBox(height: 32),
-
-                      _buildContinueButton(),
-
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+              const Text(
+                'Choose Your Plan',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select the plan that fits your gym',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -113,521 +381,204 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // APP BAR
-  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildPlanCard(int index, Animation<double> opacity) {
+    final plan = _plans[index];
+    final isSelected = _selectedPlanIndex == index;
+    final gradient = plan['gradient'] as List<Color>;
+    final features = plan['features'] as List<String>;
 
-  Widget _buildAppBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.06),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-
-          const Spacer(),
-
-          const Text(
-            'Purchase Membership',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const Spacer(),
-
-          const SizedBox(width: 40),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // TITLE
-  // ═══════════════════════════════════════════════════════════════════════
-
-  Widget _buildTitle() {
-    return Column(
-      children: [
-        ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds);
-          },
-          child: const Text(
-            'Choose Your Plan',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          'Start your fitness journey today',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // PLAN CARDS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  Widget _buildPlanCards() {
-    return Column(
-      children: List.generate(_plans.length, (i) {
-        final plan = _plans[i];
-        final selected = _selectedPlan == i;
-
-        return Padding(
-          padding: EdgeInsets.only(bottom: i < _plans.length - 1 ? 14 : 0),
-          child: _PlanCard(
-            plan: plan,
-            selected: selected,
-            onTap: () {
-              setState(() {
-                _selectedPlan = i;
-              });
-            },
-          ),
-        );
-      }),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // CONTINUE BUTTON
-  // ═══════════════════════════════════════════════════════════════════════
-
-  Widget _buildContinueButton() {
-    final plan = _plans[_selectedPlan];
-
-    return GradientButton(
-      label: 'Continue',
-      color: _accent,
-      onPressed: () {
-        // IMPORTANT:
-        // Same keys are used by GymDetails and QRPayment screens.
-
-        final Map<String, dynamic> planData = {
-          'name': plan.name,
-          'price': plan.price,
-          'duration': plan.duration,
-          'color': plan.color.toARGB32(),
-          'badge': plan.badge,
-        };
-
-        context.pushNamed('gymDetailed', extra: planData);
-      },
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PLAN CARD
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _PlanCard extends StatelessWidget {
-  final _Plan plan;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _PlanCard({
-    required this.plan,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: selected
-                ? [
-                    plan.color.withValues(alpha: 0.18),
-                    plan.color.withValues(alpha: 0.06),
-                    Colors.white.withValues(alpha: 0.025),
-                  ]
-                : [
-                    Colors.white.withValues(alpha: 0.055),
-                    Colors.white.withValues(alpha: 0.018),
-                  ],
-          ),
-
-          border: Border.all(
-            color: selected
-                ? plan.color.withValues(alpha: 0.75)
-                : Colors.white.withValues(alpha: 0.09),
-            width: selected ? 1.4 : 1,
-          ),
-
-          boxShadow: [
-            if (selected)
-              BoxShadow(
-                color: plan.color.withValues(alpha: 0.20),
-                blurRadius: 28,
-                spreadRadius: -4,
-                offset: const Offset(0, 8),
-              ),
-
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 18,
-              spreadRadius: -8,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // PLAN ICON
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    plan.color.withValues(alpha: selected ? 0.35 : 0.16),
-                    plan.color.withValues(alpha: selected ? 0.10 : 0.04),
-                  ],
-                ),
-                border: Border.all(
-                  color: plan.color.withValues(alpha: selected ? 0.45 : 0.15),
-                ),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: plan.color.withValues(alpha: 0.22),
-                          blurRadius: 16,
-                          spreadRadius: -4,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Icon(
-                plan.name == 'STARTER'
-                    ? Icons.fitness_center_rounded
-                    : plan.name == 'PRO'
-                    ? Icons.bolt_rounded
-                    : Icons.workspace_premium_rounded,
-                color: plan.color,
-                size: 25,
-              ),
-            ),
-
-            const SizedBox(width: 14),
-
-            // PLAN INFORMATION
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          plan.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: plan.color,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.8,
+    return AnimatedBuilder(
+      animation: _cardsCtrl,
+      builder: (_, _) {
+        final o = opacity.value;
+        return Opacity(
+          opacity: o,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - o)),
+            child: GestureDetector(
+              onTap: () => _selectPlan(index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? gradient[0].withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? gradient[0].withValues(alpha: 0.6)
+                        : Colors.white.withValues(alpha: 0.08),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: gradient[0].withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            spreadRadius: -4,
                           ),
-                        ),
-                      ),
-
-                      if (plan.badge != null) ...[
-                        const SizedBox(width: 8),
-
+                        ]
+                      : [],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                plan.color.withValues(alpha: 0.30),
-                                plan.color.withValues(alpha: 0.10),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(
-                              color: plan.color.withValues(alpha: 0.35),
-                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(colors: gradient),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Icon(
+                            plan['icon'] as IconData,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.star_rounded,
-                                color: plan.color,
-                                size: 10,
-                              ),
-                              const SizedBox(width: 3),
                               Text(
-                                plan.badge!,
+                                plan['name'] as String,
                                 style: TextStyle(
-                                  color: plan.color,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.6,
+                                  color: isSelected
+                                      ? gradient[0]
+                                      : Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                plan['duration'] as String,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        Text(
+                          '₹${plan['price']}',
+                          style: TextStyle(
+                            color: isSelected
+                                ? gradient[0]
+                                : Colors.white.withValues(alpha: 0.8),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 7),
-
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        color: Colors.white.withValues(alpha: 0.35),
-                        size: 14,
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(height: 14),
+                      Divider(
+                        color: gradient[0].withValues(alpha: 0.2),
+                        height: 1,
                       ),
-
-                      const SizedBox(width: 5),
-
-                      Text(
-                        plan.duration,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.50),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 12),
+                      ...features.map(
+                        (f) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: gradient[0],
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                f,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContinueButton() {
+    return AnimatedBuilder(
+      animation: _ctaCtrl,
+      builder: (_, _) => Opacity(
+        opacity: _ctaOpacity.value,
+        child: GestureDetector(
+          onTap: _proceedToGymDetails,
+          child: Container(
+            width: double.infinity,
+            height: 54,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: _selectedPlanIndex >= 0
+                    ? [const Color(0xFFE62B52), const Color(0xFF8B1528)]
+                    : [
+                        Colors.white.withValues(alpha: 0.1),
+                        Colors.white.withValues(alpha: 0.05),
+                      ],
+              ),
+              boxShadow: _selectedPlanIndex >= 0
+                  ? [
+                      BoxShadow(
+                        color: _accent.withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'CONTINUE',
+                    style: TextStyle(
+                      color: _selectedPlanIndex >= 0
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.3),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: _selectedPlanIndex >= 0
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.3),
+                    size: 20,
                   ),
                 ],
               ),
             ),
-
-            // PRICE
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '₹${plan.price}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-
-                const SizedBox(height: 3),
-
-                Text(
-                  '/${plan.duration.split(' ').last.toLowerCase()}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.38),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(width: 14),
-
-            // SELECTION
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: selected
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          plan.color,
-                          plan.color.withValues(alpha: 0.65),
-                        ],
-                      )
-                    : null,
-                color: selected ? null : Colors.transparent,
-                border: Border.all(
-                  color: selected
-                      ? plan.color
-                      : Colors.white.withValues(alpha: 0.20),
-                  width: 1.5,
-                ),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: plan.color.withValues(alpha: 0.35),
-                          blurRadius: 10,
-                          spreadRadius: -2,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: selected
-                  ? const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    )
-                  : null,
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SUMMARY SHEET
-// ═══════════════════════════════════════════════════════════════════════════
-
-class SummarySheet extends StatelessWidget {
-  final _Plan plan;
-  final VoidCallback onContinue;
-
-  const SummarySheet({super.key, required this.plan, required this.onContinue});
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassSheet(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _SectionLabel(label: 'Order Summary'),
-
-          const SizedBox(height: 16),
-
-          _SummaryRow(label: 'Plan', value: plan.name),
-
-          _SummaryRow(label: 'Duration', value: plan.duration),
-
-          _SummaryRow(label: 'Price', value: '₹${plan.price}', bold: true),
-
-          const SizedBox(height: 24),
-
-          GradientButton(
-            label: 'Continue to Details',
-            color: plan.color,
-            onPressed: onContinue,
-          ),
-
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SECTION LABEL
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SUMMARY ROW
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
-
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: bold ? 18 : 14,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

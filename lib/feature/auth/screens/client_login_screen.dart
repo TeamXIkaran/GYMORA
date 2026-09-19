@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/ShieldLogo_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/brand_text_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
-import 'package:gymora_fitness_management/mixins/login_mixins.dart';
-
-
 import 'package:provider/provider.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLIENT LOGIN SCREEN — GYMORA Branding
+// ═══════════════════════════════════════════════════════════════════════════
 
 class ClientLoginScreen extends StatefulWidget {
   const ClientLoginScreen({super.key});
@@ -19,17 +19,14 @@ class ClientLoginScreen extends StatefulWidget {
 }
 
 class _ClientLoginScreenState extends State<ClientLoginScreen>
-    with TickerProviderStateMixin, LoginMixin {
-  // ── Theme color ──
-  static const Color _accent = AppColors.clientPrimary;
-
-  // ── Shield colors ──
-  static const _outerShield = [Color(0xFF0BAFE7), Color(0xFF075B78)];
-  static const _innerShield = [Color(0xFF081A2A), Color(0xFF030A12)];
-  static const _buttonGradient = [Color(0xFF00C8FF), Color(0xFF075B78)];
+    with TickerProviderStateMixin {
+  // ── Theme ──
+  static const Color _accent = Color(0xFF4CAF50);
+  static const _buttonGradient = [Color(0xFF4CAF50), Color(0xFF2E7D32)];
 
   // ── State ──
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -67,45 +64,43 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _logoOpacity = Tween(begin: 0.0, end: 1.0).animate(
+    _logoOpacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _logoCtrl,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _logoScale = Tween(
+    _logoScale = Tween<double>(
       begin: 0.6,
-      end: 1.0,
+      end: 1,
     ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
 
     _headingCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _headingOpacity = Tween(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _headingCtrl,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-    _headingSlide = Tween(begin: 20.0, end: 0.0).animate(
+    _headingOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOut));
+    _headingSlide = Tween<double>(begin: 20, end: 0).animate(
       CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
     );
 
     _fieldsCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1200),
     );
-    _field1Opacity = Tween(begin: 0.0, end: 1.0).animate(
+    _field1Opacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
-        curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
+        curve: const Interval(0, 0.4, curve: Curves.easeOut),
       ),
     );
-    _field2Opacity = Tween(begin: 0.0, end: 1.0).animate(
+    _field2Opacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
-        curve: const Interval(0.2, 0.55, curve: Curves.easeOut),
+        curve: const Interval(0.25, 0.65, curve: Curves.easeOut),
       ),
     );
 
@@ -113,13 +108,13 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _ctaOpacity = Tween(
-      begin: 0.0,
-      end: 1.0,
+    _ctaOpacity = Tween<double>(
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOut));
-    _ctaSlide = Tween(
-      begin: 30.0,
-      end: 0.0,
+    _ctaSlide = Tween<double>(
+      begin: 30,
+      end: 0,
     ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOutCubic));
 
     _particleCtrl = AnimationController(
@@ -166,18 +161,55 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
   }
 
   // ── Login ──
+  Future<void> _handleLogin() async {
+    if (_isSubmitting) return;
 
-  void _handleLogin() {
-    if (isSubmitting) return;
-    performLogin(
-      emailCtrl: _emailCtrl,
-      passwordCtrl: _passwordCtrl,
-      role: 'client',
-      successRoute: 'clientDashboard',
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (email.isEmpty) {
+      _showMessage('Please enter your email');
+      return;
+    }
+    if (password.isEmpty) {
+      _showMessage('Please enter your password');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.login(
+      email: email,
+      password: password,
+      expectedRole: 'client',
     );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (success) {
+      _showMessage('Login successful! Welcome.');
+      context.goNamed('clientDashboard');
+    } else {
+      _showMessage(
+        authProvider.errorMessage ?? 'Login failed. Please try again.',
+      );
+    }
   }
 
-  // ── Build ──
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,10 +226,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
           glowTopFraction: 0.08,
           child: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28.0,
-                vertical: 16.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
@@ -208,7 +237,33 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+
+                    // ── Back Button ──
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+
                     _buildLogo(),
                     const SizedBox(height: 14),
                     _buildBrandText(),
@@ -218,10 +273,8 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                     _buildEmailField(),
                     const SizedBox(height: 16),
                     _buildPasswordField(),
-                    const SizedBox(height: 12),
-                    _buildCTA(),
                     const SizedBox(height: 32),
-                    _buildSignUpLink(),
+                    _buildCTA(),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -233,8 +286,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     );
   }
 
-  // ── Logo ──
-
+  // ── GYMORA LOGO ──
   Widget _buildLogo() {
     return AnimatedBuilder(
       animation: _logoCtrl,
@@ -242,26 +294,65 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
         opacity: _logoOpacity.value,
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
-      child: const ShieldLogo(
-        size: 72,
-        outerGradientColors: _outerShield,
-        innerGradientColors: _innerShield,
-        accentColor: _accent,
+      child: Image.asset(
+        'assets/images/gymora_logo.png',
+        width: 90,
+        height: 90,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => Container(
+          width: 90,
+          height: 90,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.6)],
+            ),
+          ),
+          child: const Icon(
+            Icons.fitness_center,
+            color: Colors.white,
+            size: 40,
+          ),
+        ),
       ),
     );
   }
 
-  // ── Brand ──
-
+  // ── GYMORA BRAND TEXT ──
   Widget _buildBrandText() {
     return AnimatedBuilder(
       animation: _logoCtrl,
       builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
-      child: const BrandText(accentColor: _accent),
+      child: Column(
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [_accent, _accent.withValues(alpha: 0.7)],
+            ).createShader(bounds),
+            child: const Text(
+              'GYMORA',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'F I T N E S S   M A N A G E M E N T',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 3,
+            ),
+          ),
+        ],
+      ),
     );
   }
-
-  // ── Heading ──
 
   Widget _buildHeading() {
     return AnimatedBuilder(
@@ -271,10 +362,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
         child: Transform.translate(
           offset: Offset(0, _headingSlide.value),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                "Welcome Back",
+                'Client Login',
                 style: TextStyle(
                   color: AppColors.white,
                   fontSize: 24,
@@ -282,25 +372,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Client ",
-                    style: TextStyle(
-                      color: _accent,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const Text("😊", style: TextStyle(fontSize: 22)),
-                ],
-              ),
               const SizedBox(height: 8),
               Text(
-                "Your goals. Our support.",
+                'Sign in to track your fitness journey',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -314,22 +388,20 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     );
   }
 
-  // ── Gym ID field ──
-
   Widget _buildEmailField() {
     return AnimatedBuilder(
       animation: _fieldsCtrl,
       builder: (_, _) {
-        final opacity = _field1Opacity.value;
+        final o = _field1Opacity.value;
         return Opacity(
-          opacity: opacity,
+          opacity: o,
           child: Transform.translate(
-            offset: Offset(0, 25 * (1 - opacity)),
+            offset: Offset(0, 25 * (1 - o)),
             child: GlassTextField(
               controller: _emailCtrl,
               focusNode: _emailFocus,
-              hint: "Gym ID",
-              prefixIcon: Icons.api,
+              hint: 'Email',
+              prefixIcon: Icons.email_outlined,
               accentColor: _accent,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
@@ -342,21 +414,19 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     );
   }
 
-  // ── Password field ──
-
   Widget _buildPasswordField() {
     return AnimatedBuilder(
       animation: _fieldsCtrl,
       builder: (_, _) {
-        final opacity = _field2Opacity.value;
+        final o = _field2Opacity.value;
         return Opacity(
-          opacity: opacity,
+          opacity: o,
           child: Transform.translate(
-            offset: Offset(0, 25 * (1 - opacity)),
+            offset: Offset(0, 25 * (1 - o)),
             child: GlassTextField(
               controller: _passwordCtrl,
               focusNode: _passwordFocus,
-              hint: "Password",
+              hint: 'Password',
               prefixIcon: Icons.lock_outline_rounded,
               accentColor: _accent,
               obscure: _obscurePassword,
@@ -380,11 +450,11 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     );
   }
 
-  // ── CTA ──
-
   Widget _buildCTA() {
     return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
+      builder: (context, authProv, _) {
+        final loading = authProv.isLoading || _isSubmitting;
+
         return AnimatedBuilder(
           animation: _ctaCtrl,
           builder: (_, _) => Opacity(
@@ -395,192 +465,10 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                 shimmerCtrl: _shimmerCtrl,
                 gradientColors: _buttonGradient,
                 accentColor: _accent,
-                label: auth.isLoading ? "Signing In..." : "Sign In",
-                enabled: !auth.isLoading && !isSubmitting,
+                label: loading ? 'Signing In...' : 'Sign In',
+                enabled: !loading,
                 onPressed: _handleLogin,
               ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ── Get Gym ID link ──
-
-  Widget _buildSignUpLink() {
-    return AnimatedBuilder(
-      animation: _ctaCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _ctaOpacity.value,
-        child: Column(
-          children: [
-            Text(
-              "Don't have Gym ID & Password?",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 7),
-            GestureDetector(
-              onTap: _showOwnerInfoDialog,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings_outlined,
-                    color: _accent,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    "Get it from Gym Owner",
-                    style: TextStyle(
-                      color: _accent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded, color: _accent, size: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Owner info dialog ──
-
-  void _showOwnerInfoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF081521),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: _accent.withValues(alpha: 0.25),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _accent.withValues(alpha: 0.15),
-                  blurRadius: 30,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _accent.withValues(alpha: 0.12),
-                    border: Border.all(color: _accent.withValues(alpha: 0.3)),
-                  ),
-                  child: Icon(
-                    Icons.admin_panel_settings_rounded,
-                    color: _accent,
-                    size: 31,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  "Gym Access Required",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Your Gym ID and Password are provided "
-                  "by your gym owner or administrator.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 13,
-                    height: 1.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.035),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.07),
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: _accent,
-                        size: 19,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          "Ask your gym owner to create your "
-                          "client account and share your login "
-                          "credentials with you.",
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
-                            fontSize: 12,
-                            height: 1.45,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accent,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      "GOT IT",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         );
