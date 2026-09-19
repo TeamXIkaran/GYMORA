@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:karan_fitness/config/routes/app_router.dart';
+import 'package:karan_fitness/feature/auth/screens/QR_payment_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/client_login_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/forgot_password_screen.dart';
+import 'package:karan_fitness/feature/auth/screens/gym_details_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/owner_login_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/purchase_membership_screen.dart';
 import 'package:karan_fitness/feature/auth/screens/role_selection_screen.dart';
@@ -81,6 +83,32 @@ class AppRouter {
         name: 'purchaseMembership',
         builder: (context, state) {
           return const PurchaseMembershipScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.gymDetailedRoute,
+        name: 'gymDetailed',
+        builder: (context, state) {
+          final extra = state.extra;
+
+          final Map<String, dynamic>? planData = extra is Map<String, dynamic>
+              ? extra
+              : null;
+
+          return GymDetailsScreen(planData: planData);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.qrScreenRoute,
+        name: 'qrScreen',
+        builder: (context, state) {
+          final extra = state.extra;
+
+          final Map<String, dynamic>? planData = extra is Map<String, dynamic>
+              ? extra
+              : null;
+
+          return QRPaymentScreen(planData: planData);
         },
       ),
       // Owner Screens
