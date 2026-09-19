@@ -1,2 +1,2 @@
-# karan_fitness
-Modern GYM app
+# GYMORA FITNESS MANAGEMENT
+Modern GYM management app
