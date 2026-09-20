@@ -8,13 +8,13 @@ import {
 
 const PLAN_DETAILS = {
     STARTER: {
-        amount: 5000,
+        amount: 5,
     },
     PRO: {
-        amount: 10000,
+        amount: 10,
     },
     ELITE: {
-        amount: 15000,
+        amount: 15,
     },
 };
 
