@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
@@ -186,7 +186,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
 
     setState(() => _isSubmitting = true);
 
-    final ownerProvider = context.read<OwnerProvider>();
+    final ownerProvider = context.read<OwnerLoginProvider>();
     final success = await ownerProvider.login(gymId: gymId, password: password);
 
     if (!mounted) return;
@@ -464,7 +464,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
   }
 
   Widget _buildCTA() {
-    return Consumer<OwnerProvider>(
+    return Consumer<OwnerLoginProvider>(
       builder: (context, ownerProv, _) {
         final loading = ownerProv.isLoading || _isSubmitting;
 

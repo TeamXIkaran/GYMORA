@@ -4,9 +4,10 @@ import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/payment_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// QR PAYMENT SCREEN — PaymentProvider Integration
+// QR PAYMENT SCREEN — Dynamic UPI QR with PaymentProvider Integration
 // ═══════════════════════════════════════════════════════════════════════════
 
 class QRPaymentScreen extends StatefulWidget {
@@ -22,6 +23,13 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     with TickerProviderStateMixin {
   // ── Theme ──
   static const Color _accent = AppColors.primary;
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UPI CONFIG — Replace with your actual UPI details
+  // ═══════════════════════════════════════════════════════════════════════
+  static const String _upiId = 'yourupi@bank'; // ← your UPI ID
+  static const String _payeeName = 'GYMORA'; // ← display name on UPI apps
+  static const String _merchantCode = ''; // optional merchant code
 
   // ── State ──
   bool _paymentSubmitted = false;
@@ -51,6 +59,34 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     _initAnimations();
     _startSequence();
   }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BUILD UPI DEEP-LINK WITH AMOUNT
+  // ═══════════════════════════════════════════════════════════════════════
+
+  String _buildUpiUri() {
+    final data = widget.planData ?? {};
+    final amount = data['amount']?.toString() ?? '0';
+    final plan = data['plan']?.toString() ?? 'GYMORA';
+
+    // Standard UPI intent URI — works with GPay, PhonePe, Paytm, etc.
+    final uri = StringBuffer('upi://pay?')
+      ..write('pa=${Uri.encodeComponent(_upiId)}')
+      ..write('&pn=${Uri.encodeComponent(_payeeName)}')
+      ..write('&am=$amount')
+      ..write('&cu=INR')
+      ..write('&tn=${Uri.encodeComponent('GYMORA $plan Plan')}');
+
+    if (_merchantCode.isNotEmpty) {
+      uri.write('&mc=${Uri.encodeComponent(_merchantCode)}');
+    }
+
+    return uri.toString();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ANIMATIONS (unchanged logic)
+  // ═══════════════════════════════════════════════════════════════════════
 
   void _initAnimations() {
     _logoCtrl = AnimationController(
@@ -144,9 +180,9 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
   // SUBMIT PAYMENT VIA PROVIDER
-  // ─────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
 
   Future<void> _submitPayment() async {
     if (_isProcessing) return;
@@ -191,7 +227,6 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
       _showMessage('Payment submitted successfully! Awaiting approval.');
 
-      // Navigate to owner login after a short delay
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         context.goNamed('ownerLogin');
@@ -218,9 +253,9 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
   // BUILD
-  // ─────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +311,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                   _buildBrandText(),
                   const SizedBox(height: 30),
 
-                  // ── QR Code Area ──
+                  // ── Dynamic QR Code ──
                   _buildQRCode(),
                   const SizedBox(height: 24),
 
@@ -368,83 +403,140 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     );
   }
 
-  // ── QR CODE (Real UPI QR) ──
+  // ═══════════════════════════════════════════════════════════════════════
+  // DYNAMIC UPI QR — Generated from plan amount
+  // ═══════════════════════════════════════════════════════════════════════
+
   Widget _buildQRCode() {
+    final upiUri = _buildUpiUri();
+    final data = widget.planData ?? {};
+    final amount = data['amount']?.toString() ?? '0';
+
     return AnimatedBuilder(
       animation: _qrCtrl,
       builder: (_, child) => Opacity(
         opacity: _qrOpacity.value,
         child: Transform.scale(scale: _qrScale.value, child: child),
       ),
-      child: Container(
-        width: 260,
-        height: 310,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: _accent.withValues(alpha: 0.25),
-              blurRadius: 30,
-              spreadRadius: -5,
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Real QR Image
-            ClipRRect(
+      child: Column(
+        children: [
+          // ── QR Container ──
+          Container(
+            width: 260,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                'assets/images/payment_qr.jpg',
-                width: 260,
-                height: 310,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.qr_code_2_rounded,
-                        size: 80,
-                        color: Colors.black54,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'QR code not found',
-                        style: TextStyle(color: Colors.black54, fontSize: 12),
-                      ),
-                    ],
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withValues(alpha: 0.25),
+                  blurRadius: 30,
+                  spreadRadius: -5,
                 ),
-              ),
+              ],
             ),
-            // Scan Line Animation
-            AnimatedBuilder(
-              animation: _scanLineCtrl,
-              builder: (_, _) {
-                final y = _scanLineCtrl.value * 310;
-                return Positioned(
-                  top: y,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 2,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          _accent.withValues(alpha: 0.8),
-                          Colors.transparent,
-                        ],
-                      ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // ── Dynamic QR from UPI URI ──
+                QrImageView(
+                  data: upiUri,
+                  version: QrVersions.auto,
+                  size: 220,
+                  backgroundColor: Colors.white,
+                  eyeStyle: QrEyeStyle(color: const Color(0xFF1A1A2E)),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    color: Color(0xFF1A1A2E),
+                  ),
+                  errorCorrectionLevel: QrErrorCorrectLevel.M,
+                  // Optional: GYMORA logo in the center of QR
+                  embeddedImage: const AssetImage(
+                    'assets/images/gymora_logo.png',
+                  ),
+                  embeddedImageStyle: const QrEmbeddedImageStyle(
+                    size: Size(36, 36),
+                  ),
+                  errorStateBuilder: (_, _) => const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 80,
+                          color: Colors.black54,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Could not generate QR',
+                          style: TextStyle(color: Colors.black54, fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
+                ),
+
+                // ── Scan-line animation overlay ──
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _scanLineCtrl,
+                    builder: (_, _) {
+                      final y = _scanLineCtrl.value * 220;
+                      return Stack(
+                        children: [
+                          Positioned(
+                            top: y,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 2,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    _accent.withValues(alpha: 0.6),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Amount badge below QR ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.currency_rupee_rounded, color: _accent, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  amount,
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -479,6 +571,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
             const SizedBox(height: 10),
             _detailRow('Amount', '₹$amount'),
             const SizedBox(height: 10),
+            _detailRow('Pay To', _upiId),
+            const SizedBox(height: 10),
             _detailRow('Status', _paymentSubmitted ? 'Submitted' : 'Pending'),
           ],
         ),
@@ -498,12 +592,16 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
             fontWeight: FontWeight.w400,
           ),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: _accent.withValues(alpha: 0.9),
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: _accent.withValues(alpha: 0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -613,7 +711,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Scan the QR code to pay. Your GYMORA membership will be activated once payment is approved.',
+                'Scan the QR code to pay ₹${widget.planData?['amount'] ?? '0'}. '
+                'Your GYMORA membership will be activated once payment is approved.',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 11,

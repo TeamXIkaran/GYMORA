@@ -73,7 +73,12 @@ class ApiHelper {
     dynamic body,
     Map<String, String>? headers,
   }) async {
-    final url = Uri.parse('$_currentBaseUrl$endpoint');
+    // Ensure exactly one '/' between base URL and endpoint
+    final base = _currentBaseUrl.endsWith('/')
+        ? _currentBaseUrl
+        : '$_currentBaseUrl/';
+    final path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    final url = Uri.parse('$base$path');
     http.Response response;
     final sanitizedBody = body != null
         ? _sanitizeRequestBody(jsonEncode(body))
@@ -214,11 +219,34 @@ class ApiHelper {
         : body;
   }
 
+  // ── Helpers ────────────────────────────────────────────────
+
+  /// Returns true if the raw body looks like an HTML page
+  /// (common when hitting the wrong URL or a web-server 404 page).
+  bool _isHtmlResponse(String body) {
+    final trimmed = body.trimLeft().toLowerCase();
+    return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html');
+  }
+
   // ── Response handling ──────────────────────────────────────
 
   ApiResponse<T> _handleResponse<T>(http.Response response) {
     final statusCode = response.statusCode;
     dynamic body;
+
+    // ── Guard: if the response is HTML, short-circuit immediately ──
+    if (_isHtmlResponse(response.body)) {
+      _logger.error(
+        'API_RESPONSE',
+        'Received HTML instead of JSON (status $statusCode). '
+            'Check BASE_URL in your .env file.',
+      );
+      return ApiResponse.error(
+        'Server returned an unexpected response. '
+        'Please check the API URL configuration.',
+        statusCode: statusCode,
+      );
+    }
 
     try {
       body = response.body.isNotEmpty ? jsonDecode(response.body) : null;
@@ -264,7 +292,10 @@ class ApiHelper {
     if (body is Map<String, dynamic>) {
       message = body['message']?.toString() ?? message;
     } else if (body is String) {
-      message = body;
+      // Safety net: never show raw HTML or very long strings to the user
+      message = body.trimLeft().startsWith('<')
+          ? 'Server returned an unexpected response. Please check the API URL.'
+          : (body.length > 200 ? '${body.substring(0, 200)}...' : body);
     }
 
     switch (statusCode) {

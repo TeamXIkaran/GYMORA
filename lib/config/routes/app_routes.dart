@@ -19,7 +19,6 @@ import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_s
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_dashboard_screen.dart';
 
-
 // Global Key for Contextless Navigation
 // Useful for session expiry, push notifications, etc.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -29,7 +28,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.splashRoute,
+    initialLocation: AppRoutes.ownerDashboardRoute,
 
     routes: [
       // Splash Screen

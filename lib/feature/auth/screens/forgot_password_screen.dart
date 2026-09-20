@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/reset_password_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
@@ -227,7 +227,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       _successMessage = null;
     });
 
-    final ownerProvider = context.read<OwnerProvider>();
+    final ownerProvider = context.read<OwnerLoginProvider>();
     final success = await ownerProvider.forgotPassword(email: email);
 
     if (!mounted) return;
@@ -284,7 +284,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       _successMessage = null;
     });
 
-    final ownerProvider = context.read<OwnerProvider>();
+    final ownerProvider = context.read<OwnerLoginProvider>();
     final success = await ownerProvider.verifyOtp(
       email: _emailCtrl.text.trim(),
       otp: otp,

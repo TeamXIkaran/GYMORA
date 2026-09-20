@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glass_sheet_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
@@ -59,6 +59,142 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
   bool _isSubmitting = false;
 
   // ═══════════════════════════════════════════════════════════════════════
+  // 409 — GMAIL ALREADY REGISTERED DIALOG
+  // ═══════════════════════════════════════════════════════════════════════
+
+  void _showAlreadyRegisteredDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E2C),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.08),
+                blurRadius: 32,
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Icon ──
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.email_outlined,
+                  color: Colors.orangeAccent,
+                  size: 30,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── Title ──
+              const Text(
+                'Gmail Already Registered',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Message ──
+              Text(
+                'The Gmail address "$email" is already linked to an existing account. Please use a different Gmail or log in with the existing account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ── Change Email button ──
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    // Focus the email field so user can change it
+                    ownerEmailCtrl.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: ownerEmailCtrl.text.length,
+                    );
+                    _ownerEmailFocus.requestFocus();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Change Email',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Go to Login button ──
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    context.goNamed('login');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Go to Login',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
   // SUBMIT — Calls /api/owner/purchase
   // ═══════════════════════════════════════════════════════════════════════
 
@@ -74,7 +210,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
     // ── FIX: read 'name' key (sent by PurchaseMembershipScreen) ──
     final planName = widget.planData?['name']?.toString() ?? 'PRO';
 
-    final ownerProvider = context.read<OwnerProvider>();
+    final ownerProvider = context.read<OwnerLoginProvider>();
     final success = await ownerProvider.purchase(
       gymName: gymNameCtrl.text.trim(),
       gymId: gymIdCtrl.text.trim(),
@@ -106,18 +242,31 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
 
       context.pushNamed('qrScreen', extra: paymentData);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ownerProvider.errorMessage ?? 'Purchase failed. Please try again.',
+      // ── 409 CONFLICT: Gmail already registered ──
+      final statusCode = ownerProvider.statusCode;
+      final errorMsg = ownerProvider.errorMessage ?? '';
+
+      if (statusCode == 409 ||
+          errorMsg.toLowerCase().contains('already registered') ||
+          errorMsg.toLowerCase().contains('already exists')) {
+        _showAlreadyRegisteredDialog(ownerEmailCtrl.text.trim());
+      } else {
+        // ── Generic error snackbar ──
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorMsg.isNotEmpty
+                  ? errorMsg
+                  : 'Purchase failed. Please try again.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red.shade700,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red.shade700,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -433,7 +582,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   // ═══════════════════════════════════════════════════════
                   // SUBMIT
                   // ═══════════════════════════════════════════════════════
-                  Consumer<OwnerProvider>(
+                  Consumer<OwnerLoginProvider>(
                     builder: (context, ownerProv, _) {
                       final loading = ownerProv.isLoading || _isSubmitting;
 

@@ -9,11 +9,11 @@ import 'package:gymora_fitness_management/core/model/owner_model.dart';
 
 enum OwnerStatus { initial, loading, authenticated, unauthenticated, error }
 
-class OwnerProvider extends ChangeNotifier {
+class OwnerLoginProvider extends ChangeNotifier {
   final OwnerService _service;
   final SecureStorageExtension _storage;
 
-  OwnerProvider({OwnerService? service, SecureStorageExtension? storage})
+  OwnerLoginProvider({OwnerService? service, SecureStorageExtension? storage})
     : _service = service ?? OwnerService(),
       _storage = storage ?? SecureStorageExtension();
 
@@ -22,12 +22,14 @@ class OwnerProvider extends ChangeNotifier {
   OwnerModel? _owner;
   PurchaseResponse? _purchaseResponse;
   String? _errorMessage;
+  int? _statusCode;
 
   // ── Getters ──
   OwnerStatus get status => _status;
   OwnerModel? get owner => _owner;
   PurchaseResponse? get purchaseResponse => _purchaseResponse;
   String? get errorMessage => _errorMessage;
+  int? get statusCode => _statusCode;
   bool get isLoading => _status == OwnerStatus.loading;
   bool get isAuthenticated => _status == OwnerStatus.authenticated;
 
@@ -38,6 +40,7 @@ class OwnerProvider extends ChangeNotifier {
   Future<bool> login({required String gymId, required String password}) async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final request = OwnerLoginRequest(gymId: gymId, password: password);
@@ -47,12 +50,14 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] LOGIN RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('📦 Data: ${response.data}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success || response.data == null) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'Login failed';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
@@ -65,6 +70,7 @@ class OwnerProvider extends ChangeNotifier {
     _owner = loginData.owner;
     _status = OwnerStatus.authenticated;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -84,6 +90,7 @@ class OwnerProvider extends ChangeNotifier {
   }) async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final request = PurchaseRequest(
@@ -102,12 +109,14 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] PURCHASE RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('📦 Data: ${response.data}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success || response.data == null) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'Purchase failed';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
@@ -115,6 +124,7 @@ class OwnerProvider extends ChangeNotifier {
     _purchaseResponse = response.data!;
     _status = OwnerStatus.initial;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -126,6 +136,7 @@ class OwnerProvider extends ChangeNotifier {
   Future<bool> fetchProfile() async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final response = await _service.getProfile();
@@ -134,12 +145,14 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] PROFILE RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('📦 Data: ${response.data}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success || response.data == null) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'Failed to fetch profile';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
@@ -147,6 +160,7 @@ class OwnerProvider extends ChangeNotifier {
     _owner = response.data!;
     _status = OwnerStatus.authenticated;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -158,6 +172,7 @@ class OwnerProvider extends ChangeNotifier {
   Future<bool> forgotPassword({required String email}) async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final request = ForgotPasswordRequest(email: email);
@@ -167,17 +182,20 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] FORGOT PASSWORD RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'Failed to send OTP';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
 
     _status = OwnerStatus.initial;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -189,6 +207,7 @@ class OwnerProvider extends ChangeNotifier {
   Future<bool> verifyOtp({required String email, required String otp}) async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final request = VerifyOtpRequest(email: email, otp: otp);
@@ -198,17 +217,20 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] VERIFY OTP RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'OTP verification failed';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
 
     _status = OwnerStatus.initial;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -224,6 +246,7 @@ class OwnerProvider extends ChangeNotifier {
   }) async {
     _status = OwnerStatus.loading;
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
 
     final request = ResetPasswordRequest(
@@ -237,17 +260,20 @@ class OwnerProvider extends ChangeNotifier {
     debugPrint('🎯 [OwnerProvider] RESET PASSWORD RESULT');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
+    debugPrint('📦 StatusCode: ${response.statusCode}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success) {
       _status = OwnerStatus.error;
       _errorMessage = response.message ?? 'Password reset failed';
+      _statusCode = response.statusCode;
       notifyListeners();
       return false;
     }
 
     _status = OwnerStatus.initial;
     _errorMessage = null;
+    _statusCode = response.statusCode;
     notifyListeners();
     return true;
   }
@@ -261,6 +287,7 @@ class OwnerProvider extends ChangeNotifier {
     _owner = null;
     _purchaseResponse = null;
     _errorMessage = null;
+    _statusCode = null;
     _status = OwnerStatus.unauthenticated;
     notifyListeners();
   }
@@ -271,6 +298,7 @@ class OwnerProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    _statusCode = null;
     notifyListeners();
   }
 }

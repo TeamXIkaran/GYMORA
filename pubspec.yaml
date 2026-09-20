@@ -29,7 +29,6 @@ dependencies:
 
   dio: ^5.9.0
   http: ^1.5.0
-  flutter_dotenv: ^5.2.1
 
   # ============================================================
   # NAVIGATION
@@ -176,6 +175,7 @@ flutter:
     - assets/videos/
     - env/.env.dev
     - env/.env.prod
+
 
 flutter_launcher_icons:
   android: true
