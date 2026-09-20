@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:gymora_fitness_management/config/routes/app_routes.dart';
 import 'package:gymora_fitness_management/config/theme/app_theme.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/payment_provider.dart';
-
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ── Load the correct .env file based on build flavor ──
+  // Development:  flutter run
+  // Production:   flutter run --dart-define=ENV=prod
+  const env = String.fromEnvironment('ENV', defaultValue: 'dev');
+  await dotenv.load(fileName: 'env/.env.$env');
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-
         ChangeNotifierProvider(create: (_) => OwnerProvider()),
-
         ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: const MyApp(),

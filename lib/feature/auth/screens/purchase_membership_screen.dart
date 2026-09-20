@@ -182,6 +182,9 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
     setState(() => _selectedPlanIndex = index);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // FIX: Pass correct keys so GymDetailsScreen and QR screen read them
+  // ═══════════════════════════════════════════════════════════════════════
   void _proceedToGymDetails() {
     if (_selectedPlanIndex < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,9 +204,13 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
     context.pushNamed(
       'gymDetailed',
       extra: {
-        'plan': plan['name'],
-        'amount': plan['price'].replaceAll(',', ''),
-        'duration': plan['duration'],
+        'name': plan['name'], // plan name for display & API
+        'price': plan['price'], // formatted price for display
+        'amount': plan['price'].replaceAll(
+          ',',
+          '',
+        ), // raw number for payment API
+        'duration': plan['duration'], // duration for display
       },
     );
   }

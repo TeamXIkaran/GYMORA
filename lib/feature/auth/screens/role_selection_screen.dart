@@ -1,12 +1,9 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ROLE SELECTION SCREEN — GYMORA Branding
-// ═══════════════════════════════════════════════════════════════════════════
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -19,236 +16,431 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
     with TickerProviderStateMixin {
   static const Color _accent = AppColors.primary;
 
-  // ── Animation Controllers ──
-  late final AnimationController _logoCtrl;
-  late final AnimationController _headingCtrl;
-  late final AnimationController _cardsCtrl;
-  late final AnimationController _footerCtrl;
-  late final AnimationController _particleCtrl;
-  late final AnimationController _glowPulseCtrl;
+  late final AnimationController _entranceController;
+  late final AnimationController _ambientController;
+  late final AnimationController _pulseController;
 
-  // ── Animations ──
-  late final Animation<double> _logoOpacity;
-  late final Animation<double> _logoScale;
-  late final Animation<double> _headingOpacity;
-  late final Animation<double> _headingSlide;
-  late final Animation<double> _card1Opacity;
-  late final Animation<double> _card2Opacity;
-  late final Animation<double> _card3Opacity;
-  late final Animation<double> _footerOpacity;
+  late final Animation<double> _heroFade;
+  late final Animation<double> _heroScale;
+  late final Animation<double> _headingFade;
+  late final Animation<Offset> _headingSlide;
+
+  late final Animation<double> _card1;
+  late final Animation<double> _card2;
+  late final Animation<double> _card3;
+
+  int? _pressedCard;
 
   @override
   void initState() {
     super.initState();
-    _initAnimations();
-    _startSequence();
-  }
 
-  void _initAnimations() {
-    _logoCtrl = AnimationController(
+    // ---------------------------------------------------------------
+    // ENTRANCE ANIMATION
+    // ---------------------------------------------------------------
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _logoOpacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _logoCtrl,
-        curve: const Interval(0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-    _logoScale = Tween<double>(
-      begin: 0.6,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
-
-    _headingCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _headingOpacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOut));
-    _headingSlide = Tween<double>(begin: 20, end: 0).animate(
-      CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
+      duration: const Duration(milliseconds: 1400),
     );
 
-    _cardsCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
-    _card1Opacity = Tween<double>(begin: 0, end: 1).animate(
+    _heroFade = _interval(0.0, 0.22, Curves.easeOut);
+
+    _heroScale = Tween<double>(begin: 0.78, end: 1.0).animate(
       CurvedAnimation(
-        parent: _cardsCtrl,
-        curve: const Interval(0, 0.35, curve: Curves.easeOut),
-      ),
-    );
-    _card2Opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _cardsCtrl,
-        curve: const Interval(0.2, 0.55, curve: Curves.easeOut),
-      ),
-    );
-    _card3Opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _cardsCtrl,
-        curve: const Interval(0.4, 0.75, curve: Curves.easeOut),
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.30, curve: Curves.easeOutBack),
       ),
     );
 
-    _footerCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _footerOpacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _footerCtrl, curve: Curves.easeOut));
+    _headingFade = _interval(0.15, 0.42, Curves.easeOut);
 
-    _particleCtrl = AnimationController(
+    _headingSlide =
+        Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: const Interval(0.15, 0.42, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    _card1 = _interval(0.25, 0.52, Curves.easeOutCubic);
+
+    _card2 = _interval(0.36, 0.63, Curves.easeOutCubic);
+
+    _card3 = _interval(0.47, 0.74, Curves.easeOutCubic);
+
+    // ---------------------------------------------------------------
+    // AMBIENT BACKGROUND
+    // ---------------------------------------------------------------
+    _ambientController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
+      duration: const Duration(seconds: 12),
     )..repeat();
 
-    _glowPulseCtrl = AnimationController(
+    // ---------------------------------------------------------------
+    // LOGO PULSE
+    // ---------------------------------------------------------------
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
   }
 
-  Future<void> _startSequence() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 400));
-    _headingCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _cardsCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 800));
-    _footerCtrl.forward();
+  Animation<double> _interval(double begin, double end, Curve curve) {
+    return Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: Interval(begin, end, curve: curve),
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _logoCtrl.dispose();
-    _headingCtrl.dispose();
-    _cardsCtrl.dispose();
-    _footerCtrl.dispose();
-    _particleCtrl.dispose();
-    _glowPulseCtrl.dispose();
+    _entranceController.dispose();
+    _ambientController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.darkGradient),
-        child: Stack(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // ===========================================================
+          // BACKGROUND
+          // ===========================================================
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(gradient: AppColors.darkGradient),
+            ),
+          ),
+
+          Positioned.fill(
+            child: _AmbientBackground(
+              animation: _ambientController,
+              accent: _accent,
+            ),
+          ),
+
+          // Subtle grid
+          Positioned.fill(
+            child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
+          ),
+
+          // ===========================================================
+          // CONTENT
+          // ===========================================================
+          SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(20, 28, 20, bottomInset + 30),
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _entranceController,
+                  _pulseController,
+                ]),
+                builder: (context, _) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ------------------------------------------------
+                      // HERO
+                      // ------------------------------------------------
+                      _buildHero(),
+
+                      SizedBox(height: size.height < 700 ? 32 : 48),
+
+                      // ------------------------------------------------
+                      // HEADING
+                      // ------------------------------------------------
+                      _buildHeading(),
+
+                      const SizedBox(height: 28),
+
+                      // ------------------------------------------------
+                      // ROLE CARDS
+                      // ------------------------------------------------
+                      _buildRoleCard(
+                        index: 0,
+                        animation: _card1,
+                        number: '01',
+                        icon: Icons.storefront_rounded,
+                        title: 'GYM OWNER',
+                        subtitle: 'RUN YOUR EMPIRE',
+                        description: 'Members • Trainers • Revenue • Plans',
+                        color: const Color(0xFFE62B52),
+                        routeName: 'ownerLogin',
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildRoleCard(
+                        index: 1,
+                        animation: _card2,
+                        number: '02',
+                        icon: Icons.fitness_center_rounded,
+                        title: 'TRAINER',
+                        subtitle: 'BUILD YOUR ATHLETES',
+                        description: 'Clients • Programs • Progress • Sessions',
+                        color: const Color(0xFF3B82F6),
+                        routeName: 'trainerLogin',
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _buildRoleCard(
+                        index: 2,
+                        animation: _card3,
+                        number: '03',
+                        icon: Icons.directions_run_rounded,
+                        title: 'CLIENT',
+                        subtitle: 'BUILD YOURSELF',
+                        description: 'Workouts • Goals • Progress • Results',
+                        color: const Color(0xFF22C55E),
+                        routeName: 'clientLogin',
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // ------------------------------------------------
+                      // BOTTOM BRAND
+                      // ------------------------------------------------
+                      _buildBottomBrand(),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =================================================================
+  // HERO
+  // =================================================================
+
+  Widget _buildHero() {
+    final pulse = 1.0 + (_pulseController.value * 0.035);
+
+    return FadeTransition(
+      opacity: _heroFade,
+      child: Transform.scale(
+        scale: _heroScale.value * pulse,
+        child: Column(
           children: [
-            // ── Animated glow ──
-            AnimatedBuilder(
-              animation: _glowPulseCtrl,
-              builder: (_, _) => Positioned(
-                top: -60,
-                right: -40,
-                child: Container(
-                  width: 200,
-                  height: 200,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer glow
+                Container(
+                  width: 112,
+                  height: 112,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        _accent.withValues(
-                          alpha: 0.1 + (_glowPulseCtrl.value * 0.06),
-                        ),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // ── Particles ──
-            AnimatedBuilder(
-              animation: _particleCtrl,
-              builder: (_, _) => CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _RoleParticlePainter(
-                  progress: _particleCtrl.value,
-                  color: _accent,
-                ),
-              ),
-            ),
-
-            // ── Content ──
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 16,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight:
-                        MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.top -
-                        MediaQuery.of(context).padding.bottom -
-                        32,
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.06,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _accent.withValues(alpha: 0.12),
+                        blurRadius: 55,
+                        spreadRadius: 5,
                       ),
-
-                      // ── GYMORA Logo ──
-                      _buildLogo(),
-                      const SizedBox(height: 14),
-                      _buildBrandText(),
-                      const SizedBox(height: 40),
-
-                      // ── Heading ──
-                      _buildHeading(),
-                      const SizedBox(height: 36),
-
-                      // ── Role Cards ──
-                      _buildRoleCard(
-                        opacity: _card1Opacity,
-                        icon: Icons.business_rounded,
-                        title: 'Gym Owner',
-                        subtitle: 'Manage your gym empire',
-                        routeName: 'ownerLogin',
-                        gradient: const [Color(0xFFE62B52), Color(0xFF8B1528)],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildRoleCard(
-                        opacity: _card2Opacity,
-                        icon: Icons.sports_gymnastics_rounded,
-                        title: 'Trainer',
-                        subtitle: 'Coach & train your clients',
-                        routeName: 'trainerLogin',
-                        gradient: const [Color(0xFF2196F3), Color(0xFF1565C0)],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildRoleCard(
-                        opacity: _card3Opacity,
-                        icon: Icons.person_rounded,
-                        title: 'Client',
-                        subtitle: 'Track your fitness journey',
-                        routeName: 'clientLogin',
-                        gradient: const [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // ── Footer ──
-                      _buildFooter(),
-                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
+
+                // Logo ring
+                Container(
+                  width: 94,
+                  height: 94,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _accent.withValues(alpha: 0.85),
+                        Colors.white.withValues(alpha: 0.08),
+                        _accent.withValues(alpha: 0.25),
+                      ],
+                    ),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF07101A),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/gymora_logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) {
+                          return Icon(
+                            Icons.fitness_center_rounded,
+                            color: _accent,
+                            size: 38,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 18),
+
+            // Brand
+            ShaderMask(
+              shaderCallback: (bounds) {
+                return const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Colors.white, Color(0xFFE9EDF2), Color(0xFF9BA7B5)],
+                ).createShader(bounds);
+              },
+              child: const Text(
+                'GYMORA',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 7,
+                  height: 1,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 24,
+                  height: 1,
+                  color: _accent.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 9),
+                Text(
+                  'FITNESS MANAGEMENT',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.42),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 3.2,
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Container(
+                  width: 24,
+                  height: 1,
+                  color: _accent.withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =================================================================
+  // HEADING
+  // =================================================================
+
+  Widget _buildHeading() {
+    return FadeTransition(
+      opacity: _headingFade,
+      child: SlideTransition(
+        position: _headingSlide,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'CHOOSE YOUR',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.48),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3.4,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Expanded(
+                  child: Text(
+                    'WORLD.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.2,
+                      height: 1,
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _accent.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: _accent.withValues(alpha: 0.22)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4ADE80),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'GYMORA',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'Choose how you want to experience your fitness journey.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.36),
+                fontSize: 13,
+                height: 1.4,
               ),
             ),
           ],
@@ -257,248 +449,391 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
     );
   }
 
-  // ── GYMORA LOGO ──
-  Widget _buildLogo() {
-    return AnimatedBuilder(
-      animation: _logoCtrl,
-      builder: (_, child) => Opacity(
-        opacity: _logoOpacity.value,
-        child: Transform.scale(scale: _logoScale.value, child: child),
-      ),
-      child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 90,
-        height: 90,
-        fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 40,
-          ),
-        ),
-      ),
-    );
-  }
+  // =================================================================
+  // ROLE CARD
+  // =================================================================
 
-  // ── GYMORA BRAND TEXT ──
-  Widget _buildBrandText() {
-    return AnimatedBuilder(
-      animation: _logoCtrl,
-      builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
-      child: Column(
-        children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── HEADING ──
-  Widget _buildHeading() {
-    return AnimatedBuilder(
-      animation: _headingCtrl,
-      builder: (_, _) => Opacity(
-        opacity: _headingOpacity.value,
-        child: Transform.translate(
-          offset: Offset(0, _headingSlide.value),
-          child: Column(
-            children: [
-              const Text(
-                'Enter GYMORA as a',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select your role to continue',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── ROLE CARD ──
   Widget _buildRoleCard({
-    required Animation<double> opacity,
+    required int index,
+    required Animation<double> animation,
+    required String number,
     required IconData icon,
     required String title,
     required String subtitle,
+    required String description,
+    required Color color,
     required String routeName,
-    required List<Color> gradient,
   }) {
-    return AnimatedBuilder(
-      animation: _cardsCtrl,
-      builder: (_, _) {
-        final o = opacity.value;
-        return Opacity(
-          opacity: o,
-          child: Transform.translate(
-            offset: Offset(0, 30 * (1 - o)),
-            child: GestureDetector(
-              onTap: () => context.pushNamed(routeName),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: gradient[0].withValues(alpha: 0.25),
+    final progress = animation.value;
+    final isPressed = _pressedCard == index;
+
+    return Opacity(
+      opacity: progress,
+      child: Transform.translate(
+        offset: Offset(0, 35 * (1 - progress)),
+        child: AnimatedScale(
+          scale: isPressed ? 0.975 : 1.0,
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOut,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) {
+              setState(() {
+                _pressedCard = index;
+              });
+            },
+            onTapCancel: () {
+              setState(() {
+                _pressedCard = null;
+              });
+            },
+            onTapUp: (_) {
+              setState(() {
+                _pressedCard = null;
+              });
+
+              context.pushNamed(routeName);
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: Container(
+                  height: 142,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(26),
+                    color: Colors.white.withValues(alpha: 0.045),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.085),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.045),
+                        blurRadius: 30,
+                        spreadRadius: -8,
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: gradient[0].withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      spreadRadius: -4,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        gradient: LinearGradient(colors: gradient),
-                      ),
-                      child: Icon(icon, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                  child: Stack(
+                    children: [
+                      // ------------------------------------------------
+                      // Accent glow
+                      // ------------------------------------------------
+                      Positioned(
+                        left: -55,
+                        top: -55,
+                        child: Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                color.withValues(alpha: 0.16),
+                                Colors.transparent,
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
+                        ),
+                      ),
+
+                      // ------------------------------------------------
+                      // Right vertical accent
+                      // ------------------------------------------------
+                      Positioned(
+                        right: 0,
+                        top: 18,
+                        bottom: 18,
+                        child: Container(
+                          width: 3,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.horizontal(
+                              left: Radius.circular(3),
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                color.withValues(alpha: 0.0),
+                                color.withValues(alpha: 0.8),
+                                color.withValues(alpha: 0.0),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: gradient[0].withValues(alpha: 0.6),
-                      size: 18,
-                    ),
-                  ],
+
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 17, 18, 17),
+                        child: Row(
+                          children: [
+                            // --------------------------------------------
+                            // NUMBER + ICON
+                            // --------------------------------------------
+                            SizedBox(
+                              width: 72,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Text(
+                                      number,
+                                      style: TextStyle(
+                                        color: color.withValues(alpha: 0.28),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 58,
+                                    height: 58,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(19),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          color.withValues(alpha: 0.19),
+                                          color.withValues(alpha: 0.05),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: color.withValues(alpha: 0.22),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.10),
+                                          blurRadius: 18,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(icon, color: color, size: 27),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // --------------------------------------------
+                            // TEXT
+                            // --------------------------------------------
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.2,
+                                      height: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 7),
+                                  Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: color.withValues(alpha: 0.9),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    description,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.34,
+                                      ),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // --------------------------------------------
+                            // ARROW
+                            // --------------------------------------------
+                            Container(
+                              width: 39,
+                              height: 39,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: color.withValues(alpha: 0.12),
+                                border: Border.all(
+                                  color: color.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: color,
+                                size: 19,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // =================================================================
+  // BOTTOM BRAND
+  // =================================================================
+
+  Widget _buildBottomBrand() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 34,
+          height: 1,
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'STRONGER TOGETHER',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.22),
+            fontSize: 8,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.2,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          width: 34,
+          height: 1,
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ],
+    );
+  }
+}
+
+// =====================================================================
+// AMBIENT BACKGROUND
+// =====================================================================
+
+class _AmbientBackground extends StatelessWidget {
+  final Animation<double> animation;
+  final Color accent;
+
+  const _AmbientBackground({required this.animation, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final t = animation.value;
+        final width = MediaQuery.sizeOf(context).width;
+        final height = MediaQuery.sizeOf(context).height;
+
+        return Stack(
+          children: [
+            // Top right red glow
+            Positioned(
+              top: -120 + sin(t * 2 * pi) * 20,
+              right: -100 + cos(t * 2 * pi) * 25,
+              child: _orb(300, accent.withValues(alpha: 0.075)),
+            ),
+
+            // Bottom left red glow
+            Positioned(
+              bottom: -160 + cos(t * 2 * pi) * 30,
+              left: -130 + sin(t * 2 * pi) * 25,
+              child: _orb(340, accent.withValues(alpha: 0.045)),
+            ),
+
+            // Blue glow
+            Positioned(
+              top: height * 0.38 + sin(t * 2 * pi + 2) * 35,
+              right: -110,
+              child: _orb(
+                230,
+                const Color(0xFF2563EB).withValues(alpha: 0.035),
+              ),
+            ),
+
+            // Small accent light
+            Positioned(
+              top: height * 0.18 + cos(t * 2 * pi) * 20,
+              left: width * 0.15,
+              child: _orb(100, accent.withValues(alpha: 0.025)),
+            ),
+          ],
         );
       },
     );
   }
 
-  // ── FOOTER ──
-  Widget _buildFooter() {
-    return AnimatedBuilder(
-      animation: _footerCtrl,
-      builder: (_, child) =>
-          Opacity(opacity: _footerOpacity.value, child: child),
-      child: Text(
-        'Powered by GYMORA FITNESS MANAGEMENT',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.25),
-          fontSize: 10,
-          fontWeight: FontWeight.w400,
-          letterSpacing: 1,
+  Widget _orb(double size, Color color) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, Colors.transparent],
+            stops: const [0.0, 0.72],
+          ),
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ROLE PARTICLE PAINTER
-// ═══════════════════════════════════════════════════════════════════════════
+// =====================================================================
+// SUBTLE GRID
+// =====================================================================
 
-class _RoleParticlePainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final Random _random = Random(99);
-
-  _RoleParticlePainter({required this.progress, required this.color});
-
+class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.018)
+      ..strokeWidth = 1;
 
-    for (int i = 0; i < 20; i++) {
-      final baseX = _random.nextDouble() * size.width;
-      final baseY = _random.nextDouble() * size.height;
-      final speed = 0.2 + _random.nextDouble() * 0.5;
-      final radius = 0.8 + _random.nextDouble() * 1.5;
-      final alpha = 0.04 + _random.nextDouble() * 0.1;
+    const spacing = 42.0;
 
-      final y = (baseY - progress * speed * size.height) % size.height;
+    for (double x = 0; x <= size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
 
-      paint.color = color.withValues(alpha: alpha);
-      canvas.drawCircle(Offset(baseX, y), radius, paint);
+    for (double y = 0; y <= size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _RoleParticlePainter oldDelegate) =>
-      oldDelegate.progress != progress;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }

@@ -177,7 +177,7 @@ class OwnerLoginResponse {
 //   "plan": "STARTER"
 // }
 // ═══════════════════════════════════════════════════════════════════════════
-
+// In PurchaseRequest class
 class PurchaseRequest {
   final String gymName;
   final String gymId;
@@ -202,8 +202,8 @@ class PurchaseRequest {
     'gymId': gymId,
     'password': password,
     'ownerName': ownerName,
-    'ownerEmail': ownerEmail,
-    'ownerPhone': ownerPhone,
+    'email': ownerEmail, // was 'ownerEmail'
+    'phone': ownerPhone, // was 'ownerPhone'
     'plan': plan,
   };
 }

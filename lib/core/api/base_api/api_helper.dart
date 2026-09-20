@@ -1,32 +1,30 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gymora_fitness_management/config/env_config.dart';
 import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
+
 import 'package:gymora_fitness_management/core/error/app_exception.dart';
 import 'package:gymora_fitness_management/core/service/logger_service.dart';
 import 'package:gymora_fitness_management/core/service/secure_storage_service.dart';
 import 'package:gymora_fitness_management/core/service/session_manager.dart';
 import 'package:http/http.dart' as http;
 
-
 class ApiHelper {
-  static const String _defaultBaseUrl =
-      "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/";
-  // static String baseUrl2 = "https://hrms-socket.onrender.com";
-
-  static const String otherBaseUrl =
-      "https://hrms-socket.onrender.com/"; // Replace with your mail service base URL
   final LoggingService _logger = LoggingService.instance;
   final SecureStorageService _secureStorage = SecureStorageService();
 
-  String _currentBaseUrl; // Global base URL for the current service
+  /// Reads from .env via EnvConfig — no hardcoded URLs.
+  String _currentBaseUrl;
 
-  ApiHelper({String? baseUrl}) : _currentBaseUrl = baseUrl ?? _defaultBaseUrl;
+  ApiHelper({String? baseUrl}) : _currentBaseUrl = baseUrl ?? EnvConfig.baseUrl;
 
-  // Set the base URL for the current service
+  /// Override at runtime if needed (e.g. a micro-service on a different host).
   void setBaseUrl(String baseUrl) {
     _currentBaseUrl = baseUrl;
   }
+
+  // ── HTTP verbs (unchanged) ─────────────────────────────────
 
   Future<ApiResponse<T>> get<T>(
     String endpoint, {
@@ -67,6 +65,8 @@ class ApiHelper {
     return _request<T>('DELETE', endpoint, body: body, headers: headers);
   }
 
+  // ── Core request handler ───────────────────────────────────
+
   Future<ApiResponse<T>> _request<T>(
     String method,
     String endpoint, {
@@ -79,10 +79,12 @@ class ApiHelper {
         ? _sanitizeRequestBody(jsonEncode(body))
         : null;
 
-    // Fetch dynamic headers (including Token)
     final defaultHeaders = await _defaultHeaders(headers);
     _logger.logApi(
-      '=== REQUEST START ===\nMethod: $method\nURL: $url\nHeaders: ${_sanitizeHeaders(defaultHeaders)}\nBody: $sanitizedBody',
+      '=== REQUEST START ===\n'
+      'Method: $method\nURL: $url\n'
+      'Headers: ${_sanitizeHeaders(defaultHeaders)}\n'
+      'Body: $sanitizedBody',
     );
 
     try {
@@ -122,13 +124,13 @@ class ApiHelper {
           throw BadRequestException('Invalid HTTP method');
       }
 
-      // Log error details from backend
       _logger.logApi(
-        '=== RESPONSE ===\nStatus Code: ${response.statusCode}\nBody: ${_sanitizeResponseBody(response.body)}',
+        '=== RESPONSE ===\n'
+        'Status Code: ${response.statusCode}\n'
+        'Body: ${_sanitizeResponseBody(response.body)}',
       );
 
-      final result = _handleResponse<T>(response);
-      return result;
+      return _handleResponse<T>(response);
     } on SocketException catch (e, s) {
       _logger.error(
         'NETWORK',
@@ -150,6 +152,8 @@ class ApiHelper {
       return ApiResponse.error('Something went wrong. Please try again later.');
     }
   }
+
+  // ── Headers ────────────────────────────────────────────────
 
   Future<Map<String, String>> _defaultHeaders(
     Map<String, String>? customHeaders,
@@ -210,6 +214,8 @@ class ApiHelper {
         : body;
   }
 
+  // ── Response handling ──────────────────────────────────────
+
   ApiResponse<T> _handleResponse<T>(http.Response response) {
     final statusCode = response.statusCode;
     dynamic body;
@@ -220,9 +226,7 @@ class ApiHelper {
       body = response.body;
     }
 
-    // Detect session-expiry payload regardless of HTTP status code.
-    // Backend may return 200 OK with {"status":false,"message":"Unauthorized or token expired"}
-    // OR a proper 401 with the same message.
+    // Session-expiry detection
     if (body is Map<String, dynamic>) {
       final bodyStatus = body['status'];
       final bodyMessage = body['message']?.toString() ?? '';
@@ -245,7 +249,6 @@ class ApiHelper {
       );
     }
 
-    // ✅ SUCCESS
     if (body is Map<String, dynamic> && body['status'] == false) {
       return ApiResponse.error(
         body['message']?.toString() ?? 'Request was rejected',
@@ -257,9 +260,7 @@ class ApiHelper {
       return ApiResponse.success(body as T, statusCode: statusCode);
     }
 
-    // ✅ SAFE error message extraction
     String message = 'Something went wrong';
-
     if (body is Map<String, dynamic>) {
       message = body['message']?.toString() ?? message;
     } else if (body is String) {

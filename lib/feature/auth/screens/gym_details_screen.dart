@@ -71,6 +71,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
 
     setState(() => _isSubmitting = true);
 
+    // ── FIX: read 'name' key (sent by PurchaseMembershipScreen) ──
     final planName = widget.planData?['name']?.toString() ?? 'PRO';
 
     final ownerProvider = context.read<OwnerProvider>();
@@ -94,9 +95,11 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
       debugPrint('📦 GymId: ${ownerProvider.purchaseResponse?.gymId}');
       debugPrint('═══════════════════════════════════════════');
 
-      // Forward plan data + purchase response to QR Payment
+      // ── FIX: build paymentData with consistent keys for QRPaymentScreen ──
       final Map<String, dynamic> paymentData = {
-        ...?widget.planData,
+        'plan': planName,
+        'amount': widget.planData?['amount']?.toString() ?? '0',
+        'duration': widget.planData?['duration']?.toString() ?? '',
         'ownerId': ownerProvider.purchaseResponse?.ownerId ?? '',
         'gymId': ownerProvider.purchaseResponse?.gymId ?? gymIdCtrl.text.trim(),
       };
@@ -491,6 +494,8 @@ class _SelectedPlanBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ── FIX: reads 'name', 'price', 'duration' — matches what
+    //    PurchaseMembershipScreen now sends ──
     final name = planData['name']?.toString() ?? 'PRO';
     final price = planData['price']?.toString() ?? '10,000';
     final duration = planData['duration']?.toString() ?? '3 Months';
