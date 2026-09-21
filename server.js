@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import connectDB from "./src/config/db.js";
 import ownerRoutes from "./src/routes/ownerRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
+import memberRoutes from "./src/routes/memberRoutes.js";
+import trainerRoutes from "./src/routes/trainerRoutes.js";
 
 dotenv.config();
 
@@ -14,6 +16,8 @@ app.use(express.json());
 
 app.use("/api/owner", ownerRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/members", memberRoutes);
+app.use("/api/trainers", trainerRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
