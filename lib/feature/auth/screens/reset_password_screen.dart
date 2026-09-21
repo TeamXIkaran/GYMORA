@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
+import 'package:gymora_fitness_management/core/widgets/glassTextField_widget.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 
 import 'package:provider/provider.dart';
 

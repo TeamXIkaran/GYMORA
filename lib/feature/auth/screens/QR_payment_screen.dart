@@ -27,7 +27,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
   // ═══════════════════════════════════════════════════════════════════════
   // UPI CONFIG — Replace with your actual UPI details
   // ═══════════════════════════════════════════════════════════════════════
-  static const String _upiId = 'yourupi@bank'; // ← your UPI ID
+  static const String _upiId = 'bishtkaran819-1@okicici'; // ← your UPI ID
   static const String _payeeName = 'GYMORA'; // ← display name on UPI apps
   static const String _merchantCode = ''; // optional merchant code
 
@@ -85,7 +85,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // ANIMATIONS (unchanged logic)
+  // ANIMATIONS
   // ═══════════════════════════════════════════════════════════════════════
 
   void _initAnimations() {
@@ -181,7 +181,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // SUBMIT PAYMENT VIA PROVIDER
+  // SUBMIT PAYMENT VIA PROVIDER (FIXED)
   // ═══════════════════════════════════════════════════════════════════════
 
   Future<void> _submitPayment() async {
@@ -225,12 +225,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
       debugPrint('QR PAYMENT: Payment submitted successfully!');
       debugPrint('Last Payment: ${paymentProvider.lastPayment}');
 
-      _showMessage('Payment submitted successfully! Awaiting approval.');
-
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        context.goNamed('ownerLogin');
-      }
+      // ── FIX: Show approval-pending dialog instead of going straight to login ──
+      _showPaymentPendingDialog();
     } else {
       debugPrint('QR PAYMENT: Payment submission failed!');
       debugPrint('Error: ${paymentProvider.errorMessage}');
@@ -238,6 +234,106 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
         paymentProvider.errorMessage ?? 'Payment failed. Please try again.',
       );
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PAYMENT PENDING DIALOG (NEW)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  void _showPaymentPendingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2ECC71).withValues(alpha: 0.15),
+          ),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF2ECC71),
+            size: 48,
+          ),
+        ),
+        title: const Text(
+          'Payment Submitted!',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Your payment has been submitted for verification. '
+              'You can log in once the admin approves your payment.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _accent.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline_rounded, color: _accent, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Status: Awaiting Approval',
+                    style: TextStyle(
+                      color: _accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (mounted) {
+                  context.goNamed('ownerLogin');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'GO TO LOGIN',
+                style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 1),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showMessage(String message) {
@@ -444,12 +540,11 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                   version: QrVersions.auto,
                   size: 220,
                   backgroundColor: Colors.white,
-                  eyeStyle: QrEyeStyle(color: const Color(0xFF1A1A2E)),
+                  eyeStyle: const QrEyeStyle(color: Color(0xFF1A1A2E)),
                   dataModuleStyle: const QrDataModuleStyle(
                     color: Color(0xFF1A1A2E),
                   ),
                   errorCorrectionLevel: QrErrorCorrectLevel.M,
-                  // Optional: GYMORA logo in the center of QR
                   embeddedImage: const AssetImage(
                     'assets/images/gymora_logo.png',
                   ),

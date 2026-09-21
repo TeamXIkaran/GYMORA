@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gymora_fitness_management/core/api/network/owner_service.dart';
 import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
-import 'package:gymora_fitness_management/core/model/owner_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_login_model.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER PROVIDER
@@ -19,14 +19,14 @@ class OwnerLoginProvider extends ChangeNotifier {
 
   // ── State ──
   OwnerStatus _status = OwnerStatus.initial;
-  OwnerModel? _owner;
+  OwnerLoginModel? _owner;
   PurchaseResponse? _purchaseResponse;
   String? _errorMessage;
   int? _statusCode;
 
   // ── Getters ──
   OwnerStatus get status => _status;
-  OwnerModel? get owner => _owner;
+  OwnerLoginModel? get owner => _owner;
   PurchaseResponse? get purchaseResponse => _purchaseResponse;
   String? get errorMessage => _errorMessage;
   int? get statusCode => _statusCode;

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gymora_fitness_management/core/api/base_api/api_helper.dart';
 import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
-import 'package:gymora_fitness_management/core/model/owner_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_login_model.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // OWNER SERVICE
@@ -111,7 +111,7 @@ class OwnerService {
   // GET /api/owner/profile
   // ─────────────────────────────────────────────────────────────────────
 
-  Future<ApiResponse<OwnerModel>> getProfile() async {
+  Future<ApiResponse<OwnerLoginModel>> getProfile() async {
     debugPrint('═══════════════════════════════════════════');
     debugPrint('👤 [OwnerService] GET PROFILE');
     debugPrint('═══════════════════════════════════════════');
@@ -136,7 +136,7 @@ class OwnerService {
       // Profile endpoint returns: data.owner (nested inside data)
       final data = response.data!['data'] as Map<String, dynamic>;
       final ownerJson = data['owner'] as Map<String, dynamic>? ?? data;
-      final owner = OwnerModel.fromJson(ownerJson);
+      final owner = OwnerLoginModel.fromJson(ownerJson);
       debugPrint('✅ [OwnerService] Parsed: $owner');
       return ApiResponse.success(
         owner,

@@ -19,6 +19,9 @@ class AppRoutes {
   static const String memberShipRoute = '/member-ship';
   static const String ownerSettingRoute = '/onwer-setting';
   static const String ownerNotificationRoute = '/onwer-notification';
+  static const String ownerProfileRoute = '/owner-profile';
+  static const String addMemberRoute = '/add-member';
+  static const String addTrainerRoute = '/add-trainer';
 
   // Trainer Routes
   static const String trainerDashboardRoute = '/trainer-dashboard';

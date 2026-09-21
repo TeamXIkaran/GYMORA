@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
-import 'package:gymora_fitness_management/feature/auth/widgets/shimmer_button_widget.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

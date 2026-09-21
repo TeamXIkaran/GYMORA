@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/glassTextField_widget.dart';
+import 'package:gymora_fitness_management/core/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/glass_sheet_widget.dart';
-import 'package:gymora_fitness_management/feature/auth/widgets/gradient_button_widget.dart';
+import 'package:gymora_fitness_management/core/widgets/gradient_button_widget.dart';
 
 import 'package:provider/provider.dart';
 

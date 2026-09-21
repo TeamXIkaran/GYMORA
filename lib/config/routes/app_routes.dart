@@ -10,10 +10,13 @@ import 'package:gymora_fitness_management/feature/auth/screens/purchase_membersh
 import 'package:gymora_fitness_management/feature/auth/screens/role_selection_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/add_member_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/add_trainer_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_dashboard_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_notification_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_settings_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
@@ -28,7 +31,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.ownerDashboardRoute,
+    initialLocation: AppRoutes.splashRoute,
 
     routes: [
       // Splash Screen
@@ -152,6 +155,21 @@ class AppRouter {
         builder: (context, state) {
           return const OwnerNotificationScreen();
         },
+      ),
+      GoRoute(
+        path: AppRoutes.ownerProfileRoute,
+        name: 'ownerProfile',
+        builder: (context, state) => const OwnerProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerProfileRoute,
+        name: 'addMember',
+        builder: (context, state) => const AddMemberScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.ownerProfileRoute,
+        name: 'addTrainer',
+        builder: (context, state) => const AddTrainerScreen(),
       ),
 
       // Trainer Screens
