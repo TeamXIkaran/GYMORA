@@ -1,6 +1,7 @@
 import Payment from "../models/Payment.js";
+
 import Owner from "../models/Owner.js";
-import bcrypt from "bcryptjs";
+
 import {
     sendPaymentNotification,
     sendOwnerCredentialsEmail,
@@ -54,31 +55,70 @@ const submitPayment = async (req, res) => {
             });
         }
 
-        const existingPayment = await Payment.findOne({
+        // Check if a payment already exists for this owner
+        let payment = await Payment.findOne({
             owner: owner._id,
-            paymentStatus: "PENDING",
         });
 
-        if (existingPayment) {
+        if (payment && payment.paymentStatus === "APPROVED") {
             return res.status(400).json({
                 success: false,
-                message: "Payment is already pending for verification",
+                message: "Payment has already been approved",
                 data: {
-                    paymentId: existingPayment._id,
+                    paymentId: payment._id,
                 },
             });
         }
 
-        const payment = await Payment.create({
-            owner: owner._id,
-            gymName: owner.gymName,
-            gymId: owner.gymId,
-            ownerName: owner.ownerName,
-            plan: owner.plan,
-            amount: planDetails.amount,
-            paymentStatus: "PENDING",
-        });
+        // Create payment if it does not exist
+        if (!payment) {
+            payment = await Payment.create({
+                owner: owner._id,
+                gymName: owner.gymName,
+                gymId: owner.gymId,
+                ownerName: owner.ownerName,
+                plan: owner.plan,
+                amount: planDetails.amount,
+                paymentStatus: "PENDING",
+            });
+        }
 
+        /*
+         * MVP AUTO-APPROVAL
+         * -----------------
+         * No webhook/admin approval for now.
+         * Payment is automatically approved after submission.
+         */
+
+        const membershipStartDate = new Date();
+        const membershipEndDate = new Date(membershipStartDate);
+
+        if (owner.plan === "STARTER") {
+            membershipEndDate.setMonth(
+                membershipEndDate.getMonth() + 1
+            );
+        } else if (owner.plan === "PRO") {
+            membershipEndDate.setMonth(
+                membershipEndDate.getMonth() + 3
+            );
+        } else if (owner.plan === "ELITE") {
+            membershipEndDate.setMonth(
+                membershipEndDate.getMonth() + 6
+            );
+        }
+
+        payment.paymentStatus = "APPROVED";
+        payment.verifiedAt = new Date();
+
+        owner.paymentStatus = "APPROVED";
+        owner.membershipStatus = "ACTIVE";
+        owner.membershipStartDate = membershipStartDate;
+        owner.membershipEndDate = membershipEndDate;
+
+        await payment.save();
+        await owner.save();
+
+        // Notify payment verification email
         sendPaymentNotification({
             gymName: payment.gymName,
             gymId: payment.gymId,
@@ -94,16 +134,35 @@ const submitPayment = async (req, res) => {
             );
         });
 
-        return res.status(201).json({
+        // Send login credentials/reminder to owner
+        sendOwnerCredentialsEmail({
+            gymName: owner.gymName,
+            gymId: owner.gymId,
+            ownerName: owner.ownerName,
+            plan: owner.plan,
+            membershipStartDate: owner.membershipStartDate,
+            membershipEndDate: owner.membershipEndDate,
+            email: owner.email,
+        }).catch((error) => {
+            console.error(
+                "Owner credentials email failed:",
+                error.message
+            );
+        });
+
+        return res.status(200).json({
             success: true,
-            message: "Payment submitted for verification",
+            message: "Payment approved and membership activated successfully",
             data: {
                 paymentId: payment._id,
-                gymName: payment.gymName,
-                gymId: payment.gymId,
-                plan: payment.plan,
+                gymName: owner.gymName,
+                gymId: owner.gymId,
+                plan: owner.plan,
                 amount: payment.amount,
-                paymentStatus: payment.paymentStatus,
+                paymentStatus: owner.paymentStatus,
+                membershipStatus: owner.membershipStatus,
+                membershipStartDate: owner.membershipStartDate,
+                membershipEndDate: owner.membershipEndDate,
             },
         });
     } catch (error) {
@@ -112,6 +171,7 @@ const submitPayment = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -176,17 +236,6 @@ const approvePayment = async (req, res) => {
             );
         }
 
-        const temporaryPassword = `Gym@${Math.random()
-            .toString(36)
-            .slice(-8)}`;
-
-        const hashedTemporaryPassword = await bcrypt.hash(
-            temporaryPassword,
-            10
-        );
-
-        owner.password = hashedTemporaryPassword;
-
         payment.paymentStatus = "APPROVED";
         payment.verifiedAt = new Date();
 
@@ -202,7 +251,6 @@ const approvePayment = async (req, res) => {
             gymName: owner.gymName,
             gymId: owner.gymId,
             ownerName: owner.ownerName,
-            password: temporaryPassword,
             plan: owner.plan,
             membershipStartDate: owner.membershipStartDate,
             membershipEndDate: owner.membershipEndDate,
@@ -311,4 +359,3 @@ export {
     approvePayment,
     rejectPayment,
 };
-

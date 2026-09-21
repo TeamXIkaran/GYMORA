@@ -50,7 +50,6 @@ const sendOwnerCredentialsEmail = async ({
     gymName,
     gymId,
     ownerName,
-    password,
     plan,
     membershipStartDate,
     membershipEndDate,
@@ -71,7 +70,23 @@ const sendOwnerCredentialsEmail = async ({
 
       <p><strong>Gym Name:</strong> ${gymName}</p>
       <p><strong>Gym ID:</strong> ${gymId}</p>
-      <p><strong>Password:</strong> ${password}</p>
+
+      <p>
+        <strong>Password:</strong>
+        Use the password you created during registration.
+      </p>
+
+      <p>
+        For security reasons, your password is not included in this email.
+      </p>
+
+      <p>
+        <strong>Login:</strong>
+        <a href="YOUR_FRONTEND_LOGIN_URL" target="_blank">
+          Login to GYMORA
+        </a>
+      </p>
+
       <p><strong>Plan:</strong> ${plan}</p>
 
       <h3>Membership Details</h3>
@@ -84,7 +99,7 @@ const sendOwnerCredentialsEmail = async ({
             membershipEndDate
         ).toLocaleDateString()}</p>
 
-      <p>You can now log in using your Gym ID and password.</p>
+      <p>You can now log in using your Gym ID and the password you created during registration.</p>
 
       <p>Please keep your login credentials secure.</p>
     `,
