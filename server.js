@@ -19,6 +19,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/trainers", trainerRoutes);
 
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,

@@ -354,8 +354,56 @@ const rejectPayment = async (req, res) => {
     }
 };
 
+const getPaymentStatus = async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+
+        if (!paymentId) {
+            return res.status(400).json({
+                success: false,
+                message: "Payment ID is required",
+            });
+        }
+
+        const payment = await Payment.findById(paymentId);
+
+        if (!payment) {
+            return res.status(404).json({
+                success: false,
+                message: "Payment not found",
+            });
+        }
+
+        const owner = await Owner.findById(payment.owner);
+
+        if (!owner) {
+            return res.status(404).json({
+                success: false,
+                message: "Owner not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                paymentId: payment._id,
+                paymentStatus: payment.paymentStatus,
+                membershipStatus: owner.membershipStatus,
+            },
+        });
+    } catch (error) {
+        console.error("Get payment status error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
 export {
     submitPayment,
     approvePayment,
     rejectPayment,
+    getPaymentStatus,
 };
