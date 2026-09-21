@@ -35,8 +35,15 @@ const trainerSchema = new mongoose.Schema(
 
     specialization: {
       type: String,
+      enum: [
+        "Weight Training",
+        "Cardio & HIIT",
+        "CrossFit",
+        "Yoga & Flexibility",
+        "Strength & Conditioning",
+        "Personal Training",
+      ],
       required: true,
-      trim: true,
     },
 
     experience: {

@@ -6,6 +6,8 @@ import ownerRoutes from "./src/routes/ownerRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
 import memberRoutes from "./src/routes/memberRoutes.js";
 import trainerRoutes from "./src/routes/trainerRoutes.js";
+import dashboardRoutes from "./src/routes/dashboardRoutes.js";
+import planRoutes from "./src/routes/planRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +20,8 @@ app.use("/api/owner", ownerRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/trainers", trainerRoutes);
+app.use("/api/owner/dashboard", dashboardRoutes);
+app.use("/api/plans", planRoutes);
 
 
 app.get("/", (req, res) => {
