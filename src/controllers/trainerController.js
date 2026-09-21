@@ -114,4 +114,38 @@ const addTrainer = async (req, res) => {
   }
 };
 
-export { addTrainer };
+const getTrainers = async (req, res) => {
+  try {
+    // Only owners can view trainers
+    if (req.user.role !== "OWNER") {
+      return res.status(403).json({
+        success: false,
+        message: "Only gym owners can view trainers",
+      });
+    }
+
+    // Get only trainers belonging to the logged-in owner's gym
+    const trainers = await Trainer.find({
+      gymId: req.user.gymId,
+    })
+      .select("-password")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainers fetched successfully",
+      data: {
+        trainers,
+      },
+    });
+  } catch (error) {
+    console.error("Get trainers error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { addTrainer, getTrainers };

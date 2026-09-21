@@ -40,8 +40,8 @@ const memberSchema = new mongoose.Schema(
 
     membershipPlan: {
       type: String,
+      enum: ["BASIC", "STANDARD", "PREMIUM"],
       required: true,
-      trim: true,
     },
 
     startDate: {
