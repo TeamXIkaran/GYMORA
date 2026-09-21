@@ -277,7 +277,14 @@ class ApiHelper {
       );
     }
 
-    if (body is Map<String, dynamic> && body['status'] == false) {
+    // ══════════════════════════════════════════════════════════════════
+    // FIX: Check BOTH 'status' and 'success' keys.
+    // The API returns {"success": false, ...} but the old code only
+    // checked body['status']. This caused 409 errors to fall through
+    // to the switch-default, losing the real error message.
+    // ══════════════════════════════════════════════════════════════════
+    if (body is Map<String, dynamic> &&
+        (body['status'] == false || body['success'] == false)) {
       return ApiResponse.error(
         body['message']?.toString() ?? 'Request was rejected',
         statusCode: statusCode,
@@ -310,7 +317,11 @@ class ApiHelper {
       case 500:
         throw ServerException(message);
       default:
-        throw FetchDataException('Error occurred with StatusCode: $statusCode');
+        // ════════════════════════════════════════════════════════════
+        // FIX: Use the extracted `message` instead of a generic string.
+        // Old code: 'Error occurred with StatusCode: $statusCode'
+        // ════════════════════════════════════════════════════════════
+        throw FetchDataException(message);
     }
   }
 }

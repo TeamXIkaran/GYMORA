@@ -59,6 +59,141 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
   bool _isSubmitting = false;
 
   // ═══════════════════════════════════════════════════════════════════════
+  // 409 — GYM ID ALREADY EXISTS DIALOG
+  // ═══════════════════════════════════════════════════════════════════════
+
+  void _showGymIdAlreadyExistsDialog(String gymId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E2C),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.08),
+                blurRadius: 32,
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Icon ──
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.tag_rounded,
+                  color: Colors.orangeAccent,
+                  size: 30,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── Title ──
+              const Text(
+                'Gym ID Already Taken',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Message ──
+              Text(
+                'The Gym ID "$gymId" is already registered. Please choose a different Gym ID or log in if this is your account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ── Change Gym ID button ──
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    gymIdCtrl.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: gymIdCtrl.text.length,
+                    );
+                    _gymIdFocus.requestFocus();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Change Gym ID',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Go to Login button ──
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    context.goNamed('login');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Go to Login',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
   // 409 — GMAIL ALREADY REGISTERED DIALOG
   // ═══════════════════════════════════════════════════════════════════════
 
@@ -242,14 +377,29 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
 
       context.pushNamed('qrScreen', extra: paymentData);
     } else {
-      // ── 409 CONFLICT: Gmail already registered ──
+      // ══════════════════════════════════════════════════════════════
+      // FIX: Distinguish "Gym ID already exists" from
+      //      "Gmail already registered" — they are different errors!
+      // ══════════════════════════════════════════════════════════════
       final statusCode = ownerProvider.statusCode;
       final errorMsg = ownerProvider.errorMessage ?? '';
+      final lowerMsg = errorMsg.toLowerCase();
 
       if (statusCode == 409 ||
-          errorMsg.toLowerCase().contains('already registered') ||
-          errorMsg.toLowerCase().contains('already exists')) {
-        _showAlreadyRegisteredDialog(ownerEmailCtrl.text.trim());
+          lowerMsg.contains('already registered') ||
+          lowerMsg.contains('already exists')) {
+        // ── Gym ID conflict ──
+        if (lowerMsg.contains('gym id') || lowerMsg.contains('gymid')) {
+          _showGymIdAlreadyExistsDialog(gymIdCtrl.text.trim());
+        }
+        // ── Email/Gmail conflict ──
+        else if (lowerMsg.contains('email') || lowerMsg.contains('gmail')) {
+          _showAlreadyRegisteredDialog(ownerEmailCtrl.text.trim());
+        }
+        // ── Generic 409 — default to Gym ID dialog since that's most common ──
+        else {
+          _showGymIdAlreadyExistsDialog(gymIdCtrl.text.trim());
+        }
       } else {
         // ── Generic error snackbar ──
         ScaffoldMessenger.of(context).showSnackBar(
