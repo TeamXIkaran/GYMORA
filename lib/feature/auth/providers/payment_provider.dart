@@ -43,25 +43,17 @@ class PaymentProvider extends ChangeNotifier {
 
   // ═══════════════════════════════════════════════════════════════════════
   // SUBMIT / CREATE PAYMENT
+  //
+  // Updated: backend now only requires ownerId
   // ═══════════════════════════════════════════════════════════════════════
 
-  Future<bool> submitPayment({
-    required String ownerId,
-    required String gymId,
-    required String plan,
-    required num amount,
-  }) async {
+  Future<bool> submitPayment({required String ownerId}) async {
     _status = PaymentStatus.loading;
     _errorMessage = null;
 
     notifyListeners();
 
-    final request = PaymentSubmitRequest(
-      ownerId: ownerId,
-      gymId: gymId,
-      plan: plan,
-      amount: amount,
-    );
+    final request = PaymentSubmitRequest(ownerId: ownerId);
 
     try {
       final response = await _service.submitPayment(request);
@@ -112,12 +104,11 @@ class PaymentProvider extends ChangeNotifier {
     try {
       final response = await _service.checkPaymentStatus(paymentId);
 
-      debugPrint('═══════════════════════════════════════════');
-      debugPrint('🎯 [PaymentProvider] STATUS RESULT');
-      debugPrint('📦 Success: ${response.success}');
-      debugPrint('📦 Message: ${response.message}');
-      debugPrint('📦 Data: ${response.data}');
-      debugPrint('═══════════════════════════════════════════');
+      debugPrint(
+        '🎯 [PaymentProvider] STATUS → '
+        'success: ${response.success}, '
+        'status: ${response.data?.paymentStatus}',
+      );
 
       if (!response.success || response.data == null) {
         return null;
@@ -148,12 +139,10 @@ class PaymentProvider extends ChangeNotifier {
     try {
       final response = await _service.approvePayment(paymentId);
 
-      debugPrint('═══════════════════════════════════════════');
-      debugPrint('🎯 [PaymentProvider] APPROVE RESULT');
-      debugPrint('📦 Success: ${response.success}');
-      debugPrint('📦 Message: ${response.message}');
-      debugPrint('📦 Data: ${response.data}');
-      debugPrint('═══════════════════════════════════════════');
+      debugPrint(
+        '🎯 [PaymentProvider] APPROVE → '
+        'success: ${response.success}',
+      );
 
       if (!response.success || response.data == null) {
         _status = PaymentStatus.error;
@@ -199,12 +188,10 @@ class PaymentProvider extends ChangeNotifier {
     try {
       final response = await _service.rejectPayment(paymentId);
 
-      debugPrint('═══════════════════════════════════════════');
-      debugPrint('🎯 [PaymentProvider] REJECT RESULT');
-      debugPrint('📦 Success: ${response.success}');
-      debugPrint('📦 Message: ${response.message}');
-      debugPrint('📦 Data: ${response.data}');
-      debugPrint('═══════════════════════════════════════════');
+      debugPrint(
+        '🎯 [PaymentProvider] REJECT → '
+        'success: ${response.success}',
+      );
 
       if (!response.success || response.data == null) {
         _status = PaymentStatus.error;

@@ -6,13 +6,34 @@
 //
 // POST /api/payment/submit
 //
+// Request: { "ownerId": "6ab147e9f23477a887d1a8ae" }
+//
+// Response:
 // {
-//   "paymentId": "6aaec909a362496443b2fc11",
-//   "gymName": "Astha Bhardwaj",
-//   "gymId": "asthabhardwaj007",
-//   "plan": "STARTER",
-//   "amount": 5000,
-//   "paymentStatus": "PENDING"
+//   "success": true,
+//   "message": "Payment approved and membership activated successfully",
+//   "data": {
+//     "paymentId": "6ab147ecf23477a887d1a8af",
+//     "gymName": "Karan Bisht",
+//     "gymId": "0002",
+//     "plan": "STARTER",
+//     "amount": 5000,
+//     "paymentStatus": "APPROVED",
+//     "membershipStatus": "ACTIVE",
+//     "membershipStartDate": "2026-09-21T15:21:48.347Z",
+//     "membershipEndDate": "2026-10-21T15:21:48.347Z"
+//   }
+// }
+//
+// GET /api/payment/status/{paymentId}
+//
+// {
+//   "success": true,
+//   "data": {
+//     "paymentId": "6ab147ecf23477a887d1a8af",
+//     "paymentStatus": "APPROVED",
+//     "membershipStatus": "ACTIVE"
+//   }
 // }
 //
 // POST /api/payment/approve
@@ -79,21 +100,13 @@ class PaymentModel {
 
     return PaymentModel(
       paymentId: (json['paymentId'] ?? '').toString(),
-
       gymName: json['gymName']?.toString(),
-
       gymId: json['gymId']?.toString(),
-
       plan: json['plan']?.toString(),
-
       amount: parsedAmount,
-
       paymentStatus: (json['paymentStatus'] ?? '').toString(),
-
       membershipStatus: json['membershipStatus']?.toString(),
-
       membershipStartDate: json['membershipStartDate']?.toString(),
-
       membershipEndDate: json['membershipEndDate']?.toString(),
     );
   }
@@ -101,22 +114,14 @@ class PaymentModel {
   Map<String, dynamic> toJson() {
     return {
       'paymentId': paymentId,
-
       if (gymName != null) 'gymName': gymName,
-
       if (gymId != null) 'gymId': gymId,
-
       if (plan != null) 'plan': plan,
-
       if (amount != null) 'amount': amount,
-
       'paymentStatus': paymentStatus,
-
       if (membershipStatus != null) 'membershipStatus': membershipStatus,
-
       if (membershipStartDate != null)
         'membershipStartDate': membershipStartDate,
-
       if (membershipEndDate != null) 'membershipEndDate': membershipEndDate,
     };
   }
@@ -140,34 +145,16 @@ class PaymentModel {
 //
 // POST /api/payment/submit
 //
-// Body:
-//
-// {
-//   "ownerId": "6aaec8ffa362496443b2fc10",
-//   "gymId": "asthabhardwaj007",
-//   "plan": "STARTER",
-//   "amount": 5000
-// }
+// Body: { "ownerId": "6ab147e9f23477a887d1a8ae" }
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
 class PaymentSubmitRequest {
   final String ownerId;
 
-  final String gymId;
-
-  final String plan;
-
-  final num amount;
-
-  const PaymentSubmitRequest({
-    required this.ownerId,
-    required this.gymId,
-    required this.plan,
-    required this.amount,
-  });
+  const PaymentSubmitRequest({required this.ownerId});
 
   Map<String, dynamic> toJson() {
-    return {'ownerId': ownerId, 'gymId': gymId, 'plan': plan, 'amount': amount};
+    return {'ownerId': ownerId};
   }
 }

@@ -162,12 +162,12 @@ class AppRouter {
         builder: (context, state) => const OwnerProfileScreen(),
       ),
       GoRoute(
-        path: AppRoutes.ownerProfileRoute,
+        path: AppRoutes.addMemberRoute,
         name: 'addMember',
         builder: (context, state) => const AddMemberScreen(),
       ),
       GoRoute(
-        path: AppRoutes.ownerProfileRoute,
+        path: AppRoutes.addTrainerRoute,
         name: 'addTrainer',
         builder: (context, state) => const AddTrainerScreen(),
       ),

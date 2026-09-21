@@ -6,7 +6,6 @@ import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.d
 import 'package:gymora_fitness_management/feature/owner/widgets/detail_row.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
-
 class OwnerProfileScreen extends StatefulWidget {
   const OwnerProfileScreen({super.key});
 
@@ -217,7 +216,7 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
           CircleButton(
             icon: Icons.arrow_back_rounded,
             onTap: () {
-              context.pop();
+              context.pushNamed('ownerDashboard');
             },
           ),
 

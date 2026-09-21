@@ -8,7 +8,6 @@ import 'package:gymora_fitness_management/feature/owner/widgets/member_card.dart
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_avtar.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
-
 class OwnerMembersScreen extends StatefulWidget {
   const OwnerMembersScreen({super.key});
 

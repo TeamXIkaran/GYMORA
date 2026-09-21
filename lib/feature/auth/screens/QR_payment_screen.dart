@@ -10,7 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QR PAYMENT SCREEN
-// Automatic payment detection
+// Automatic payment detection with fast polling
 // ═══════════════════════════════════════════════════════════════════════════
 
 class QRPaymentScreen extends StatefulWidget {
@@ -50,9 +50,13 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
   bool _paymentRejected = false;
 
+  bool _paymentTimedOut = false;
+
   String? _paymentId;
 
   Timer? _paymentTimer;
+
+  Timer? _timeoutTimer;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ANIMATION CONTROLLERS
@@ -240,6 +244,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTOMATICALLY CREATE PAYMENT
+  //
+  // Updated: backend only requires ownerId now
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _createPaymentAndStartChecking() async {
@@ -259,23 +265,12 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
     final ownerId = data['ownerId']?.toString() ?? '';
 
-    final gymId = data['gymId']?.toString() ?? '';
-
-    final plan = data['plan']?.toString() ?? '';
-
-    final amount = data['amount'] is num
-        ? data['amount'] as num
-        : num.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-
     debugPrint('═══════════════════════════════════════════');
     debugPrint('💳 QR PAYMENT - CREATE PAYMENT');
     debugPrint('ownerId: $ownerId');
-    debugPrint('gymId: $gymId');
-    debugPrint('plan: $plan');
-    debugPrint('amount: $amount');
     debugPrint('═══════════════════════════════════════════');
 
-    if (ownerId.isEmpty || gymId.isEmpty || plan.isEmpty || amount <= 0) {
+    if (ownerId.isEmpty) {
       if (!mounted) return;
 
       setState(() {
@@ -287,12 +282,9 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
       return;
     }
 
-    final success = await paymentProvider.submitPayment(
-      ownerId: ownerId,
-      gymId: gymId,
-      plan: plan,
-      amount: amount,
-    );
+    // ── Submit with only ownerId ──
+
+    final success = await paymentProvider.submitPayment(ownerId: ownerId);
 
     if (!mounted) return;
 
@@ -330,15 +322,30 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     debugPrint('Initial Status: ${payment.paymentStatus}');
     debugPrint('═══════════════════════════════════════════');
 
+    // ── If server already approved it instantly ──
+
+    final initialStatus = payment.paymentStatus.trim().toUpperCase();
+
+    if (initialStatus == 'APPROVED' ||
+        initialStatus == 'PAID' ||
+        initialStatus == 'SUCCESS' ||
+        initialStatus == 'COMPLETED') {
+      await _handlePaymentSuccess(payment);
+      return;
+    }
+
     _startPaymentStatusChecking();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // START AUTOMATIC STATUS CHECK
+  //
+  // Polls every 1.5 seconds (was 3s) + 5 minute timeout
   // ═══════════════════════════════════════════════════════════════════════════
 
   void _startPaymentStatusChecking() {
     _paymentTimer?.cancel();
+    _timeoutTimer?.cancel();
 
     if (_paymentId == null || _paymentId!.isEmpty) {
       return;
@@ -346,12 +353,32 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
     debugPrint('🔄 Starting automatic payment status checking...');
 
-    _paymentTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      _checkPaymentStatus();
-    });
+    // ── Poll every 1.5 seconds ──
+
+    _paymentTimer = Timer.periodic(
+      const Duration(milliseconds: 1500),
+      (_) => _checkPaymentStatus(),
+    );
 
     // Check immediately as well.
     _checkPaymentStatus();
+
+    // ── Auto-timeout after 5 minutes ──
+
+    _timeoutTimer = Timer(const Duration(minutes: 5), () {
+      if (!_paymentApproved && !_paymentRejected && mounted) {
+        _paymentTimer?.cancel();
+
+        setState(() {
+          _paymentTimedOut = true;
+        });
+
+        _showMessage(
+          'Payment verification timed out. If you have paid, '
+          'please contact support.',
+        );
+      }
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -362,7 +389,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     if (_paymentId == null ||
         _paymentId!.isEmpty ||
         _paymentApproved ||
-        _paymentRejected) {
+        _paymentRejected ||
+        _paymentTimedOut) {
       return;
     }
 
@@ -397,6 +425,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
     if (status == 'REJECTED' || status == 'FAILED' || status == 'CANCELLED') {
       _paymentTimer?.cancel();
+      _timeoutTimer?.cancel();
 
       if (!mounted) return;
 
@@ -410,18 +439,14 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     }
 
     // ─────────────────────────────────────────────
-    // PAYMENT STILL PENDING
+    // PAYMENT STILL PENDING — do nothing, keep polling
     // ─────────────────────────────────────────────
-
-    if (status == 'PENDING' || status == 'PROCESSING' || status.isEmpty) {
-      debugPrint('⏳ Payment still waiting for confirmation...');
-
-      return;
-    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PAYMENT SUCCESS
+  //
+  // Reduced delay: 800ms (was 1800ms)
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _handlePaymentSuccess(dynamic payment) async {
@@ -430,6 +455,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     }
 
     _paymentTimer?.cancel();
+    _timeoutTimer?.cancel();
 
     if (!mounted) return;
 
@@ -447,7 +473,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
     _showSuccessMessage('Membership purchased successfully!');
 
-    await Future.delayed(const Duration(milliseconds: 1800));
+    // Quick transition — 800ms so user sees the success message
+    await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
@@ -503,6 +530,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
   @override
   void dispose() {
     _paymentTimer?.cancel();
+    _timeoutTimer?.cancel();
 
     _logoCtrl.dispose();
     _qrCtrl.dispose();
@@ -550,6 +578,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                     child: GestureDetector(
                       onTap: () {
                         _paymentTimer?.cancel();
+                        _timeoutTimer?.cancel();
 
                         Navigator.of(context).pop();
                       },
@@ -596,6 +625,12 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                   _buildPaymentStatus(),
 
                   const SizedBox(height: 16),
+
+                  // ── Retry button (shown on rejection / timeout) ──
+                  if (_paymentRejected || _paymentTimedOut) _buildRetryButton(),
+
+                  if (_paymentRejected || _paymentTimedOut)
+                    const SizedBox(height: 16),
 
                   // ── Info ──
                   _buildInfoText(),
@@ -847,6 +882,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
       statusText = 'Approved';
     } else if (_paymentRejected) {
       statusText = 'Rejected';
+    } else if (_paymentTimedOut) {
+      statusText = 'Timed Out';
     } else if (_paymentSubmitted) {
       statusText = 'Waiting for Payment';
     } else if (_isProcessing) {
@@ -951,14 +988,14 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
         decoration: BoxDecoration(
           color: _paymentApproved
               ? const Color(0xFF27AE60).withValues(alpha: 0.12)
-              : _paymentRejected
+              : (_paymentRejected || _paymentTimedOut)
               ? Colors.red.withValues(alpha: 0.10)
               : _accent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: _paymentApproved
                 ? const Color(0xFF27AE60).withValues(alpha: 0.3)
-                : _paymentRejected
+                : (_paymentRejected || _paymentTimedOut)
                 ? Colors.red.withValues(alpha: 0.25)
                 : _accent.withValues(alpha: 0.2),
           ),
@@ -971,7 +1008,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                 color: Color(0xFF2ECC71),
                 size: 28,
               )
-            else if (_paymentRejected)
+            else if (_paymentRejected || _paymentTimedOut)
               const Icon(
                 Icons.cancel_rounded,
                 color: Colors.redAccent,
@@ -998,6 +1035,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                         ? 'Payment Successful'
                         : _paymentRejected
                         ? 'Payment Rejected'
+                        : _paymentTimedOut
+                        ? 'Verification Timed Out'
                         : _isProcessing
                         ? 'Preparing Payment'
                         : 'Waiting for Payment',
@@ -1015,9 +1054,12 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                         ? 'Membership purchased successfully.'
                         : _paymentRejected
                         ? 'Please try the payment again.'
+                        : _paymentTimedOut
+                        ? 'If you have paid, please contact support.'
                         : _isProcessing
                         ? 'Please wait...'
-                        : 'After your payment is received, we will automatically confirm it.',
+                        : 'After your payment is received, '
+                              'we will automatically confirm it.',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.55),
                       fontSize: 11,
@@ -1028,6 +1070,42 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RETRY BUTTON
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildRetryButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          setState(() {
+            _paymentRejected = false;
+            _paymentTimedOut = false;
+            _paymentSubmitted = false;
+            _paymentId = null;
+            _isProcessing = false;
+          });
+
+          context.read<PaymentProvider>().reset();
+
+          _createPaymentAndStartChecking();
+        },
+        icon: const Icon(Icons.refresh_rounded, size: 18),
+        label: const Text('Retry Payment'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -1063,7 +1141,8 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
             Expanded(
               child: Text(
                 'Scan the QR code to pay ₹${widget.planData?['amount'] ?? '0'}. '
-                'Your GYMORA membership will be activated automatically once payment is received and approved.',
+                'Your GYMORA membership will be activated automatically '
+                'once payment is received and approved.',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 11,

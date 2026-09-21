@@ -15,6 +15,9 @@ class PaymentService {
   // ─────────────────────────────────────────────────────────────────────
   // SUBMIT / CREATE PAYMENT
   // POST /api/payment/submit
+  //
+  // Request:  { "ownerId": "..." }
+  // Response: { "success": true, "message": "...", "data": { ... } }
   // ─────────────────────────────────────────────────────────────────────
 
   Future<ApiResponse<PaymentModel>> submitPayment(
@@ -45,7 +48,8 @@ class PaymentService {
     }
 
     try {
-      final rawData = response.data!['data'];
+      // Try nested data.data first, then fallback to data itself
+      final rawData = response.data!['data'] ?? response.data;
 
       if (rawData is! Map<String, dynamic>) {
         return ApiResponse.error(
@@ -74,17 +78,11 @@ class PaymentService {
 
   // ─────────────────────────────────────────────────────────────────────
   // CHECK PAYMENT STATUS
-  //
-  // IMPORTANT:
-  // Backend must provide:
-  //
   // GET /api/payment/status/{paymentId}
   //
-  // Example response:
-  //
+  // Response:
   // {
   //   "success": true,
-  //   "message": "Payment status fetched",
   //   "data": {
   //     "paymentId": "...",
   //     "paymentStatus": "APPROVED",
@@ -94,21 +92,17 @@ class PaymentService {
   // ─────────────────────────────────────────────────────────────────────
 
   Future<ApiResponse<PaymentModel>> checkPaymentStatus(String paymentId) async {
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('🔍 [PaymentService] CHECK PAYMENT STATUS');
-    debugPrint('📤 PaymentId: $paymentId');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint('🔍 [PaymentService] CHECK STATUS: $paymentId');
 
     final response = await _api.get<Map<String, dynamic>>(
       'api/payment/status/$paymentId',
     );
 
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('📥 [PaymentService] STATUS RESPONSE');
-    debugPrint('📦 Success: ${response.success}');
-    debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 Data: ${response.data}');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint(
+      '📥 [PaymentService] STATUS → '
+      'success: ${response.success}, '
+      'data: ${response.data}',
+    );
 
     if (!response.success || response.data == null) {
       return ApiResponse.error(
@@ -118,7 +112,8 @@ class PaymentService {
     }
 
     try {
-      final rawData = response.data!['data'];
+      // Try nested data.data first, then fallback to data itself
+      final rawData = response.data!['data'] ?? response.data;
 
       if (rawData is! Map<String, dynamic>) {
         return ApiResponse.error(
@@ -129,10 +124,7 @@ class PaymentService {
 
       final payment = PaymentModel.fromJson(rawData);
 
-      debugPrint(
-        '✅ [PaymentService] Payment Status: '
-        '${payment.paymentStatus}',
-      );
+      debugPrint('✅ [PaymentService] Status: ${payment.paymentStatus}');
 
       return ApiResponse.success(
         payment,
@@ -151,28 +143,21 @@ class PaymentService {
   // ─────────────────────────────────────────────────────────────────────
   // APPROVE PAYMENT
   // POST /api/payment/approve
-  //
-  // Keep this method for OWNER/ADMIN approval if needed.
-  // QR screen will NOT call this.
   // ─────────────────────────────────────────────────────────────────────
 
   Future<ApiResponse<PaymentModel>> approvePayment(String paymentId) async {
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('✅ [PaymentService] APPROVE PAYMENT');
-    debugPrint('📤 PaymentId: $paymentId');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint('✅ [PaymentService] APPROVE: $paymentId');
 
     final response = await _api.post<Map<String, dynamic>>(
       'api/payment/approve',
       {'paymentId': paymentId},
     );
 
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('📥 [PaymentService] APPROVE RESPONSE');
-    debugPrint('📦 Success: ${response.success}');
-    debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 Data: ${response.data}');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint(
+      '📥 [PaymentService] APPROVE → '
+      'success: ${response.success}, '
+      'data: ${response.data}',
+    );
 
     if (!response.success || response.data == null) {
       return ApiResponse.error(
@@ -182,7 +167,7 @@ class PaymentService {
     }
 
     try {
-      final rawData = response.data!['data'];
+      final rawData = response.data!['data'] ?? response.data;
 
       if (rawData is! Map<String, dynamic>) {
         return ApiResponse.error(
@@ -193,14 +178,14 @@ class PaymentService {
 
       final payment = PaymentModel.fromJson(rawData);
 
-      debugPrint('✅ [PaymentService] Parsed: $payment');
+      debugPrint('✅ [PaymentService] Approved: $payment');
 
       return ApiResponse.success(
         payment,
         message: response.data!['message']?.toString(),
       );
     } catch (e) {
-      debugPrint('❌ [PaymentService] Parse error: $e');
+      debugPrint('❌ [PaymentService] Approve parse error: $e');
 
       return ApiResponse.error(
         'Failed to parse approve response',
@@ -212,28 +197,21 @@ class PaymentService {
   // ─────────────────────────────────────────────────────────────────────
   // REJECT PAYMENT
   // POST /api/payment/reject
-  //
-  // Keep this method for OWNER/ADMIN rejection if needed.
-  // QR screen will NOT call this.
   // ─────────────────────────────────────────────────────────────────────
 
   Future<ApiResponse<PaymentModel>> rejectPayment(String paymentId) async {
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('❌ [PaymentService] REJECT PAYMENT');
-    debugPrint('📤 PaymentId: $paymentId');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint('❌ [PaymentService] REJECT: $paymentId');
 
     final response = await _api.post<Map<String, dynamic>>(
       'api/payment/reject',
       {'paymentId': paymentId},
     );
 
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('📥 [PaymentService] REJECT RESPONSE');
-    debugPrint('📦 Success: ${response.success}');
-    debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 Data: ${response.data}');
-    debugPrint('═══════════════════════════════════════════');
+    debugPrint(
+      '📥 [PaymentService] REJECT → '
+      'success: ${response.success}, '
+      'data: ${response.data}',
+    );
 
     if (!response.success || response.data == null) {
       return ApiResponse.error(
@@ -243,7 +221,7 @@ class PaymentService {
     }
 
     try {
-      final rawData = response.data!['data'];
+      final rawData = response.data!['data'] ?? response.data;
 
       if (rawData is! Map<String, dynamic>) {
         return ApiResponse.error(
@@ -254,14 +232,14 @@ class PaymentService {
 
       final payment = PaymentModel.fromJson(rawData);
 
-      debugPrint('✅ [PaymentService] Parsed: $payment');
+      debugPrint('✅ [PaymentService] Rejected: $payment');
 
       return ApiResponse.success(
         payment,
         message: response.data!['message']?.toString(),
       );
     } catch (e) {
-      debugPrint('❌ [PaymentService] Parse error: $e');
+      debugPrint('❌ [PaymentService] Reject parse error: $e');
 
       return ApiResponse.error(
         'Failed to parse reject response',

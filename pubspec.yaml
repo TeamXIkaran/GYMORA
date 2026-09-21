@@ -176,7 +176,6 @@ flutter:
     - env/.env.dev
     - env/.env.prod
 
-
 flutter_launcher_icons:
   android: true
   ios: true
@@ -197,5 +196,3 @@ flutter_native_splash:
 
   android_gravity: center
   ios_content_mode: center
-
-  fullscreen: true

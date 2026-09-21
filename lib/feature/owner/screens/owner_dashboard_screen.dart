@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
-
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -102,7 +102,7 @@ class _OwnerHomeScreenState extends State<OwnerDashboardScreen>
                 _MembersBody(),
                 _TrainersBody(),
                 _PlansBody(),
-                _MoreBody(),
+                OwnerProfileScreen(),
               ],
             ),
           ),
@@ -119,7 +119,7 @@ class _OwnerHomeScreenState extends State<OwnerDashboardScreen>
       const _NavItem(icon: Icons.people_alt_rounded, label: 'Members'),
       const _NavItem(icon: Icons.fitness_center_rounded, label: 'Trainers'),
       const _NavItem(icon: Icons.card_membership_rounded, label: 'Plans'),
-      const _NavItem(icon: Icons.more_horiz_rounded, label: 'More'),
+      const _NavItem(icon: Icons.person, label: 'Profile'),
     ];
 
     return Container(
@@ -900,116 +900,6 @@ class _PlansBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MemberShipScreen();
-  }
-}
-
-class _MoreBody extends StatelessWidget {
-  const _MoreBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return _SimpleTabScreen(
-      title: 'Settings',
-      subtitle: 'Manage your GYMO gym',
-      icon: Icons.settings_rounded,
-    );
-  }
-}
-
-class _SimpleTabScreen extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  const _SimpleTabScreen({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 10),
-
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.20),
-                  ),
-                ),
-                child: Icon(icon, color: AppColors.primary),
-              ),
-              const SizedBox(width: 13),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 30),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  icon,
-                  size: 45,
-                  color: AppColors.primary.withValues(alpha: 0.6),
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  '$title Management',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  'This section is ready for your $title functionality.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
