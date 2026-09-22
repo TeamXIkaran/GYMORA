@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/core/model/owner_model.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/detail_row.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
 class OwnerProfileScreen extends StatefulWidget {
-  const OwnerProfileScreen({super.key});
+  /// Called by the back arrow. The dashboard passes a callback that
+  /// switches to the Home tab. When null, the arrow pops (if possible).
+  final VoidCallback? onBack;
+
+  const OwnerProfileScreen({super.key, this.onBack});
 
   @override
   State<OwnerProfileScreen> createState() => _OwnerProfileScreenState();
@@ -17,21 +23,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
     with TickerProviderStateMixin {
   late final AnimationController _glowController;
   late final AnimationController _particleController;
-
-  // Dummy data — will be replaced with backend data
-  final OwnerModel _owner = const OwnerModel(
-    name: 'Rohan Mehta',
-    initials: 'RM',
-    email: 'rohan.mehta@gmail.com',
-    phone: '+91 98765 43210',
-    gymName: 'Karan Fitness',
-    role: 'Owner',
-    isVerified: true,
-    joinDate: '15 Jan 2024',
-    address: '42, MG Road, Sector 12',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-  );
 
   @override
   void initState() {
@@ -46,6 +37,10 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<DashboardProvider>().ensureLoaded();
+    });
   }
 
   @override
@@ -61,14 +56,11 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
       backgroundColor: const Color(0xFF05070C),
       body: Stack(
         children: [
-          // Background
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(gradient: AppColors.darkGradient),
             ),
           ),
-
-          // Particles
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
@@ -79,8 +71,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               },
             ),
           ),
-
-          // Red glow — top center
           Positioned(
             top: -80,
             left: 0,
@@ -89,7 +79,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               animation: _glowController,
               builder: (_, _) {
                 final size = 280 + (_glowController.value * 30);
-
                 return Center(
                   child: Container(
                     width: size,
@@ -109,94 +98,90 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               },
             ),
           ),
-
-          // Content
           SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildProfileCard(),
-                        const SizedBox(height: 24),
+            child: Consumer<DashboardProvider>(
+              builder: (context, dashProvider, _) {
+                final owner = dashProvider.owner;
 
-                        _buildSectionTitle('Personal Information'),
-                        const SizedBox(height: 10),
+                if (dashProvider.isLoading && owner == null) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  );
+                }
 
-                        DetailRow(
-                          icon: Icons.email_outlined,
-                          title: 'Email',
-                          value: _owner.email,
+                return Column(
+                  children: [
+                    _buildHeader(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildProfileCard(owner),
+                            const SizedBox(height: 24),
+
+                            _buildSectionTitle('Owner Information'),
+                            const SizedBox(height: 10),
+
+                            DetailRow(
+                              icon: Icons.person_outline_rounded,
+                              title: 'Name',
+                              value: owner?.name ?? 'N/A',
+                            ),
+                            DetailRow(
+                              icon: Icons.fitness_center_rounded,
+                              title: 'Gym Name',
+                              value: owner?.gymName ?? 'N/A',
+                            ),
+                            DetailRow(
+                              icon: Icons.badge_outlined,
+                              title: 'Role',
+                              value: 'Owner',
+                            ),
+                            DetailRow(
+                              icon: Icons.verified_rounded,
+                              title: 'Status',
+                              value: 'Verified',
+                              isStatus: true,
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            _buildSectionTitle('Gym Stats'),
+                            const SizedBox(height: 10),
+
+                            DetailRow(
+                              icon: Icons.people_alt_rounded,
+                              title: 'Total Members',
+                              value:
+                                  '${dashProvider.summary?.totalMembers ?? 0}',
+                            ),
+                            DetailRow(
+                              icon: Icons.fitness_center_rounded,
+                              title: 'Total Trainers',
+                              value:
+                                  '${dashProvider.summary?.totalTrainers ?? 0}',
+                            ),
+                            DetailRow(
+                              icon: Icons.currency_rupee_rounded,
+                              title: 'Total Revenue',
+                              value:
+                                  dashProvider.summary?.formattedRevenueFull ??
+                                  '₹0',
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            _buildEditProfileButton(),
+                          ],
                         ),
-                        DetailRow(
-                          icon: Icons.phone_outlined,
-                          title: 'Phone',
-                          value: _owner.phone,
-                        ),
-                        DetailRow(
-                          icon: Icons.calendar_today_outlined,
-                          title: 'Joined',
-                          value: _owner.joinDate,
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _buildSectionTitle('Gym Information'),
-                        const SizedBox(height: 10),
-
-                        DetailRow(
-                          icon: Icons.fitness_center_rounded,
-                          title: 'Gym Name',
-                          value: _owner.gymName,
-                        ),
-                        DetailRow(
-                          icon: Icons.badge_outlined,
-                          title: 'Role',
-                          value: _owner.role,
-                        ),
-                        DetailRow(
-                          icon: Icons.verified_rounded,
-                          title: 'Status',
-                          value: _owner.isVerified
-                              ? 'Verified'
-                              : 'Not Verified',
-                          isStatus: _owner.isVerified,
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _buildSectionTitle('Address'),
-                        const SizedBox(height: 10),
-
-                        DetailRow(
-                          icon: Icons.location_on_outlined,
-                          title: 'Address',
-                          value: _owner.address,
-                        ),
-                        DetailRow(
-                          icon: Icons.location_city_outlined,
-                          title: 'City',
-                          value: _owner.city,
-                        ),
-                        DetailRow(
-                          icon: Icons.map_outlined,
-                          title: 'State',
-                          value: _owner.state,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildEditProfileButton(),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -204,24 +189,18 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
     );
   }
 
-  // ============================================================
-  // HEADER
-  // ============================================================
-
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
       child: Row(
         children: [
-          CircleButton(
-            icon: Icons.arrow_back_rounded,
-            onTap: () {
-              context.pushNamed('ownerDashboard');
-            },
-          ),
-
-          const SizedBox(width: 12),
-
+          if (widget.onBack != null || context.canPop()) ...[
+            CircleButton(
+              icon: Icons.arrow_back_rounded,
+              onTap: widget.onBack ?? () => context.pop(),
+            ),
+            const SizedBox(width: 12),
+          ],
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +221,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               ],
             ),
           ),
-
           Container(
             width: 42,
             height: 42,
@@ -262,11 +240,11 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
     );
   }
 
-  // ============================================================
-  // PROFILE CARD
-  // ============================================================
+  Widget _buildProfileCard(OwnerInfo? owner) {
+    final name = owner?.name ?? 'Owner';
+    final initials = owner?.initials ?? '?';
+    final gymName = owner?.gymName ?? 'Your Gym';
 
-  Widget _buildProfileCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28),
@@ -291,7 +269,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
       ),
       child: Column(
         children: [
-          // Avatar
           Container(
             width: 80,
             height: 80,
@@ -309,7 +286,7 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
             ),
             child: Center(
               child: Text(
-                _owner.initials,
+                initials,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -318,68 +295,54 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               ),
             ),
           ),
-
           const SizedBox(height: 14),
-
-          // Name
           Text(
-            _owner.name,
+            name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
           ),
-
           const SizedBox(height: 5),
-
-          // Role & Gym
           Text(
-            '${_owner.role} • ${_owner.gymName}',
+            'Owner • $gymName',
             style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
-
           const SizedBox(height: 10),
-
-          // Verified badge
-          if (_owner.isVerified)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF42DB82).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF42DB82).withValues(alpha: 0.20),
-                ),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.verified_rounded,
-                    color: Color(0xFF42DB82),
-                    size: 14,
-                  ),
-                  SizedBox(width: 5),
-                  Text(
-                    'Verified Owner',
-                    style: TextStyle(
-                      color: Color(0xFF42DB82),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF42DB82).withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF42DB82).withValues(alpha: 0.20),
               ),
             ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.verified_rounded,
+                  color: Color(0xFF42DB82),
+                  size: 14,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  'Verified Owner',
+                  style: TextStyle(
+                    color: Color(0xFF42DB82),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
-
-  // ============================================================
-  // SECTION TITLE
-  // ============================================================
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -391,10 +354,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
       ),
     );
   }
-
-  // ============================================================
-  // EDIT PROFILE BUTTON
-  // ============================================================
 
   Widget _buildEditProfileButton() {
     return SizedBox(
@@ -441,12 +400,6 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.25),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  blurRadius: 15,
-                ),
-              ],
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -11,6 +11,7 @@ import 'package:gymora_fitness_management/feature/auth/screens/role_selection_sc
 import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_member_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/add_membership_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_trainer_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_dashboard_screen.dart';
@@ -139,7 +140,7 @@ class AppRouter {
         path: AppRoutes.memberShipRoute,
         name: 'memberShipScreen',
         builder: (context, state) {
-          return const MemberShipScreen();
+          return const MembershipScreen();
         },
       ),
       GoRoute(
@@ -170,6 +171,11 @@ class AppRouter {
         path: AppRoutes.addTrainerRoute,
         name: 'addTrainer',
         builder: (context, state) => const AddTrainerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.addMembershipRoute,
+        name: 'addMembership',
+        builder: (context, state) => const AddMembershipScreen(),
       ),
 
       // Trainer Screens

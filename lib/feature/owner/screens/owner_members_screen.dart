@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-import 'package:gymora_fitness_management/core/model/owmer_member_model.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/detail_row.dart';
-import 'package:gymora_fitness_management/feature/owner/widgets/member_card.dart';
-import 'package:gymora_fitness_management/feature/owner/widgets/owner_avtar.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
 class OwnerMembersScreen extends StatefulWidget {
-  const OwnerMembersScreen({super.key});
+  /// Called by the back arrow. The dashboard passes a callback that
+  /// switches to the Home tab. When null, the arrow pops (if possible).
+  final VoidCallback? onBack;
+
+  const OwnerMembersScreen({super.key, this.onBack});
 
   @override
   State<OwnerMembersScreen> createState() => _OwnerMembersScreenState();
@@ -22,63 +26,6 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
   late final AnimationController _glowController;
   late final AnimationController _particleController;
-
-  final List<OwmerMemberModel> _members = const [
-    OwmerMemberModel(
-      name: 'Aarav Sharma',
-      initials: 'AS',
-      plan: 'Premium Plan',
-      joinDate: '12 Jun 2025',
-      status: 'Active',
-      phone: '+91 98765 43210',
-      email: 'aarav@gmail.com',
-    ),
-    OwmerMemberModel(
-      name: 'Neha Singh',
-      initials: 'NS',
-      plan: 'Premium Plan',
-      joinDate: '05 Jun 2025',
-      status: 'Active',
-      phone: '+91 98765 12345',
-      email: 'neha@gmail.com',
-    ),
-    OwmerMemberModel(
-      name: 'Rohit Kumar',
-      initials: 'RK',
-      plan: 'Standard Plan',
-      joinDate: '02 Jun 2025',
-      status: 'Active',
-      phone: '+91 98765 56789',
-      email: 'rohit@gmail.com',
-    ),
-    OwmerMemberModel(
-      name: 'Priya Patel',
-      initials: 'PP',
-      plan: 'Basic Plan',
-      joinDate: '28 May 2025',
-      status: 'Active',
-      phone: '+91 98765 67890',
-      email: 'priya@gmail.com',
-    ),
-    OwmerMemberModel(
-      name: 'Sahil Khan',
-      initials: 'SK',
-      plan: 'Premium Plan',
-      joinDate: '20 Dec 2024',
-      status: 'Inactive',
-      phone: '+91 98765 34567',
-      email: 'sahil@gmail.com',
-    ),
-    OwmerMemberModel(
-      name: 'Ananya Gupta',
-      initials: 'AG',
-      plan: 'Standard Plan',
-      joinDate: '15 Nov 2024',
-      status: 'Inactive',
-      phone: '+91 98765 23456',
-      email: 'ananya@gmail.com',
-    ),
-  ];
 
   @override
   void initState() {
@@ -93,6 +40,11 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+
+    // No-op if the dashboard already loaded members
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<MemberProvider>().ensureLoaded();
+    });
   }
 
   @override
@@ -102,22 +54,27 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     super.dispose();
   }
 
-  List<OwmerMemberModel> get _filteredMembers {
-    List<OwmerMemberModel> result = List.from(_members);
+  List<OwnerMemberModel> _getFilteredMembers(MemberProvider provider) {
+    List<OwnerMemberModel> result;
 
-    if (_selectedFilter == 1) {
-      result = result.where((member) => member.status == 'Active').toList();
-    } else if (_selectedFilter == 2) {
-      result = result.where((member) => member.status == 'Inactive').toList();
+    switch (_selectedFilter) {
+      case 1:
+        result = provider.activeMembers;
+        break;
+      case 2:
+        result = provider.expiredMembers;
+        break;
+      default:
+        result = provider.members;
     }
 
     if (_searchQuery.trim().isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-
-      result = result.where((member) {
-        return member.name.toLowerCase().contains(query) ||
-            member.plan.toLowerCase().contains(query) ||
-            member.email.toLowerCase().contains(query);
+      final q = _searchQuery.toLowerCase();
+      result = result.where((m) {
+        return m.fullName.toLowerCase().contains(q) ||
+            m.email.toLowerCase().contains(q) ||
+            m.phone.contains(q) ||
+            m.planDisplayName.toLowerCase().contains(q);
       }).toList();
     }
 
@@ -130,34 +87,28 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       backgroundColor: const Color(0xFF05070C),
       body: Stack(
         children: [
-          // Background
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(gradient: AppColors.darkGradient),
             ),
           ),
-
-          // Particles
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
               builder: (_, _) {
                 return CustomPaint(
-                  painter: MembersParticlePainter(_particleController.value),
+                  painter: ProfileParticlePainter(_particleController.value),
                 );
               },
             ),
           ),
-
-          // Red glow
           Positioned(
-            top: -100,
-            right: -90,
+            top: -80,
+            right: -60,
             child: AnimatedBuilder(
               animation: _glowController,
               builder: (_, _) {
-                final size = 260 + (_glowController.value * 35);
-
+                final size = 260 + (_glowController.value * 30);
                 return Container(
                   width: size,
                   height: size,
@@ -165,8 +116,8 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.18),
-                        AppColors.primary.withValues(alpha: 0.05),
+                        AppColors.primary.withValues(alpha: 0.14),
+                        AppColors.primary.withValues(alpha: 0.04),
                         Colors.transparent,
                       ],
                     ),
@@ -175,15 +126,13 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               },
             ),
           ),
-
-          // Content
           SafeArea(
             child: Column(
               children: [
                 _buildHeader(),
                 _buildSearchBar(),
                 _buildFilters(),
-                Expanded(child: _buildMembersList()),
+                Expanded(child: _buildMemberList()),
               ],
             ),
           ),
@@ -191,80 +140,84 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       ),
     );
   }
-
-  // ============================================================
-  // HEADER
-  // ============================================================
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-      child: Row(
-        children: [
-          CircleButton(
-            icon: Icons.arrow_back_rounded,
-            onTap: () {
-              context.pushNamed('ownerDashboard');
-            },
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Members',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return Consumer<MemberProvider>(
+      builder: (context, provider, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          child: Row(
+            children: [
+              if (widget.onBack != null || context.canPop()) ...[
+                CircleButton(
+                  icon: Icons.arrow_back_rounded,
+                  onTap: widget.onBack ?? () => context.pop(),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_members.length} members in your gym',
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
-                ),
+                const SizedBox(width: 12),
               ],
-            ),
-          ),
-
-          // Add member
-          GestureDetector(
-            onTap: _showAddMemberMessage,
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.25),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Members',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${provider.members.length} members in your gym',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                    blurRadius: 15,
+              ),
+              GestureDetector(
+                onTap: () => context.pushNamed('addMember'),
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF3158), Color(0xFFB91438)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        blurRadius: 15,
+                      ),
+                    ],
                   ),
-                ],
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 5),
+                      Text(
+                        'Add Member',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.person_add_alt_1_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
-
-  // ============================================================
-  // SEARCH
-  // ============================================================
 
   Widget _buildSearchBar() {
     return Padding(
@@ -277,11 +230,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: TextField(
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value;
-            });
-          },
+          onChanged: (value) => setState(() => _searchQuery = value),
           style: const TextStyle(color: Colors.white, fontSize: 12),
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
@@ -294,11 +243,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
+                    onPressed: () => setState(() => _searchQuery = ''),
                     icon: const Icon(
                       Icons.close_rounded,
                       color: Colors.white38,
@@ -321,12 +266,8 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
-  // ============================================================
-  // FILTER TABS
-  // ============================================================
-
   Widget _buildFilters() {
-    final filters = ['All', 'Active', 'Inactive'];
+    final filters = ['All', 'Active', 'Expired'];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 15, 18, 10),
@@ -339,11 +280,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               right: index == filters.length - 1 ? 0 : 8,
             ),
             child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedFilter = index;
-                });
-              },
+              onTap: () => setState(() => _selectedFilter = index),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 padding: const EdgeInsets.symmetric(
@@ -385,39 +322,163 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
-  // ============================================================
-  // MEMBER LIST
-  // ============================================================
+  Widget _buildMemberList() {
+    return Consumer<MemberProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.members.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
 
-  Widget _buildMembersList() {
-    final members = _filteredMembers;
+        if (provider.error != null && provider.members.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.primary.withValues(alpha: 0.7),
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  provider.error!,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => provider.fetchMembers(),
+                  child: const Text(
+                    'Retry',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
-    if (members.isEmpty) {
-      return _buildEmptyState();
-    }
+        final members = _getFilteredMembers(provider);
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(18, 5, 18, 25),
-      itemCount: members.length,
-      itemBuilder: (context, index) {
-        final member = members[index];
+        if (members.isEmpty) {
+          return _buildEmptyState();
+        }
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: MemberCard(
-            member: member,
-            index: index,
-            onTap: () => _showMemberDetails(member),
+        return RefreshIndicator(
+          color: AppColors.primary,
+          backgroundColor: const Color(0xFF0A0D14),
+          onRefresh: () => provider.fetchMembers(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(18, 5, 18, 25),
+            itemCount: members.length,
+            itemBuilder: (context, index) {
+              final member = members[index];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _buildMemberCard(member),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  // ============================================================
-  // EMPTY STATE
-  // ============================================================
+  Widget _buildMemberCard(OwnerMemberModel member) {
+    final status = member.displayStatus;
+    return GestureDetector(
+      onTap: () => _showMemberDetails(member),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  member.initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    member.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${member.planDisplayName} Plan',
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _statusColor(status).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _statusColor(status).withValues(alpha: 0.20),
+                ),
+              ),
+              child: Text(
+                status,
+                style: TextStyle(
+                  color: _statusColor(status),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return const Color(0xFF42DB82);
+      case 'expired':
+        return const Color(0xFFFF536F);
+      case 'expiring':
+        return const Color(0xFFFFB84D);
+      default:
+        return Colors.white54;
+    }
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -427,8 +488,8 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 70,
-              height: 70,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
@@ -454,7 +515,6 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
             const SizedBox(height: 7),
             const Text(
               'Try changing your search or filter.',
-              textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ],
@@ -463,19 +523,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
-  // ============================================================
-  // ADD MEMBER
-  // ============================================================
-
-  void _showAddMemberMessage() {
-    context.pushNamed('addMember');
-  }
-
-  // ============================================================
-  // MEMBER DETAILS
-  // ============================================================
-
-  void _showMemberDetails(OwmerMemberModel member) {
+  void _showMemberDetails(OwnerMemberModel member) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0B0E16),
@@ -499,34 +547,47 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   ),
                 ),
                 const SizedBox(height: 22),
-
-                OwnerAvatar(
-                  initials: member.initials,
-                  index: _members.indexOf(member),
-                  size: 65,
-                  showShadow: true,
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.30),
+                        blurRadius: 18,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      member.initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                 ),
-
                 const SizedBox(height: 12),
-
                 Text(
-                  member.name,
+                  member.fullName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 19,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
                 Text(
-                  member.plan,
+                  '${member.planDisplayName} Plan',
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
-
-                const SizedBox(height: 22),
-
+                const SizedBox(height: 20),
                 DetailRow(
                   icon: Icons.email_outlined,
                   title: 'Email',
@@ -538,20 +599,25 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   value: member.phone,
                 ),
                 DetailRow(
-                  icon: Icons.calendar_today_outlined,
-                  title: 'Joined',
-                  value: member.joinDate,
+                  icon: Icons.card_membership_rounded,
+                  title: 'Plan',
+                  value: member.planDisplayName,
                 ),
                 DetailRow(
-                  icon: Icons.card_membership_outlined,
-                  title: 'Membership',
-                  value: member.plan,
+                  icon: Icons.calendar_today_outlined,
+                  title: 'Start Date',
+                  value: member.startDate,
+                ),
+                DetailRow(
+                  icon: Icons.event_outlined,
+                  title: 'End Date',
+                  value: member.endDate,
                 ),
                 DetailRow(
                   icon: Icons.circle,
                   title: 'Status',
-                  value: member.status,
-                  isStatus: true,
+                  value: member.displayStatus,
+                  isStatus: member.isActive,
                 ),
               ],
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
-
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
+import 'package:provider/provider.dart';
 
 class OwnerSettingsScreen extends StatelessWidget {
   const OwnerSettingsScreen({super.key});
@@ -255,6 +256,20 @@ class OwnerSettingsScreen extends StatelessWidget {
   // ============================================================
 
   Widget _buildProfileCard() {
+    return Consumer<DashboardProvider>(
+      builder: (context, dash, _) {
+        final owner = dash.owner;
+        final name = (owner?.name.isNotEmpty ?? false) ? owner!.name : 'Owner';
+        final gymName = (owner?.gymName.isNotEmpty ?? false)
+            ? owner!.gymName
+            : 'Your Gym';
+        final initials = owner?.initials ?? '?';
+        return _profileCardBody(name, gymName, initials);
+      },
+    );
+  }
+
+  Widget _profileCardBody(String name, String gymName, String initials) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -294,10 +309,10 @@ class OwnerSettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'RM',
-                style: TextStyle(
+                initials,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
@@ -308,25 +323,25 @@ class OwnerSettingsScreen extends StatelessWidget {
 
           const SizedBox(width: 14),
 
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rohan Mehta',
-                  style: TextStyle(
+                  name,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Owner • karan Fitness',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  'Owner • $gymName',
+                  style: const TextStyle(color: Colors.white38, fontSize: 10),
                 ),
-                SizedBox(height: 7),
-                Row(
+                const SizedBox(height: 7),
+                const Row(
                   children: [
                     Icon(
                       Icons.verified_rounded,
@@ -570,6 +585,8 @@ class OwnerSettingsScreen extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+          // TODO: clear the saved token, call reset() on Dashboard/Member/
+          // TrainerProvider, then go to your login route.
           onTap: () {},
           borderRadius: BorderRadius.circular(15),
           child: Container(

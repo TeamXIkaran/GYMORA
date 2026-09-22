@@ -1,201 +1,129 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
+import 'package:gymora_fitness_management/core/utils/formatters.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+
 import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
-import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
+
+import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
 
   @override
-  State<OwnerDashboardScreen> createState() => _OwnerHomeScreenState();
+  State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
 }
 
-class _OwnerHomeScreenState extends State<OwnerDashboardScreen>
-    with TickerProviderStateMixin {
-  int _selectedIndex = 0;
-
-  late final AnimationController _glowController;
-  late final AnimationController _particleController;
+class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _particleController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 12),
-    )..repeat();
+    // Load everything once here. Tabs call ensureLoaded(), which is a no-op
+    // when data is already present, so nothing is fetched twice.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<DashboardProvider>().fetchDashboard();
+      context.read<MemberProvider>().ensureLoaded();
+      context.read<TrainerProvider>().ensureLoaded();
+    });
   }
 
-  @override
-  void dispose() {
-    _glowController.dispose();
-    _particleController.dispose();
-    super.dispose();
-  }
+  void _goHome() => setState(() => _currentIndex = 0);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF05070C),
-      body: Stack(
-        children: [
-          // Background
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(gradient: AppColors.darkGradient),
-            ),
-          ),
+    // Tabs get an onBack that switches to Home instead of pushing a
+    // new dashboard route on top of this one.
+    final screens = <Widget>[
+      const _HomeTab(),
+      OwnerMembersScreen(onBack: _goHome),
+      OwnerTrainersScreen(onBack: _goHome),
+      MembershipScreen(onBack: _goHome),
+      OwnerProfileScreen(onBack: _goHome),
+    ];
 
-          // Animated particles
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _particleController,
-              builder: (_, _) {
-                return CustomPaint(
-                  painter: _DashboardParticlePainter(_particleController.value),
-                );
-              },
-            ),
-          ),
-
-          // Red glow
-          Positioned(
-            top: -100,
-            right: -80,
-            child: AnimatedBuilder(
-              animation: _glowController,
-              builder: (_, _) {
-                return Container(
-                  width: 280 + (_glowController.value * 30),
-                  height: 280 + (_glowController.value * 30),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.20),
-                        AppColors.primary.withValues(alpha: 0.05),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          SafeArea(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: const [
-                _OwnerDashboardBody(),
-                _MembersBody(),
-                _TrainersBody(),
-                _PlansBody(),
-                OwnerProfileScreen(),
-              ],
-            ),
-          ),
-        ],
+    return PopScope(
+      // System back on a non-Home tab → go to Home first
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _currentIndex != 0) _goHome();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF05070C),
+        body: IndexedStack(index: _currentIndex, children: screens),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    final items = [
-      const _NavItem(icon: Icons.home_rounded, label: 'Home'),
-      const _NavItem(icon: Icons.people_alt_rounded, label: 'Members'),
-      const _NavItem(icon: Icons.fitness_center_rounded, label: 'Trainers'),
-      const _NavItem(icon: Icons.card_membership_rounded, label: 'Plans'),
-      const _NavItem(icon: Icons.person, label: 'Profile'),
-    ];
-
+  Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF090C13).withValues(alpha: 0.97),
+        color: const Color(0xFF0A0D14),
         border: Border(
           top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
       ),
       child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 68,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
-            children: List.generate(items.length, (index) {
-              final selected = _selectedIndex == index;
-
-              return Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: selected ? 42 : 34,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: selected
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                    blurRadius: 12,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Icon(
-                        items[index].icon,
-                        size: 21,
-                        color: selected
-                            ? AppColors.primary
-                            : Colors.white.withValues(alpha: 0.35),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        items[index].label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                          color: selected
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.35),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _navItem(Icons.home_rounded, 'Home', 0),
+              _navItem(Icons.people_alt_rounded, 'Members', 1),
+              _navItem(Icons.fitness_center_rounded, 'Trainers', 2),
+              _navItem(Icons.card_membership_rounded, 'Plans', 3),
+              _navItem(Icons.person_rounded, 'Profile', 4),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, int index) {
+    final selected = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.10)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: selected ? AppColors.primary : Colors.white30,
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppColors.primary : Colors.white30,
+                fontSize: 9,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -203,875 +131,660 @@ class _OwnerHomeScreenState extends State<OwnerDashboardScreen>
 }
 
 // ============================================================
-// OWNER DASHBOARD
+// HOME TAB — Uses DashboardProvider
 // ============================================================
 
-class _OwnerDashboardBody extends StatelessWidget {
-  const _OwnerDashboardBody();
+class _HomeTab extends StatelessWidget {
+  const _HomeTab();
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 22),
+    return Container(
+      decoration: const BoxDecoration(gradient: AppColors.darkGradient),
+      child: SafeArea(
+        child: Consumer<DashboardProvider>(
+          builder: (context, dashProvider, _) {
+            if (dashProvider.isLoading && dashProvider.dashboard == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
 
-          _buildStats(),
-          const SizedBox(height: 22),
+            if (dashProvider.error != null && dashProvider.dashboard == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      dashProvider.error!,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => dashProvider.fetchDashboard(),
+                      child: const Text(
+                        'Retry',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          _buildRevenueCard(),
-          const SizedBox(height: 22),
+            final dashboard = dashProvider.dashboard;
 
-          _buildSectionTitle(title: 'Quick Actions', action: 'View All'),
-          const SizedBox(height: 12),
+            return RefreshIndicator(
+              color: AppColors.primary,
+              backgroundColor: const Color(0xFF0A0D14),
+              onRefresh: () => dashProvider.fetchDashboard(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGreeting(context, dashboard),
+                    const SizedBox(height: 24),
 
-          _buildQuickActions(),
-          const SizedBox(height: 24),
+                    _buildStatsRow(dashboard),
+                    const SizedBox(height: 24),
 
-          _buildSectionTitle(title: 'Recent Members', action: 'See All'),
-          const SizedBox(height: 12),
+                    _buildRevenueCard(dashboard),
+                    const SizedBox(height: 24),
 
-          _buildRecentMembers(),
-          const SizedBox(height: 24),
+                    _buildQuickActions(context),
+                    const SizedBox(height: 24),
 
-          _buildSectionTitle(title: 'Trainer Overview', action: 'See All'),
-          const SizedBox(height: 12),
+                    _buildRecentMembers(dashboard),
+                    const SizedBox(height: 24),
 
-          _buildTrainerOverview(),
-
-          const SizedBox(height: 30),
-        ],
+                    _buildTrainerOverview(dashboard),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildGreeting(BuildContext context, DashboardModel? dashboard) {
+    final ownerName = dashboard?.owner.name ?? 'Owner';
+    final gymName = dashboard?.owner.gymName ?? 'Your Gym';
+
     return Row(
       children: [
-        // Profile
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFE62B52), Color(0xFF761326)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.30),
-                blurRadius: 18,
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'RM',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good Morning 👋',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Rohan Mehta',
-                style: TextStyle(
+                'Hello, $ownerName 👋',
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(height: 3),
+              const SizedBox(height: 5),
               Text(
-                'Owner • GYMO Fitness',
-                style: TextStyle(color: Colors.white38, fontSize: 10),
+                gymName,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.38),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
         ),
-
-        // Notification
-        _circleButton(context, Icons.notifications_none_rounded, () {
-          context.pushNamed('onwerNotificationScreen');
-        }),
-
-        const SizedBox(width: 8),
-
-        // Settings
-        _circleButton(context, Icons.settings_outlined, () {
-          context.pushNamed('onwerSettingScreen');
-        }),
+        GestureDetector(
+          // ⚠ Must match the `name:` in your GoRouter config exactly
+          onTap: () => context.pushNamed('onwerNotificationScreen'),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.045),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _circleButton(
-    BuildContext context,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.045),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Icon(icon, color: Colors.white70, size: 20),
-        ),
-      ),
-    );
-  }
+  Widget _buildStatsRow(DashboardModel? dashboard) {
+    final summary = dashboard?.summary;
 
-  Widget _buildStats() {
     return Row(
       children: [
         Expanded(
-          child: _StatCard(
-            title: 'Total Members',
-            value: '248',
-            change: '+12%',
-            icon: Icons.people_alt_outlined,
+          child: _statCard(
+            icon: Icons.people_alt_rounded,
+            value: '${summary?.totalMembers ?? 0}',
+            label: 'Members',
+            color: const Color(0xFF54B8FF),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _StatCard(
-            title: 'Active Trainers',
-            value: '08',
-            change: '+2%',
-            icon: Icons.fitness_center,
+          child: _statCard(
+            icon: Icons.fitness_center_rounded,
+            value: '${summary?.totalTrainers ?? 0}',
+            label: 'Trainers',
+            color: const Color(0xFFFF8A00),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _StatCard(
-            title: 'Monthly Revenue',
-            value: '₹2.48L',
-            change: '+18%',
+          child: _statCard(
             icon: Icons.currency_rupee_rounded,
+            value: summary?.formattedRevenue ?? '₹0',
+            label: 'Revenue',
+            color: const Color(0xFF42DB82),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRevenueCard() {
+  Widget _statCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.07),
-            blurRadius: 30,
-            spreadRadius: -8,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Revenue Overview',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Monthly performance',
-                      style: TextStyle(color: Colors.white38, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.20),
-                  ),
-                ),
-                child: const Text(
-                  '2026',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₹2,48,000',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 25,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(width: 8),
-              Padding(
-                padding: EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '+18%',
-                  style: TextStyle(
-                    color: Color(0xFF4DDB88),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          SizedBox(
-            height: 120,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _RevenueChartPainter(),
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _ChartLabel('Jan'),
-              _ChartLabel('Feb'),
-              _ChartLabel('Mar'),
-              _ChartLabel('Apr'),
-              _ChartLabel('May'),
-              _ChartLabel('Jun'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle({required String title, required String action}) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          action,
-          style: TextStyle(
-            color: AppColors.primary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return GridView.count(
-      crossAxisCount: 4,
-      crossAxisSpacing: 9,
-      mainAxisSpacing: 9,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.90,
-      children: [
-        _QuickAction(
-          icon: Icons.person_add_alt_1_rounded,
-          title: 'Add\nMember',
-        ),
-        _QuickAction(
-          icon: Icons.manage_accounts_rounded,
-          title: 'Manage\nTrainers',
-        ),
-        _QuickAction(
-          icon: Icons.card_membership_rounded,
-          title: 'Plans &\nPricing',
-        ),
-        _QuickAction(icon: Icons.bar_chart_rounded, title: 'Reports'),
-      ],
-    );
-  }
-
-  Widget _buildRecentMembers() {
-    final members = [
-      ['Aarav Sharma', 'Premium Plan', 'AS'],
-      ['Neha Singh', 'Standard Plan', 'NS'],
-      ['Sneha Joshi', 'Premium Plan', 'SJ'],
-      ['Priya Patel', 'Basic Plan', 'PP'],
-    ];
-
-    return Container(
-      decoration: _glassDecoration(),
-      child: Column(
-        children: List.generate(members.length, (index) {
-          final member = members[index];
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(13),
-                child: Row(
-                  children: [
-                    _Avatar(initials: member[2], index: index),
-                    const SizedBox(width: 11),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            member[0],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            member[1],
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF36D57D).withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'Active',
-                        style: TextStyle(
-                          color: Color(0xFF48DF8B),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (index != members.length - 1)
-                Divider(height: 1, color: Colors.white.withValues(alpha: 0.05)),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildTrainerOverview() {
-    final trainers = [
-      ['Amit Verma', 'Strength & Conditioning', 'AV'],
-      ['Rakesh Yadav', 'Weight Training', 'RY'],
-      ['Sneha Joshi', 'Yoga & Mobility', 'SJ'],
-    ];
-
-    return Container(
-      decoration: _glassDecoration(),
-      child: Column(
-        children: List.generate(trainers.length, (index) {
-          final trainer = trainers[index];
-
-          return Padding(
-            padding: const EdgeInsets.all(13),
-            child: Row(
-              children: [
-                _Avatar(initials: trainer[2], index: index + 2),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        trainer[0],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        trainer[1],
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.circle, color: Color(0xFF3BDD82), size: 9),
-                const SizedBox(width: 5),
-                const Text(
-                  'Active',
-                  style: TextStyle(
-                    color: Color(0xFF3BDD82),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  BoxDecoration _glassDecoration() {
-    return BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.035),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-    );
-  }
-}
-
-// ============================================================
-// STAT CARD
-// ============================================================
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String change;
-  final IconData icon;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.change,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 16),
+            child: Icon(icon, color: color, size: 17),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white38, fontSize: 8),
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 4),
-          FittedBox(
-            alignment: Alignment.centerLeft,
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white38, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRevenueCard(DashboardModel? dashboard) {
+    final revenue = dashboard?.revenueOverview;
+    final hasComparison = revenue?.hasComparison ?? false;
+    final change = revenue?.percentageChange ?? 0;
+    final isPositive = change >= 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withValues(alpha: 0.12),
+            Colors.white.withValues(alpha: 0.035),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Revenue Overview',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'This Month',
+                      style: TextStyle(color: Colors.white38, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formatRupees(revenue?.currentMonthRevenue ?? 0),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // No previous-month revenue → a % change is meaningless
+              if (!hasComparison)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF54B8FF).withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'First month',
+                    style: TextStyle(
+                      color: Color(0xFF54B8FF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isPositive
+                        ? const Color(0xFF42DB82).withValues(alpha: 0.10)
+                        : const Color(0xFFFF536F).withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPositive
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
+                        color: isPositive
+                            ? const Color(0xFF42DB82)
+                            : const Color(0xFFFF536F),
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${change.abs().toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          color: isPositive
+                              ? const Color(0xFF42DB82)
+                              : const Color(0xFFFF536F),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _actionCard(
+                icon: Icons.person_add_alt_1_rounded,
+                title: 'Add Member',
+                color: const Color(0xFF54B8FF),
+                onTap: () => context.pushNamed('addMember'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _actionCard(
+                icon: Icons.fitness_center_rounded,
+                title: 'Add Trainer',
+                color: const Color(0xFFFF8A00),
+                onTap: () => context.pushNamed('addTrainer'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _actionCard({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentMembers(DashboardModel? dashboard) {
+    final recentMembers = dashboard?.recentMembers ?? const <RecentMember>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Members',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (recentMembers.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+            ),
+            child: const Center(
+              child: Text(
+                'No recent members',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+            ),
+          )
+        else
+          ...recentMembers.map((member) => _recentMemberTile(member)),
+      ],
+    );
+  }
+
+  Widget _recentMemberTile(RecentMember member) {
+    final statusColor = _memberStatusColor(member.displayStatus);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE62B52), Color(0xFF761326)],
+              ),
+            ),
+            child: Center(
+              child: Text(
+                member.initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            change,
-            style: const TextStyle(
-              color: Color(0xFF43D982),
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.fullName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  member.planDisplayName,
+                  style: const TextStyle(color: Colors.white38, fontSize: 9),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              member.displayStatus,
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
 
-// ============================================================
-// QUICK ACTION
-// ============================================================
+  Color _memberStatusColor(String status) {
+    switch (status) {
+      case 'ACTIVE':
+        return const Color(0xFF42DB82);
+      case 'EXPIRING':
+        return const Color(0xFFFFB84D);
+      default:
+        return const Color(0xFFFF536F);
+    }
+  }
 
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String title;
+  Widget _buildTrainerOverview(DashboardModel? dashboard) {
+    final trainers =
+        dashboard?.trainerOverview ?? const <TrainerOverviewItem>[];
 
-  const _QuickAction({required this.icon, required this.title});
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Trainer Overview',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (trainers.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+            ),
+            child: const Center(
+              child: Text(
+                'No trainers yet',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+            ),
+          )
+        else
+          ...trainers.map((trainer) => _trainerOverviewTile(trainer)),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _trainerOverviewTile(TrainerOverviewItem trainer) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.035),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(11),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  child: Icon(icon, color: AppColors.primary, size: 19),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFF8A00).withValues(alpha: 0.12),
+              border: Border.all(
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.20),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                trainer.initials,
+                style: const TextStyle(
+                  color: Color(0xFFFF8A00),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: 8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  title,
-                  textAlign: TextAlign.center,
+                  trainer.fullName,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 9,
-                    height: 1.2,
-                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  trainer.specialization,
+                  style: const TextStyle(color: Colors.white38, fontSize: 9),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// AVATAR
-// ============================================================
-
-class _Avatar extends StatelessWidget {
-  final String initials;
-  final int index;
-
-  const _Avatar({required this.initials, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final gradients = [
-      const [Color(0xFFE52A50), Color(0xFF671022)],
-      const [Color(0xFFB91D3D), Color(0xFF49101C)],
-      const [Color(0xFFE94C69), Color(0xFF7D1830)],
-      const [Color(0xFF8D2941), Color(0xFF3B0D19)],
-      const [Color(0xFFD83355), Color(0xFF651125)],
-    ];
-
-    final colors = gradients[index % gradients.length];
-
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(colors: colors),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: trainer.isActive
+                  ? const Color(0xFF42DB82).withValues(alpha: 0.10)
+                  : Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              trainer.status,
+              style: TextStyle(
+                color: trainer.isActive
+                    ? const Color(0xFF42DB82)
+                    : Colors.white38,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
-  }
-}
-
-// ============================================================
-// OTHER TABS
-// ============================================================
-
-class _MembersBody extends StatelessWidget {
-  const _MembersBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return const OwnerMembersScreen();
-  }
-}
-
-class _TrainersBody extends StatelessWidget {
-  const _TrainersBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return const OwnerTrainersScreen();
-  }
-}
-
-class _PlansBody extends StatelessWidget {
-  const _PlansBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return const MemberShipScreen();
-  }
-}
-
-// ============================================================
-// NAV ITEM
-// ============================================================
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-
-  const _NavItem({required this.icon, required this.label});
-}
-
-// ============================================================
-// CHART LABEL
-// ============================================================
-
-class _ChartLabel extends StatelessWidget {
-  final String text;
-
-  const _ChartLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(color: Colors.white24, fontSize: 9),
-    );
-  }
-}
-
-// ============================================================
-// REVENUE CHART
-// ============================================================
-
-class _RevenueChartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 1;
-
-    for (int i = 0; i < 4; i++) {
-      final y = (size.height / 3) * i;
-
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final points = [
-      Offset(size.width * 0.00, size.height * 0.72),
-      Offset(size.width * 0.18, size.height * 0.48),
-      Offset(size.width * 0.36, size.height * 0.62),
-      Offset(size.width * 0.54, size.height * 0.30),
-      Offset(size.width * 0.72, size.height * 0.46),
-      Offset(size.width * 0.88, size.height * 0.15),
-      Offset(size.width * 1.00, size.height * 0.25),
-    ];
-
-    final areaPath = Path()
-      ..moveTo(points.first.dx, size.height)
-      ..lineTo(points.first.dx, points.first.dy);
-
-    for (int i = 1; i < points.length; i++) {
-      areaPath.lineTo(points[i].dx, points[i].dy);
-    }
-
-    areaPath
-      ..lineTo(points.last.dx, size.height)
-      ..close();
-
-    final areaPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [AppColors.primary.withValues(alpha: 0.20), Colors.transparent],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    canvas.drawPath(areaPath, areaPaint);
-
-    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
-
-    for (int i = 1; i < points.length; i++) {
-      linePath.lineTo(points[i].dx, points[i].dy);
-    }
-
-    final linePaint = Paint()
-      ..color = AppColors.primary
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(linePath, linePaint);
-
-    final dotPaint = Paint()..color = AppColors.primary;
-
-    for (final point in points) {
-      canvas.drawCircle(point, 3.5, dotPaint);
-
-      canvas.drawCircle(
-        point,
-        7,
-        Paint()..color = AppColors.primary.withValues(alpha: 0.10),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
-  }
-}
-
-// ============================================================
-// PARTICLES
-// ============================================================
-
-class _DashboardParticlePainter extends CustomPainter {
-  final double time;
-  final List<_DashboardParticle> particles;
-
-  _DashboardParticlePainter(this.time)
-    : particles = List.generate(28, (index) => _DashboardParticle(index));
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final particle in particles) {
-      final x =
-          particle.x * size.width + sin(time * 2 * pi + particle.phase) * 10;
-
-      final y =
-          (particle.y * size.height - time * size.height * particle.speed) %
-          size.height;
-
-      final paint = Paint()
-        ..color = particle.isRed
-            ? AppColors.primary.withValues(alpha: particle.opacity)
-            : Colors.white.withValues(alpha: particle.opacity * 0.20);
-
-      if (particle.isRed) {
-        paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      }
-
-      canvas.drawCircle(Offset(x, y), particle.radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashboardParticlePainter oldDelegate) {
-    return true;
-  }
-}
-
-class _DashboardParticle {
-  late final double x;
-  late final double y;
-  late final double speed;
-  late final double radius;
-  late final double opacity;
-  late final double phase;
-  late final bool isRed;
-
-  _DashboardParticle(int seed) {
-    final random = Random(seed * 17 + 100);
-
-    x = random.nextDouble();
-    y = random.nextDouble();
-    speed = random.nextDouble() * 0.35 + 0.08;
-    radius = random.nextDouble() * 1.5 + 0.4;
-    opacity = random.nextDouble() * 0.35 + 0.08;
-    phase = random.nextDouble() * 2 * pi;
-    isRed = random.nextDouble() > 0.55;
   }
 }

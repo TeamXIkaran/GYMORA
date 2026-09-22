@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/detail_row.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
-import 'package:gymora_fitness_management/feature/owner/widgets/trainer_avatar.dart';
-import 'package:gymora_fitness_management/feature/owner/widgets/trainer_card.dart';
 
 class OwnerTrainersScreen extends StatefulWidget {
-  const OwnerTrainersScreen({super.key});
+  /// Called by the back arrow. The dashboard passes a callback that
+  /// switches to the Home tab. When null, the arrow pops (if possible).
+  final VoidCallback? onBack;
+
+  const OwnerTrainersScreen({super.key, this.onBack});
 
   @override
   State<OwnerTrainersScreen> createState() => _OwnerTrainersScreenState();
@@ -22,64 +26,6 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
 
   late final AnimationController _glowController;
   late final AnimationController _particleController;
-
-  final List<OwnerTrainerModel> _trainers = const [
-    OwnerTrainerModel(
-      name: 'Amit Verma',
-      initials: 'AV',
-      specialization: 'Strength & Conditioning',
-      clients: 24,
-      rating: 4.9,
-      status: 'Active',
-      experience: '5 Years',
-      phone: '+91 98765 11111',
-      email: 'amit@gmail.com',
-    ),
-    OwnerTrainerModel(
-      name: 'Rakesh Yadav',
-      initials: 'RY',
-      specialization: 'Weight Training',
-      clients: 19,
-      rating: 4.8,
-      status: 'Active',
-      experience: '4 Years',
-      phone: '+91 98765 22222',
-      email: 'rakesh@gmail.com',
-    ),
-    OwnerTrainerModel(
-      name: 'Sneha Joshi',
-      initials: 'SJ',
-      specialization: 'Yoga & Mobility',
-      clients: 16,
-      rating: 4.9,
-      status: 'Active',
-      experience: '6 Years',
-      phone: '+91 98765 33333',
-      email: 'sneha@gmail.com',
-    ),
-    OwnerTrainerModel(
-      name: 'Vikram Singh',
-      initials: 'VS',
-      specialization: 'HIIT & Cardio',
-      clients: 21,
-      rating: 4.7,
-      status: 'Active',
-      experience: '3 Years',
-      phone: '+91 98765 44444',
-      email: 'vikram@gmail.com',
-    ),
-    OwnerTrainerModel(
-      name: 'Karan Malhotra',
-      initials: 'KM',
-      specialization: 'Functional Training',
-      clients: 12,
-      rating: 4.6,
-      status: 'Inactive',
-      experience: '2 Years',
-      phone: '+91 98765 55555',
-      email: 'karan@gmail.com',
-    ),
-  ];
 
   @override
   void initState() {
@@ -94,6 +40,11 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+
+    // No-op if the dashboard already loaded trainers
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<TrainerProvider>().ensureLoaded();
+    });
   }
 
   @override
@@ -103,21 +54,14 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     super.dispose();
   }
 
-  List<OwnerTrainerModel> get _filteredTrainers {
-    List<OwnerTrainerModel> result = List.from(_trainers);
-
-    if (_selectedFilter == 1) {
-      result = result.where((trainer) => trainer.status == 'Active').toList();
-    } else if (_selectedFilter == 2) {
-      result = result.where((trainer) => trainer.status == 'Inactive').toList();
-    }
+  List<OwnerTrainerModel> _getFilteredTrainers(TrainerProvider provider) {
+    List<OwnerTrainerModel> result = provider.filterByStatus(_selectedFilter);
 
     if (_searchQuery.trim().isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-
-      result = result.where((trainer) {
-        return trainer.name.toLowerCase().contains(query) ||
-            trainer.specialization.toLowerCase().contains(query);
+      final q = _searchQuery.toLowerCase();
+      result = result.where((t) {
+        return t.fullName.toLowerCase().contains(q) ||
+            t.specialization.toLowerCase().contains(q);
       }).toList();
     }
 
@@ -130,14 +74,11 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
       backgroundColor: const Color(0xFF05070C),
       body: Stack(
         children: [
-          // Background
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(gradient: AppColors.darkGradient),
             ),
           ),
-
-          // Animated particles
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
@@ -148,8 +89,6 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
               },
             ),
           ),
-
-          // Orange/red glow
           Positioned(
             top: -100,
             left: -100,
@@ -157,7 +96,6 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
               animation: _glowController,
               builder: (_, _) {
                 final size = 270 + (_glowController.value * 35);
-
                 return Container(
                   width: size,
                   height: size,
@@ -175,7 +113,6 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
               },
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
@@ -191,88 +128,83 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     );
   }
 
-  // ============================================================
-  // HEADER
-  // ============================================================
-
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-      child: Row(
-        children: [
-          CircleButton(
-            icon: Icons.arrow_back_rounded,
-            onTap: () {
-              context.pushNamed('ownerDashboard');
-            },
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Trainers',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return Consumer<TrainerProvider>(
+      builder: (context, provider, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          child: Row(
+            children: [
+              if (widget.onBack != null || context.canPop()) ...[
+                CircleButton(
+                  icon: Icons.arrow_back_rounded,
+                  onTap: widget.onBack ?? () => context.pop(),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_trainers.length} trainers in your gym',
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
-                ),
+                const SizedBox(width: 12),
               ],
-            ),
-          ),
-
-          // Add Trainer
-          GestureDetector(
-            onTap: _showAddTrainerMessage,
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF3158), Color(0xFFB91438)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 15,
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                  SizedBox(width: 5),
-                  Text(
-                    'Add Trainer',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Trainers',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      '${provider.trainers.length} trainers in your gym',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              GestureDetector(
+                onTap: () => context.pushNamed('addTrainer'),
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF3158), Color(0xFFB91438)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        blurRadius: 15,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 5),
+                      Text(
+                        'Add Trainer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
-
-  // ============================================================
-  // SEARCH
-  // ============================================================
 
   Widget _buildSearchBar() {
     return Padding(
@@ -285,11 +217,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: TextField(
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value;
-            });
-          },
+          onChanged: (value) => setState(() => _searchQuery = value),
           style: const TextStyle(color: Colors.white, fontSize: 12),
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
@@ -302,11 +230,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
+                    onPressed: () => setState(() => _searchQuery = ''),
                     icon: const Icon(
                       Icons.close_rounded,
                       color: Colors.white38,
@@ -329,10 +253,6 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     );
   }
 
-  // ============================================================
-  // FILTERS
-  // ============================================================
-
   Widget _buildFilters() {
     final filters = ['All', 'Active', 'Inactive'];
 
@@ -347,11 +267,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
               right: index == filters.length - 1 ? 0 : 8,
             ),
             child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedFilter = index;
-                });
-              },
+              onTap: () => setState(() => _selectedFilter = index),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 padding: const EdgeInsets.symmetric(
@@ -393,31 +309,66 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     );
   }
 
-  // ============================================================
-  // TRAINER LIST
-  // ============================================================
-
   Widget _buildTrainerList() {
-    final trainers = _filteredTrainers;
+    return Consumer<TrainerProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.trainers.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
 
-    if (trainers.isEmpty) {
-      return _buildEmptyState();
-    }
+        if (provider.error != null && provider.trainers.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.primary.withValues(alpha: 0.7),
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  provider.error!,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => provider.fetchTrainers(),
+                  child: const Text(
+                    'Retry',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(18, 5, 18, 25),
-      itemCount: trainers.length,
-      itemBuilder: (context, index) {
-        final trainer = trainers[index];
+        final trainers = _getFilteredTrainers(provider);
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: TrainerCard(
-            trainer: trainer,
-            index: index,
-            onTap: () {
-              _showTrainerDetails(trainer);
+        if (trainers.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return RefreshIndicator(
+          color: AppColors.primary,
+          backgroundColor: const Color(0xFF0A0D14),
+          onRefresh: () => provider.fetchTrainers(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(18, 5, 18, 25),
+            itemCount: trainers.length,
+            itemBuilder: (context, index) {
+              final trainer = trainers[index];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildTrainerCard(trainer, index),
+              );
             },
           ),
         );
@@ -425,9 +376,96 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     );
   }
 
-  // ============================================================
-  // EMPTY
-  // ============================================================
+  Widget _buildTrainerCard(OwnerTrainerModel trainer, int index) {
+    // Gradient colors per card
+    final gradients = [
+      [const Color(0xFFE62B52), const Color(0xFF761326)],
+      [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
+      [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
+      [const Color(0xFFFF8A00), const Color(0xFFCC6E00)],
+      [const Color(0xFF10B981), const Color(0xFF059669)],
+    ];
+    final colors = gradients[index % gradients.length];
+
+    return GestureDetector(
+      onTap: () => _showTrainerDetails(trainer, index),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: colors),
+              ),
+              child: Center(
+                child: Text(
+                  trainer.initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    trainer.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    trainer.specialization,
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: trainer.isActive
+                    ? const Color(0xFF42DB82).withValues(alpha: 0.10)
+                    : Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: trainer.isActive
+                      ? const Color(0xFF42DB82).withValues(alpha: 0.20)
+                      : Colors.white.withValues(alpha: 0.10),
+                ),
+              ),
+              child: Text(
+                trainer.status,
+                style: TextStyle(
+                  color: trainer.isActive
+                      ? const Color(0xFF42DB82)
+                      : Colors.white38,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -472,19 +510,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     );
   }
 
-  // ============================================================
-  // ADD TRAINER
-  // ============================================================
-
-  void _showAddTrainerMessage() {
-    context.pushNamed('addTrainer');
-  }
-
-  // ============================================================
-  // TRAINER DETAILS
-  // ============================================================
-
-  void _showTrainerDetails(OwnerTrainerModel trainer) {
+  void _showTrainerDetails(OwnerTrainerModel trainer, int index) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0B0E16),
@@ -507,55 +533,51 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
                 const SizedBox(height: 22),
-
-                // REPLACE with just:
-                TrainerAvatar(
-                  initials: trainer.initials,
-                  index: _trainers.indexOf(trainer),
-                  size: 68,
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.30),
+                        blurRadius: 18,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      trainer.initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                 ),
-
                 const SizedBox(height: 12),
-
                 Text(
-                  trainer.name,
+                  trainer.fullName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 19,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
                 Text(
                   trainer.specialization,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
-
                 const SizedBox(height: 20),
-
                 Row(
                   children: [
-                    Expanded(
-                      child: _statBox(
-                        icon: Icons.people_alt_rounded,
-                        value: '${trainer.clients}',
-                        label: 'Clients',
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: _statBox(
-                        icon: Icons.star_rounded,
-                        value: '${trainer.rating}',
-                        label: 'Rating',
-                      ),
-                    ),
-                    const SizedBox(width: 9),
                     Expanded(
                       child: _statBox(
                         icon: Icons.workspace_premium_rounded,
@@ -565,9 +587,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 15),
-
                 DetailRow(
                   icon: Icons.email_outlined,
                   title: 'Email',
@@ -587,7 +607,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                   icon: Icons.circle,
                   title: 'Status',
                   value: trainer.status,
-                  isStatus: true,
+                  isStatus: trainer.isActive,
                 ),
               ],
             ),
@@ -596,37 +616,40 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
       },
     );
   }
-}
 
-Widget _statBox({
-  required IconData icon,
-  required String value,
-  required String label,
-}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.035),
-      borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-    ),
-    child: Column(
-      children: [
-        Icon(icon, color: AppColors.primary, size: 18),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+  Widget _statBox({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 18),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: 3),
-        Text(label, style: const TextStyle(color: Colors.white30, fontSize: 8)),
-      ],
-    ),
-  );
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white30, fontSize: 8),
+          ),
+        ],
+      ),
+    );
+  }
 }

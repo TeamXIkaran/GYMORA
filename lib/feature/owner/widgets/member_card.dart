@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gymora_fitness_management/core/model/owmer_member_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_avtar.dart';
 
 /// Card widget displaying a member's info in the members list.
 class MemberCard extends StatelessWidget {
-  final OwmerMemberModel member;
+  final OwnerMemberModel member;
   final int index;
   final VoidCallback onTap;
 
