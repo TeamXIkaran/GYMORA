@@ -23,6 +23,13 @@ app.use("/api/trainers", trainerRoutes);
 app.use("/api/owner/dashboard", dashboardRoutes);
 app.use("/api/plans", planRoutes);
 
+app.get("/api/test-deployment", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Latest Karan Trainer Gym backend is deployed",
+  });
+});
+
 
 app.get("/", (req, res) => {
   res.status(200).json({
