@@ -2,6 +2,12 @@ import mongoose from "mongoose";
 
 const memberSchema = new mongoose.Schema(
   {
+    clientId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     fullName: {
       type: String,
       required: true,
@@ -63,6 +69,12 @@ const memberSchema = new mongoose.Schema(
   {
     timestamps: true,
   }
+);
+
+// Client ID must be unique within a gym
+memberSchema.index(
+  { gymId: 1, clientId: 1 },
+  { unique: true }
 );
 
 const Member = mongoose.model("Member", memberSchema);
