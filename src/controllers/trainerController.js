@@ -1,4 +1,6 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
 import Trainer from "../models/Trainer.js";
 
 const addTrainer = async (req, res) => {
@@ -148,4 +150,90 @@ const getTrainers = async (req, res) => {
   }
 };
 
-export { addTrainer, getTrainers };
+const loginTrainer = async (req, res) => {
+  try {
+    const { trainerId, password } = req.body;
+
+    // Required fields
+    if (!trainerId || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Trainer ID and password are required",
+      });
+    }
+
+    // Find trainer using Trainer ID
+    const trainer = await Trainer.findOne({
+      trainerId: trainerId.trim(),
+    });
+
+    if (!trainer) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Trainer ID or password",
+      });
+    }
+
+    // Check trainer account status
+    if (trainer.status !== "ACTIVE") {
+      return res.status(403).json({
+        success: false,
+        message: "Trainer account is inactive",
+      });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      trainer.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Trainer ID or password",
+      });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        trainerId: trainer.trainerId,
+        gymId: trainer.gymId,
+        role: "TRAINER",
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainer login successful",
+      data: {
+        token,
+        trainer: {
+          id: trainer._id,
+          trainerId: trainer.trainerId,
+          fullName: trainer.fullName,
+          phone: trainer.phone,
+          email: trainer.email,
+          gymId: trainer.gymId,
+          specialization: trainer.specialization,
+          experience: trainer.experience,
+          status: trainer.status,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Trainer login error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { addTrainer, getTrainers, loginTrainer };

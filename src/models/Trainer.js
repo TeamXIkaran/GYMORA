@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 
 const trainerSchema = new mongoose.Schema(
   {
+    trainerId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+
     fullName: {
       type: String,
       required: true,
@@ -62,6 +70,7 @@ const trainerSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
 
 const Trainer = mongoose.model("Trainer", trainerSchema);
 
