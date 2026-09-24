@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
-import 'package:gymora_fitness_management/core/utils/formatters.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
@@ -11,7 +10,6 @@ import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
 import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
-
 import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
@@ -27,10 +25,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Load everything once here. Tabs call ensureLoaded(), which is a no-op
-    // when data is already present, so nothing is fetched twice.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
       context.read<DashboardProvider>().fetchDashboard();
       context.read<MemberProvider>().ensureLoaded();
       context.read<TrainerProvider>().ensureLoaded();
@@ -41,8 +39,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Tabs get an onBack that switches to Home instead of pushing a
-    // new dashboard route on top of this one.
     final screens = <Widget>[
       const _HomeTab(),
       OwnerMembersScreen(onBack: _goHome),
@@ -52,30 +48,42 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     ];
 
     return PopScope(
-      // System back on a non-Home tab → go to Home first
       canPop: _currentIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _currentIndex != 0) _goHome();
+        if (!didPop && _currentIndex != 0) {
+          _goHome();
+        }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF05070C),
+        backgroundColor: const Color(0xFF03060B),
         body: IndexedStack(index: _currentIndex, children: screens),
         bottomNavigationBar: _buildBottomNav(),
       ),
     );
   }
 
+  // ============================================================
+  // BOTTOM NAVIGATION
+  // ============================================================
+
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0D14),
+        color: const Color(0xFF080B12),
         border: Border(
           top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 25,
+            offset: const Offset(0, -8),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(8, 9, 8, 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -98,27 +106,53 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.10)
+              ? AppColors.primary.withValues(alpha: 0.12)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          border: selected
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.18))
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: selected ? 38 : 30,
+              height: selected ? 3 : 0,
+              margin: EdgeInsets.only(bottom: selected ? 6 : 0),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.5),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
             Icon(
               icon,
-              color: selected ? AppColors.primary : Colors.white30,
-              size: 22,
+              color: selected
+                  ? AppColors.primary
+                  : Colors.white.withValues(alpha: 0.32),
+              size: 21,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: selected ? AppColors.primary : Colors.white30,
+                color: selected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.32),
                 fontSize: 9,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -131,7 +165,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 }
 
 // ============================================================
-// HOME TAB — Uses DashboardProvider
+// HOME TAB
 // ============================================================
 
 class _HomeTab extends StatelessWidget {
@@ -155,12 +189,23 @@ class _HomeTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      color: AppColors.primary.withValues(alpha: 0.7),
-                      size: 48,
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.primary,
+                        size: 34,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Text(
                       dashProvider.error!,
                       style: const TextStyle(
@@ -169,12 +214,15 @@ class _HomeTab extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     TextButton(
                       onPressed: () => dashProvider.fetchDashboard(),
                       child: const Text(
                         'Retry',
-                        style: TextStyle(color: AppColors.primary),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -192,24 +240,24 @@ class _HomeTab extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildGreeting(context, dashboard),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 25),
 
                     _buildStatsRow(dashboard),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 25),
 
                     _buildRevenueCard(dashboard),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 25),
 
                     _buildQuickActions(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 25),
 
                     _buildRecentMembers(dashboard),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 25),
 
                     _buildTrainerOverview(dashboard),
                   ],
@@ -221,6 +269,10 @@ class _HomeTab extends StatelessWidget {
       ),
     );
   }
+
+  // ============================================================
+  // GREETING
+  // ============================================================
 
   Widget _buildGreeting(BuildContext context, DashboardModel? dashboard) {
     final ownerName = dashboard?.owner.name ?? 'Owner';
@@ -236,42 +288,84 @@ class _HomeTab extends StatelessWidget {
                 'Hello, $ownerName 👋',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 23,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 5),
-              Text(
-                gymName,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.38),
-                  fontSize: 11,
-                ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF42DB82),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    gymName,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
+
         GestureDetector(
-          // ⚠ Must match the `name:` in your GoRouter config exactly
           onTap: () => context.pushNamed('onwerNotificationScreen'),
           child: Container(
-            width: 42,
-            height: 42,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.045),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.notifications_outlined,
-              color: AppColors.primary,
-              size: 20,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                Positioned(
+                  top: 10,
+                  right: 11,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ],
     );
   }
+
+  // ============================================================
+  // STATS
+  // ============================================================
 
   Widget _buildStatsRow(DashboardModel? dashboard) {
     final summary = dashboard?.summary;
@@ -315,156 +409,179 @@ class _HomeTab extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(13, 13, 12, 14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: const Color(0xFF0B1018),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.065)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: color.withValues(alpha: 0.12)),
             ),
             child: Icon(icon, color: color, size: 17),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 13),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(color: Colors.white38, fontSize: 10),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.36),
+              fontSize: 9.5,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ============================================================
+  // REVENUE OVERVIEW — UI ONLY
+  // ============================================================
+
   Widget _buildRevenueCard(DashboardModel? dashboard) {
     final revenue = dashboard?.revenueOverview;
+
+    final previous = revenue?.previousMonthRevenue ?? 0;
+    final current = revenue?.currentMonthRevenue ?? 0;
+
     final hasComparison = revenue?.hasComparison ?? false;
     final change = revenue?.percentageChange ?? 0;
     final isPositive = change >= 0;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.12),
-            Colors.white.withValues(alpha: 0.035),
+            AppColors.primary.withValues(alpha: 0.13),
+            const Color(0xFF0B1018),
+            const Color(0xFF080C13),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.055),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Revenue Overview',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.auto_graph_rounded,
+                  color: AppColors.primary,
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'This Month',
-                      style: TextStyle(color: Colors.white38, fontSize: 10),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      formatRupees(revenue?.currentMonthRevenue ?? 0),
-                      style: const TextStyle(
+                      'Revenue Overview',
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Monthly performance',
+                      style: TextStyle(color: Colors.white38, fontSize: 9),
                     ),
                   ],
                 ),
               ),
-              // No previous-month revenue → a % change is meaningless
+
+              // Existing percentage data
               if (!hasComparison)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF54B8FF).withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'First month',
-                    style: TextStyle(
-                      color: Color(0xFF54B8FF),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                _revenueBadge(
+                  text: 'First month',
+                  color: const Color(0xFF54B8FF),
+                  icon: Icons.insights_rounded,
                 )
               else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPositive
-                        ? const Color(0xFF42DB82).withValues(alpha: 0.10)
-                        : const Color(0xFFFF536F).withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isPositive
-                            ? Icons.trending_up_rounded
-                            : Icons.trending_down_rounded,
-                        color: isPositive
-                            ? const Color(0xFF42DB82)
-                            : const Color(0xFFFF536F),
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${change.abs().toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: isPositive
-                              ? const Color(0xFF42DB82)
-                              : const Color(0xFFFF536F),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                _revenueBadge(
+                  text: '${change.abs().toStringAsFixed(1)}%',
+                  color: isPositive
+                      ? const Color(0xFF42DB82)
+                      : const Color(0xFFFF536F),
+                  icon: isPositive
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
                 ),
+            ],
+          ),
+
+          const SizedBox(height: 22),
+
+          // Graph
+          SizedBox(
+            height: 155,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _RevenueChartPainter(
+                previousValue: previous,
+                currentValue: current,
+                lineColor: AppColors.primary,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Graph labels
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _graphLabel(title: 'Previous Month', active: false),
+              _graphLabel(title: 'Current Month', active: true),
             ],
           ),
         ],
@@ -472,34 +589,90 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
+  Widget _revenueBadge({
+    required String text,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _graphLabel({required String title, required bool active}) {
+    return Row(
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.white24,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: TextStyle(
+            color: active ? Colors.white70 : Colors.white30,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // QUICK ACTIONS
+  // ============================================================
+
   Widget _buildQuickActions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
+        _sectionHeader(
+          title: 'Quick Actions',
+          subtitle: 'Manage your gym faster',
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _actionCard(
                 icon: Icons.person_add_alt_1_rounded,
                 title: 'Add Member',
+                subtitle: 'New member',
                 color: const Color(0xFF54B8FF),
                 onTap: () => context.pushNamed('addMember'),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: _actionCard(
                 icon: Icons.fitness_center_rounded,
                 title: 'Add Trainer',
+                subtitle: 'New trainer',
                 color: const Color(0xFFFF8A00),
                 onTap: () => context.pushNamed('addTrainer'),
               ),
@@ -510,40 +683,95 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
+  Widget _sectionHeader({required String title, required String subtitle}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.30),
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _actionCard({
     required IconData icon,
     required String title,
+    required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFF0B1018),
+          borderRadius: BorderRadius.circular(19),
           border: Border.all(color: color.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.035),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(11),
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: color.withValues(alpha: 0.12)),
               ),
-              child: Icon(icon, color: color, size: 18),
+              child: Icon(icon, color: color, size: 19),
             ),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.white30,
+                      fontSize: 8.5,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: color.withValues(alpha: 0.65),
+              size: 11,
             ),
           ],
         ),
@@ -551,37 +779,24 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
+  // ============================================================
+  // RECENT MEMBERS
+  // ============================================================
+
   Widget _buildRecentMembers(DashboardModel? dashboard) {
     final recentMembers = dashboard?.recentMembers ?? const <RecentMember>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recent Members',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
+        _sectionHeader(
+          title: 'Recent Members',
+          subtitle: 'Latest members in your gym',
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
+
         if (recentMembers.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-            ),
-            child: const Center(
-              child: Text(
-                'No recent members',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
-              ),
-            ),
-          )
+          _emptyCard('No recent members')
         else
           ...recentMembers.map((member) => _recentMemberTile(member)),
       ],
@@ -592,70 +807,125 @@ class _HomeTab extends StatelessWidget {
     final statusColor = _memberStatusColor(member.displayStatus);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: const Color(0xFF0B1018),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 43,
+            height: 43,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
-                colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                colors: [Color(0xFFE62B52), Color(0xFF75142A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  blurRadius: 12,
+                ),
+              ],
             ),
             child: Center(
               child: Text(
                 member.initials,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   member.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   member.planDisplayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white38, fontSize: 9),
                 ),
               ],
             ),
           ),
+
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(6),
+              color: statusColor.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: statusColor.withValues(alpha: 0.12)),
             ),
-            child: Text(
-              member.displayStatus,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  member.displayStatus,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyCard(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1018),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_rounded,
+            color: Colors.white.withValues(alpha: 0.18),
+            size: 28,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: const TextStyle(color: Colors.white38, fontSize: 10),
           ),
         ],
       ),
@@ -673,6 +943,10 @@ class _HomeTab extends StatelessWidget {
     }
   }
 
+  // ============================================================
+  // TRAINER OVERVIEW
+  // ============================================================
+
   Widget _buildTrainerOverview(DashboardModel? dashboard) {
     final trainers =
         dashboard?.trainerOverview ?? const <TrainerOverviewItem>[];
@@ -680,31 +954,14 @@ class _HomeTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Trainer Overview',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
+        _sectionHeader(
+          title: 'Trainer Overview',
+          subtitle: 'Your gym training team',
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
+
         if (trainers.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-            ),
-            child: const Center(
-              child: Text(
-                'No trainers yet',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
-              ),
-            ),
-          )
+          _emptyCard('No trainers yet')
         else
           ...trainers.map((trainer) => _trainerOverviewTile(trainer)),
       ],
@@ -713,23 +970,23 @@ class _HomeTab extends StatelessWidget {
 
   Widget _trainerOverviewTile(TrainerOverviewItem trainer) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        color: const Color(0xFF0B1018),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.055)),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 43,
+            height: 43,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFFF8A00).withValues(alpha: 0.12),
+              color: const Color(0xFFFF8A00).withValues(alpha: 0.10),
               border: Border.all(
-                color: const Color(0xFFFF8A00).withValues(alpha: 0.20),
+                color: const Color(0xFFFF8A00).withValues(alpha: 0.18),
               ),
             ),
             child: Center(
@@ -737,54 +994,217 @@ class _HomeTab extends StatelessWidget {
                 trainer.initials,
                 style: const TextStyle(
                   color: Color(0xFFFF8A00),
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   trainer.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   trainer.specialization,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white38, fontSize: 9),
                 ),
               ],
             ),
           ),
+
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
               color: trainer.isActive
-                  ? const Color(0xFF42DB82).withValues(alpha: 0.10)
-                  : Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(6),
+                  ? const Color(0xFF42DB82).withValues(alpha: 0.09)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              trainer.status,
-              style: TextStyle(
-                color: trainer.isActive
-                    ? const Color(0xFF42DB82)
-                    : Colors.white38,
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: trainer.isActive
+                        ? const Color(0xFF42DB82)
+                        : Colors.white30,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  trainer.status,
+                  style: TextStyle(
+                    color: trainer.isActive
+                        ? const Color(0xFF42DB82)
+                        : Colors.white38,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+// ============================================================
+// REVENUE GRAPH PAINTER
+// UI ONLY — uses existing dashboard revenue values
+// ============================================================
+
+class _RevenueChartPainter extends CustomPainter {
+  final double previousValue;
+  final double currentValue;
+  final Color lineColor;
+
+  _RevenueChartPainter({
+    required this.previousValue,
+    required this.currentValue,
+    required this.lineColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = Colors.white.withValues(alpha: 0.055);
+
+    // Horizontal grid lines.
+    for (int i = 0; i < 4; i++) {
+      final y = 15 + (i * (size.height - 30) / 3);
+
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+
+    final maxValue = previousValue > currentValue
+        ? previousValue
+        : currentValue;
+
+    double normalize(double value) {
+      if (maxValue <= 0) return 0.5;
+      return value / maxValue;
+    }
+
+    final previousX = 18.0;
+    final currentX = size.width - 18;
+
+    final chartHeight = size.height - 38;
+
+    final previousY =
+        18 + chartHeight - (normalize(previousValue) * chartHeight);
+
+    final currentY = 18 + chartHeight - (normalize(currentValue) * chartHeight);
+
+    final path = Path();
+
+    path.moveTo(previousX, previousY);
+
+    final controlPoint1 = Offset(size.width * 0.32, previousY);
+
+    final controlPoint2 = Offset(size.width * 0.68, currentY);
+
+    path.cubicTo(
+      controlPoint1.dx,
+      controlPoint1.dy,
+      controlPoint2.dx,
+      controlPoint2.dy,
+      currentX,
+      currentY,
+    );
+
+    // Glow.
+    final glowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 9
+      ..strokeCap = StrokeCap.round
+      ..color = lineColor.withValues(alpha: 0.07)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+
+    canvas.drawPath(path, glowPaint);
+
+    // Main line.
+    final linePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = lineColor;
+
+    canvas.drawPath(path, linePaint);
+
+    // Bottom soft area.
+    final fillPath = Path.from(path)
+      ..lineTo(currentX, size.height)
+      ..lineTo(previousX, size.height)
+      ..close();
+
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          lineColor.withValues(alpha: 0.13),
+          lineColor.withValues(alpha: 0.00),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    // Previous point.
+    _drawPoint(
+      canvas,
+      Offset(previousX, previousY),
+      lineColor.withValues(alpha: 0.45),
+      5,
+    );
+
+    // Current point.
+    _drawPoint(canvas, Offset(currentX, currentY), lineColor, 6);
+  }
+
+  void _drawPoint(Canvas canvas, Offset point, Color color, double radius) {
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
+
+    canvas.drawCircle(point, radius + 4, glowPaint);
+
+    final outerPaint = Paint()..color = const Color(0xFF0B1018);
+
+    canvas.drawCircle(point, radius + 2, outerPaint);
+
+    final pointPaint = Paint()..color = color;
+
+    canvas.drawCircle(point, radius, pointPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RevenueChartPainter oldDelegate) {
+    return oldDelegate.previousValue != previousValue ||
+        oldDelegate.currentValue != currentValue ||
+        oldDelegate.lineColor != lineColor;
   }
 }

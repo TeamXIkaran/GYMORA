@@ -24,11 +24,13 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _gymIdController = TextEditingController();
   final _passwordController = TextEditingController();
 
   final _nameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _phoneFocus = FocusNode();
+  final _gymIdFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
   String _selectedPlan = 'BASIC';
@@ -69,7 +71,13 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       duration: const Duration(milliseconds: 2000),
     )..repeat();
 
-    for (final node in [_nameFocus, _emailFocus, _phoneFocus, _passwordFocus]) {
+    for (final node in [
+      _nameFocus,
+      _emailFocus,
+      _phoneFocus,
+      _gymIdFocus,
+      _passwordFocus,
+    ]) {
       node.addListener(() => setState(() {}));
     }
   }
@@ -87,6 +95,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     _glowController.dispose();
     _particleController.dispose();
     _shimmerController.dispose();
+    _gymIdController.dispose();
+    _gymIdFocus.dispose();
     super.dispose();
   }
 
@@ -115,6 +125,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
+      gymId: _gymIdController.text.trim(),
       membershipPlan: _selectedPlan,
       startDate: startDate,
     );
@@ -294,6 +305,26 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                               if (t.isEmpty) return 'Please enter phone number';
                               if (t.length != 10) {
                                 return 'Enter a valid 10-digit number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+
+                          _buildTextField(
+                            controller: _gymIdController,
+                            focusNode: _gymIdFocus,
+                            label: 'Gym ID',
+                            hint: 'Enter gym ID e.g. Astha07',
+                            icon: Icons.badge_outlined,
+                            keyboardType: TextInputType.text,
+                            validator: (v) {
+                              final t = v?.trim() ?? '';
+                              if (t.isEmpty) {
+                                return 'Please enter gym ID';
+                              }
+                              if (t.length < 3) {
+                                return 'Please enter a valid gym ID';
                               }
                               return null;
                             },

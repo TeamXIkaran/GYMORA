@@ -22,6 +22,7 @@ class TrainerService {
     required String phone,
     required String email,
     required String password,
+    required String gymId,
     required String specialization,
     required int experience,
   }) async {
@@ -30,11 +31,13 @@ class TrainerService {
       'phone': phone,
       'email': email,
       'password': password,
+      'gymId': gymId,
       'specialization': specialization,
       'experience': experience,
     });
 
     final data = response['data'] as Map<String, dynamic>? ?? response;
+
     final trainerJson = data['trainer'] as Map<String, dynamic>? ?? data;
 
     return OwnerTrainerModel.fromJson(trainerJson);

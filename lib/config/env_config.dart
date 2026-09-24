@@ -17,7 +17,6 @@ class EnvConfig {
 
   // ── Convenience Flags ──────────────────────────────────────
   static bool get isDev => environment == 'development';
-  static bool get isProd => environment == 'production';
 
   // ── Add more keys here as needed ───────────────────────────
   // static String get firebaseKey => dotenv.env['FIREBASE_KEY'] ?? '';

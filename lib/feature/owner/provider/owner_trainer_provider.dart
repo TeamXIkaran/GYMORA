@@ -38,38 +38,44 @@ class TrainerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> addTrainer({
-    required String fullName,
-    required String phone,
-    required String email,
-    required String password,
-    required String specialization,
-    required int experience,
-  }) async {
-    if (_isSubmitting) return false;
-    _isSubmitting = true;
-    _error = null;
-    notifyListeners();
 
-    try {
-      final newTrainer = await TrainerService.addTrainer(
-        fullName: fullName,
-        phone: phone,
-        email: email,
-        password: password,
-        specialization: specialization,
-        experience: experience,
-      );
-      _trainers = [newTrainer, ..._trainers];
-      return true;
-    } catch (e) {
-      _error = cleanError(e);
-      return false;
-    } finally {
-      _isSubmitting = false;
-      notifyListeners();
-    }
+Future<bool> addTrainer({
+  required String fullName,
+  required String phone,
+  required String email,
+  required String password,
+  required String gymId,
+  required String specialization,
+  required int experience,
+}) async {
+  if (_isSubmitting) return false;
+
+  _isSubmitting = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    final newTrainer = await TrainerService.addTrainer(
+      fullName: fullName,
+      phone: phone,
+      email: email,
+      password: password,
+      gymId: gymId,
+      specialization: specialization,
+      experience: experience,
+    );
+
+    _trainers = [newTrainer, ..._trainers];
+    return true;
+  } catch (e) {
+    _error = cleanError(e);
+    return false;
+  } finally {
+    _isSubmitting = false;
+    notifyListeners();
   }
+}
+
 
   /// [filterIndex] → 0 = All, 1 = Active, 2 = Inactive
   List<OwnerTrainerModel> filterByStatus(int filterIndex) {

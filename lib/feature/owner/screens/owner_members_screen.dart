@@ -9,8 +9,6 @@ import 'package:gymora_fitness_management/feature/owner/widgets/detail_row.dart'
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
 class OwnerMembersScreen extends StatefulWidget {
-  /// Called by the back arrow. The dashboard passes a callback that
-  /// switches to the Home tab. When null, the arrow pops (if possible).
   final VoidCallback? onBack;
 
   const OwnerMembersScreen({super.key, this.onBack});
@@ -41,9 +39,10 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       duration: const Duration(seconds: 12),
     )..repeat();
 
-    // No-op if the dashboard already loaded members
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<MemberProvider>().ensureLoaded();
+      if (mounted) {
+        context.read<MemberProvider>().ensureLoaded();
+      }
     });
   }
 
@@ -70,6 +69,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase();
+
       result = result.where((m) {
         return m.fullName.toLowerCase().contains(q) ||
             m.email.toLowerCase().contains(q) ||
@@ -92,6 +92,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               decoration: const BoxDecoration(gradient: AppColors.darkGradient),
             ),
           ),
+
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
@@ -102,13 +103,16 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               },
             ),
           ),
+
+          // Top glow
           Positioned(
-            top: -80,
-            right: -60,
+            top: -100,
+            right: -70,
             child: AnimatedBuilder(
               animation: _glowController,
               builder: (_, _) {
-                final size = 260 + (_glowController.value * 30);
+                final size = 260 + (_glowController.value * 35);
+
                 return Container(
                   width: size,
                   height: size,
@@ -116,7 +120,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.14),
+                        AppColors.primary.withValues(alpha: 0.16),
                         AppColors.primary.withValues(alpha: 0.04),
                         Colors.transparent,
                       ],
@@ -126,10 +130,31 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               },
             ),
           ),
+
+          // Bottom glow
+          Positioned(
+            bottom: -130,
+            left: -100,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF4C6FFF).withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           SafeArea(
             child: Column(
               children: [
                 _buildHeader(),
+                _buildOverview(),
                 _buildSearchBar(),
                 _buildFilters(),
                 Expanded(child: _buildMemberList()),
@@ -141,11 +166,15 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
+  // ============================================================
+  // HEADER
+  // ============================================================
+
   Widget _buildHeader() {
     return Consumer<MemberProvider>(
       builder: (context, provider, _) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
           child: Row(
             children: [
               if (widget.onBack != null || context.canPop()) ...[
@@ -155,6 +184,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                 ),
                 const SizedBox(width: 12),
               ],
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,49 +193,70 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                       'Members',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${provider.members.length} members in your gym',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF42DB82),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${provider.members.length} members registered',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+
               GestureDetector(
                 onTap: () => context.pushNamed('addMember'),
                 child: Container(
                   height: 42,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 13),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF3158), Color(0xFFB91438)],
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(13),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.25),
-                        blurRadius: 15,
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                      SizedBox(width: 5),
+                      Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: Colors.white,
+                        size: 17,
+                      ),
+                      SizedBox(width: 6),
                       Text(
-                        'Add Member',
+                        'Add',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -219,23 +270,149 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
+  // ============================================================
+  // OVERVIEW
+  // ============================================================
+
+  Widget _buildOverview() {
+    return Consumer<MemberProvider>(
+      builder: (context, provider, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 13),
+          child: Row(
+            children: [
+              Expanded(
+                child: _overviewCard(
+                  icon: Icons.groups_rounded,
+                  value: '${provider.members.length}',
+                  label: 'TOTAL',
+                  color: const Color(0xFF5C8DFF),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _overviewCard(
+                  icon: Icons.verified_rounded,
+                  value: '${provider.activeMembers.length}',
+                  label: 'ACTIVE',
+                  color: const Color(0xFF42DB82),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _overviewCard(
+                  icon: Icons.event_busy_rounded,
+                  value: '${provider.expiredMembers.length}',
+                  label: 'EXPIRED',
+                  color: const Color(0xFFFF536F),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _overviewCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      height: 82,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.065),
+            Colors.white.withValues(alpha: 0.018),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 18),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(icon, color: color, size: 13),
+              ),
+              const Spacer(),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              height: 1.0,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white30,
+              fontSize: 7,
+              height: 1.0,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.045),
-          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0.055),
+              Colors.white.withValues(alpha: 0.025),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: TextField(
-          onChanged: (value) => setState(() => _searchQuery = value),
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+          },
           style: const TextStyle(color: Colors.white, fontSize: 12),
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
-            hintText: 'Search members...',
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+            hintText: 'Search name, phone, email or plan...',
+            hintStyle: const TextStyle(color: Colors.white30, fontSize: 10),
             prefixIcon: const Icon(
               Icons.search_rounded,
               color: Colors.white38,
@@ -243,7 +420,9 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    onPressed: () => setState(() => _searchQuery = ''),
+                    onPressed: () {
+                      setState(() => _searchQuery = '');
+                    },
                     icon: const Icon(
                       Icons.close_rounded,
                       color: Colors.white38,
@@ -266,52 +445,61 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
+  // ============================================================
+  // FILTERS
+  // ============================================================
+
   Widget _buildFilters() {
     final filters = ['All', 'Active', 'Expired'];
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 15, 18, 10),
+      padding: const EdgeInsets.fromLTRB(18, 13, 18, 10),
       child: Row(
         children: List.generate(filters.length, (index) {
           final selected = _selectedFilter == index;
 
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index == filters.length - 1 ? 0 : 8,
-            ),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedFilter = index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.primary
-                      : Colors.white.withValues(alpha: 0.035),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index == filters.length - 1 ? 0 : 7,
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _selectedFilter = index);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  height: 38,
+                  decoration: BoxDecoration(
                     color: selected
                         ? AppColors.primary
-                        : Colors.white.withValues(alpha: 0.07),
+                        : Colors.white.withValues(alpha: 0.035),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.primary
+                          : Colors.white.withValues(alpha: 0.07),
+                    ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.20),
+                              blurRadius: 14,
+                            ),
+                          ]
+                        : null,
                   ),
-                  boxShadow: selected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.22),
-                            blurRadius: 14,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  filters[index],
-                  style: TextStyle(
-                    color: selected ? Colors.white : Colors.white54,
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  child: Center(
+                    child: Text(
+                      filters[index],
+                      style: TextStyle(
+                        color: selected ? Colors.white : Colors.white54,
+                        fontSize: 10,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -321,6 +509,10 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       ),
     );
   }
+
+  // ============================================================
+  // MEMBER LIST
+  // ============================================================
 
   Widget _buildMemberList() {
     return Consumer<MemberProvider>(
@@ -336,22 +528,34 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline_rounded,
-                  color: AppColors.primary.withValues(alpha: 0.7),
-                  size: 48,
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.primary.withValues(alpha: 0.8),
+                    size: 34,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 15),
                 Text(
                   provider.error!,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 15),
                 TextButton(
                   onPressed: () => provider.fetchMembers(),
                   child: const Text(
                     'Retry',
-                    style: TextStyle(color: AppColors.primary),
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -389,27 +593,55 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
+  // ============================================================
+  // MEMBER CARD
+  // ============================================================
+
   Widget _buildMemberCard(OwnerMemberModel member) {
     final status = member.displayStatus;
+    final statusColor = _statusColor(status);
+
     return GestureDetector(
       onTap: () => _showMemberDetails(member),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withValues(alpha: 0.055),
+              Colors.white.withValues(alpha: 0.018),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.075)),
+          boxShadow: [
+            BoxShadow(
+              color: statusColor.withValues(alpha: 0.035),
+              blurRadius: 18,
+            ),
+          ],
         ),
         child: Row(
           children: [
+            // Avatar
             Container(
-              width: 46,
-              height: 46,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [Color(0xFFE62B52), Color(0xFF761326)],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                  ),
+                ],
               ),
               child: Center(
                 child: Text(
@@ -417,49 +649,133 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
             ),
+
             const SizedBox(width: 12),
+
+            // Main info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     member.fullName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${member.planDisplayName} Plan',
-                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+
+                  const SizedBox(height: 5),
+
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.card_membership_rounded,
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          member.planDisplayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.phone_outlined,
+                        color: Colors.white24,
+                        size: 11,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          member.phone,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 8,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: _statusColor(status).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _statusColor(status).withValues(alpha: 0.20),
+
+            const SizedBox(width: 8),
+
+            // Status + arrow
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              child: Text(
-                status,
-                style: TextStyle(
-                  color: _statusColor(status),
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
+
+                const SizedBox(height: 12),
+
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white24,
+                  size: 12,
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -471,14 +787,21 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     switch (status.toLowerCase()) {
       case 'active':
         return const Color(0xFF42DB82);
+
       case 'expired':
         return const Color(0xFFFF536F);
+
       case 'expiring':
         return const Color(0xFFFFB84D);
+
       default:
         return Colors.white54;
     }
   }
+
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
 
   Widget _buildEmptyState() {
     return Center(
@@ -488,34 +811,45 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 82,
+              height: 82,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: AppColors.primary.withValues(alpha: 0.07),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.15),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    blurRadius: 25,
+                  ),
+                ],
               ),
               child: Icon(
                 Icons.person_search_rounded,
-                color: AppColors.primary.withValues(alpha: 0.7),
-                size: 32,
+                color: AppColors.primary.withValues(alpha: 0.75),
+                size: 36,
               ),
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 18),
+
             const Text(
               'No Members Found',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
               ),
             ),
+
             const SizedBox(height: 7),
+
             const Text(
               'Try changing your search or filter.',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 10),
             ),
           ],
         ),
@@ -523,107 +857,199 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     );
   }
 
+  // ============================================================
+  // MEMBER DETAILS
+  // ============================================================
+
   void _showMemberDetails(OwnerMemberModel member) {
+    final statusColor = _statusColor(member.displayStatus);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0B0E16),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 25),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE62B52), Color(0xFF761326)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.30),
-                        blurRadius: 18,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      member.initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 15, 20, 25),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle
+                  Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  member.fullName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
+
+                  const SizedBox(height: 22),
+
+                  // Avatar
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.30),
+                          blurRadius: 22,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        member.initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  '${member.planDisplayName} Plan',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-                const SizedBox(height: 20),
-                DetailRow(
-                  icon: Icons.email_outlined,
-                  title: 'Email',
-                  value: member.email,
-                ),
-                DetailRow(
-                  icon: Icons.phone_outlined,
-                  title: 'Phone',
-                  value: member.phone,
-                ),
-                DetailRow(
-                  icon: Icons.card_membership_rounded,
-                  title: 'Plan',
-                  value: member.planDisplayName,
-                ),
-                DetailRow(
-                  icon: Icons.calendar_today_outlined,
-                  title: 'Start Date',
-                  value: member.startDate,
-                ),
-                DetailRow(
-                  icon: Icons.event_outlined,
-                  title: 'End Date',
-                  value: member.endDate,
-                ),
-                DetailRow(
-                  icon: Icons.circle,
-                  title: 'Status',
-                  value: member.displayStatus,
-                  isStatus: member.isActive,
-                ),
-              ],
+
+                  const SizedBox(height: 13),
+
+                  Text(
+                    member.fullName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+
+                  const SizedBox(height: 5),
+
+                  Text(
+                    member.email,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Status badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.22),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          member.displayStatus.toUpperCase(),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // Membership information
+                  _detailSectionTitle('MEMBERSHIP'),
+
+                  const SizedBox(height: 8),
+
+                  DetailRow(
+                    icon: Icons.card_membership_rounded,
+                    title: 'Plan',
+                    value: member.planDisplayName,
+                  ),
+
+                  DetailRow(
+                    icon: Icons.calendar_today_outlined,
+                    title: 'Start Date',
+                    value: member.startDate,
+                  ),
+
+                  DetailRow(
+                    icon: Icons.event_outlined,
+                    title: 'End Date',
+                    value: member.endDate,
+                  ),
+
+                  DetailRow(
+                    icon: Icons.circle,
+                    title: 'Status',
+                    value: member.displayStatus,
+                    isStatus: member.isActive,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  _detailSectionTitle('CONTACT'),
+
+                  const SizedBox(height: 8),
+
+                  DetailRow(
+                    icon: Icons.email_outlined,
+                    title: 'Email',
+                    value: member.email,
+                  ),
+
+                  DetailRow(
+                    icon: Icons.phone_outlined,
+                    title: 'Phone',
+                    value: member.phone,
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _detailSectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: TextStyle(
+          color: AppColors.primary.withValues(alpha: 0.85),
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 }

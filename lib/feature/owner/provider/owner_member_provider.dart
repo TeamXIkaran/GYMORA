@@ -34,15 +34,18 @@ class MemberProvider extends ChangeNotifier {
 
   // ── Fetch ───────────────────────────────────────────────────
 
-  /// Fetch only once. Every tab can call this safely — the IndexedStack
-  /// builds all tabs at startup, so this prevents duplicate requests.
+  /// Fetch only once. Every tab can call this safely.
+  /// The IndexedStack builds all tabs at startup,
+  /// so this prevents duplicate requests.
   Future<void> ensureLoaded() async {
     if (_hasLoaded || _isLoading) return;
+
     await fetchMembers();
   }
 
   Future<void> fetchMembers() async {
     if (_isLoading) return;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -58,7 +61,7 @@ class MemberProvider extends ChangeNotifier {
     }
   }
 
-  // ── Add ─────────────────────────────────────────────────────
+  // ── Add Member ──────────────────────────────────────────────
 
   Future<bool> addMember({
     required String fullName,
@@ -66,10 +69,12 @@ class MemberProvider extends ChangeNotifier {
     required String phone,
     required String email,
     required String password,
+    required String gymId,
     required String membershipPlan,
     required String startDate,
   }) async {
     if (_isSubmitting) return false;
+
     _isSubmitting = true;
     _error = null;
     notifyListeners();
@@ -81,10 +86,13 @@ class MemberProvider extends ChangeNotifier {
         phone: phone,
         email: email,
         password: password,
+        gymId: gymId,
         membershipPlan: membershipPlan,
         startDate: startDate,
       );
+
       _members = [newMember, ..._members];
+
       return true;
     } catch (e) {
       _error = cleanError(e);
@@ -95,11 +103,15 @@ class MemberProvider extends ChangeNotifier {
     }
   }
 
-  // ── Search / filter ─────────────────────────────────────────
+  // ── Search / Filter ─────────────────────────────────────────
 
   List<OwnerMemberModel> searchMembers(String query) {
-    if (query.trim().isEmpty) return members;
+    if (query.trim().isEmpty) {
+      return members;
+    }
+
     final q = query.toLowerCase();
+
     return _members.where((m) {
       return m.fullName.toLowerCase().contains(q) ||
           m.email.toLowerCase().contains(q) ||
@@ -109,11 +121,16 @@ class MemberProvider extends ChangeNotifier {
   }
 
   List<OwnerMemberModel> filterByStatus(String status) {
-    if (status.toLowerCase() == 'all') return members;
+    if (status.toLowerCase() == 'all') {
+      return members;
+    }
+
     return _members
         .where((m) => m.displayStatus == status.toUpperCase())
         .toList();
   }
+
+  // ── Reset ───────────────────────────────────────────────────
 
   void reset() {
     _members = [];
@@ -121,6 +138,8 @@ class MemberProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  // ── Error ───────────────────────────────────────────────────
 
   void clearError() {
     _error = null;

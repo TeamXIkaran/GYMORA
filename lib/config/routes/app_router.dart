@@ -22,7 +22,6 @@ class AppRoutes {
   static const String ownerProfileRoute = '/owner-profile';
   static const String addMemberRoute = '/add-member';
   static const String addTrainerRoute = '/add-trainer';
-    static const String addMembershipRoute = '/add-trainer';
 
   // Trainer Routes
   static const String trainerDashboardRoute = '/trainer-dashboard';
