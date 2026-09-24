@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
 
-
 import 'package:provider/provider.dart';
 
 /// Shared login logic for Owner / Trainer / Client screens.
@@ -58,8 +57,9 @@ mixin LoginMixin<T extends StatefulWidget> on State<T> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor:
-            isError ? const Color(0xFFCF2942) : const Color(0xFF1DB954),
+        backgroundColor: isError
+            ? const Color(0xFFCF2942)
+            : const Color(0xFF1DB954),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

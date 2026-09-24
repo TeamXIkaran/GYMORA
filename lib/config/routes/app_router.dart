@@ -26,4 +26,9 @@ class AppRoutes {
   // Trainer Routes
   static const String trainerDashboardRoute = '/trainer-dashboard';
   static const String trainerClientRoute = '/trainer-client';
+  static const String trainerProfileRoute = '/trainer-profile';
+  static const String trainerScheduleRoute = '/trainer-schedule';
+  static const String trainerProgressRoute = '/trainer-progress';
+
+  // Member Routes
 }

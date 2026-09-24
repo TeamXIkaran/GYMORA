@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:gymora_fitness_management/core/api/network/owner_service.dart';
+import 'package:gymora_fitness_management/core/api/network/owner_login_service.dart';
 import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
 import 'package:gymora_fitness_management/core/model/owner_login_model.dart';
 
@@ -10,12 +10,14 @@ import 'package:gymora_fitness_management/core/model/owner_login_model.dart';
 enum OwnerStatus { initial, loading, authenticated, unauthenticated, error }
 
 class OwnerLoginProvider extends ChangeNotifier {
-  final OwnerService _service;
+  final OwnerLoginService _service;
   final SecureStorageExtension _storage;
 
-  OwnerLoginProvider({OwnerService? service, SecureStorageExtension? storage})
-    : _service = service ?? OwnerService(),
-      _storage = storage ?? SecureStorageExtension();
+  OwnerLoginProvider({
+    OwnerLoginService? service,
+    SecureStorageExtension? storage,
+  }) : _service = service ?? OwnerLoginService(),
+       _storage = storage ?? SecureStorageExtension();
 
   // ── State ──
   OwnerStatus _status = OwnerStatus.initial;

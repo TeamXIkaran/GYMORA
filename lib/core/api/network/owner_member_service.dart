@@ -1,7 +1,7 @@
 import 'package:gymora_fitness_management/core/api/base_api/api_service.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 
-class MemberService {
+class OwnerMemberService {
   /// Fetch all members.
   /// Endpoint: GET /api/members
   static Future<List<OwnerMemberModel>> getMembers() async {

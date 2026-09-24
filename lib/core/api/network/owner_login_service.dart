@@ -7,10 +7,10 @@ import 'package:gymora_fitness_management/core/model/owner_login_model.dart';
 // OWNER SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
 
-class OwnerService {
+class OwnerLoginService {
   final ApiHelper _api;
 
-  OwnerService({ApiHelper? api}) : _api = api ?? ApiHelper();
+  OwnerLoginService({ApiHelper? api}) : _api = api ?? ApiHelper();
 
   // ─────────────────────────────────────────────────────────────────────
   // OWNER LOGIN

@@ -28,7 +28,7 @@ class TrainerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _trainers = await TrainerService.getTrainers();
+      _trainers = await OwnerTrainerService.getTrainers();
       _hasLoaded = true;
     } catch (e) {
       _error = cleanError(e);
@@ -55,7 +55,7 @@ Future<bool> addTrainer({
   notifyListeners();
 
   try {
-    final newTrainer = await TrainerService.addTrainer(
+    final newTrainer = await OwnerTrainerService.addTrainer(
       fullName: fullName,
       phone: phone,
       email: email,

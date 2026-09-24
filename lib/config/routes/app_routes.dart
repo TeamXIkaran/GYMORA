@@ -21,6 +21,9 @@ import 'package:gymora_fitness_management/feature/owner/screens/owner_settings_s
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_dashboard_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_profile_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_progress_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/screens/trainer_schedule_screen.dart';
 
 // Global Key for Contextless Navigation
 // Useful for session expiry, push notifications, etc.
@@ -171,7 +174,6 @@ class AppRouter {
         name: 'addTrainer',
         builder: (context, state) => const AddTrainerScreen(),
       ),
-    
 
       // Trainer Screens
       GoRoute(
@@ -186,6 +188,27 @@ class AppRouter {
         name: 'trainerClientScreen',
         builder: (context, state) {
           return const TrainerClientsScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerProfileRoute,
+        name: 'trainerTrainerScreen',
+        builder: (context, state) {
+          return const TrainerProfileScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerScheduleRoute,
+        name: 'trainerScheduleScreen',
+        builder: (context, state) {
+          return const TrainerScheduleScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.trainerProgressRoute,
+        name: 'trainerProgressScreen',
+        builder: (context, state) {
+          return const TrainerProgressScreen();
         },
       ),
     ],

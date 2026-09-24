@@ -51,7 +51,7 @@ class MemberProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _members = await MemberService.getMembers();
+      _members = await OwnerMemberService.getMembers();
       _hasLoaded = true;
     } catch (e) {
       _error = cleanError(e);
@@ -80,7 +80,7 @@ class MemberProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final newMember = await MemberService.addMember(
+      final newMember = await OwnerMemberService.addMember(
         fullName: fullName,
         planName: planName,
         phone: phone,

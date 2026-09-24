@@ -160,7 +160,8 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     super.dispose();
   }
 
-  // ── Login ──
+  // login handleing
+
   Future<void> _handleLogin() async {
     if (_isSubmitting) return;
 
@@ -171,6 +172,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       _showMessage('Please enter your email');
       return;
     }
+
     if (password.isEmpty) {
       _showMessage('Please enter your password');
       return;
@@ -178,23 +180,33 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
 
     setState(() => _isSubmitting = true);
 
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(
-      email: email,
-      password: password,
-      expectedRole: 'trainer',
-    );
+    try {
+      final authProvider = context.read<AuthProvider>();
 
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    if (success) {
-      _showMessage('Login successful! Welcome, Trainer.');
-      context.goNamed('trainerDashboard');
-    } else {
-      _showMessage(
-        authProvider.errorMessage ?? 'Login failed. Please try again.',
+      final success = await authProvider.login(
+        email: email,
+        password: password,
+        expectedRole: 'trainer',
       );
+
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      if (success) {
+        // Trainer successfully authenticated
+        context.goNamed('trainerDashboardScreen');
+      } else {
+        _showMessage(
+          authProvider.errorMessage ?? 'Invalid trainer email or password.',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      _showMessage('Unable to login. Please try again.');
     }
   }
 

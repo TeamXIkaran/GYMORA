@@ -29,7 +29,7 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _dashboard = await DashboardService.getDashboard();
+      _dashboard = await OwnerDashboardService.getDashboard();
     } catch (e) {
       _error = cleanError(e);
     } finally {
