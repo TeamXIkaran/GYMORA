@@ -14,6 +14,7 @@ const addTrainer = async (req, res) => {
     }
 
     const {
+      trainerId,
       fullName,
       phone,
       email,
@@ -78,13 +79,11 @@ const addTrainer = async (req, res) => {
 
     // Create trainer
     const trainer = await Trainer.create({
+      trainerId: trainerId.trim(),
       fullName: fullName.trim(),
       phone: phone.trim(),
       email: email.toLowerCase().trim(),
-
-      // Gym comes from authenticated owner's token
       gymId: req.user.gymId,
-
       password: hashedPassword,
       specialization: specialization.trim(),
       experience: trainerExperience,
