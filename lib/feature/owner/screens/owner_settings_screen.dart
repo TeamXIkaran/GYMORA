@@ -585,7 +585,6 @@ class OwnerSettingsScreen extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          // TODO: clear the saved token, call reset() on Dashboard/Member/
           // TrainerProvider, then go to your login route.
           onTap: () {},
           borderRadius: BorderRadius.circular(15),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
+
+
 
 class TrainerProfileScreen extends StatefulWidget {
   const TrainerProfileScreen({super.key});
@@ -9,6 +12,8 @@ class TrainerProfileScreen extends StatefulWidget {
 
 class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
   static const Color trainerYellow = Color(0xFFFFC107);
+
+  final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -45,23 +50,26 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         ),
         child: SafeArea(
           top: false,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
-            child: Column(
-              children: [
-                _buildProfileHeader(),
-                const SizedBox(height: 22),
-                _buildPersonalInformation(),
-                const SizedBox(height: 16),
-                _buildProfessionalInformation(),
-                const SizedBox(height: 16),
-                _buildGymInformation(),
-                const SizedBox(height: 16),
-                _buildStatistics(),
-                const SizedBox(height: 16),
-                _buildAccountOptions(),
-              ],
+          child: ListenableBuilder(
+            listenable: _store,
+            builder: (context, _) => SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+              child: Column(
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 22),
+                  _buildPersonalInformation(),
+                  const SizedBox(height: 16),
+                  _buildProfessionalInformation(),
+                  const SizedBox(height: 16),
+                  _buildGymInformation(),
+                  const SizedBox(height: 16),
+                  _buildStatistics(),
+                  const SizedBox(height: 16),
+                  _buildAccountOptions(),
+                ],
+              ),
             ),
           ),
         ),
@@ -112,10 +120,10 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'AK',
-                    style: TextStyle(
+                    _store.profile.initials,
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 31,
                       fontWeight: FontWeight.w900,
@@ -144,9 +152,10 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
 
           const SizedBox(height: 15),
 
-          const Text(
-            'Amit Kumar',
-            style: TextStyle(
+          Text(
+            _store.profile.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 23,
               fontWeight: FontWeight.w900,
@@ -155,9 +164,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
 
           const SizedBox(height: 5),
 
-          const Text(
-            'Professional Fitness Trainer',
-            style: TextStyle(
+          Text(
+            _store.profile.specialization,
+            style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -196,9 +205,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {
-                // Edit profile
-              },
+              onPressed: _showEditProfileSheet,
               icon: const Icon(Icons.edit_outlined, size: 16),
               label: const Text(
                 'Edit Profile',
@@ -231,25 +238,25 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _infoTile(
           icon: Icons.person_outline_rounded,
           title: 'Full Name',
-          value: 'Amit Kumar',
+          value: _store.profile.name,
         ),
         _divider(),
         _infoTile(
           icon: Icons.email_outlined,
           title: 'Email',
-          value: 'amit.kumar@gmail.com',
+          value: _store.profile.email,
         ),
         _divider(),
         _infoTile(
           icon: Icons.phone_outlined,
           title: 'Phone',
-          value: '+91 98765 43210',
+          value: _store.profile.phone,
         ),
         _divider(),
         _infoTile(
           icon: Icons.location_on_outlined,
           title: 'Location',
-          value: 'New Delhi, India',
+          value: _store.profile.location,
         ),
       ],
     );
@@ -267,25 +274,26 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _infoTile(
           icon: Icons.fitness_center_rounded,
           title: 'Specialization',
-          value: 'Strength & Fitness',
+          value: _store.profile.specialization,
         ),
         _divider(),
         _infoTile(
           icon: Icons.badge_outlined,
           title: 'Experience',
-          value: '5+ Years',
+          value: _store.profile.experience,
         ),
         _divider(),
         _infoTile(
           icon: Icons.school_outlined,
           title: 'Certification',
-          value: 'Certified Fitness Trainer',
+          value: _store.profile.certification,
         ),
         _divider(),
         _infoTile(
           icon: Icons.groups_outlined,
           title: 'Clients',
-          value: '24 Active Clients',
+          value:
+              '${_store.totalClients} Assigned • ${_store.countByStatus('Active')} Active',
         ),
       ],
     );
@@ -303,10 +311,14 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _infoTile(
           icon: Icons.business_rounded,
           title: 'Gym Name',
-          value: 'GYMO Fitness',
+          value: _store.profile.gymName,
         ),
         _divider(),
-        _infoTile(icon: Icons.tag_rounded, title: 'Gym ID', value: 'GYMO07'),
+        _infoTile(
+          icon: Icons.tag_rounded,
+          title: 'Gym ID',
+          value: _store.profile.gymId,
+        ),
         _divider(),
         _infoTile(
           icon: Icons.work_outline_rounded,
@@ -353,15 +365,24 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           Row(
             children: [
               Expanded(
-                child: _statItem(value: '24', title: 'Clients'),
+                child: _statItem(
+                  value: '${_store.totalClients}',
+                  title: 'Clients',
+                ),
               ),
               _verticalDivider(),
               Expanded(
-                child: _statItem(value: '156', title: 'Sessions'),
+                child: _statItem(
+                  value: '${_store.totalCompleted}',
+                  title: 'Sessions',
+                ),
               ),
               _verticalDivider(),
               Expanded(
-                child: _statItem(value: '92%', title: 'Success'),
+                child: _statItem(
+                  value: '${(_store.averageClientProgress * 100).round()}%',
+                  title: 'Success',
+                ),
               ),
             ],
           ),
@@ -384,7 +405,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _optionTile(
           icon: Icons.help_outline_rounded,
           title: 'Help & Support',
-          onTap: () {},
+          onTap: _showHelpSheet,
           iconColor: Colors.amberAccent,
         ),
 
@@ -457,6 +478,139 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
       },
     );
   }
+  // ---------------------------------------------------------------------------
+  // EDIT PROFILE
+  // ---------------------------------------------------------------------------
+
+  void _showEditProfileSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const _EditProfileSheet(),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // HELP & SUPPORT
+  // ---------------------------------------------------------------------------
+
+  void _showHelpSheet() {
+    const faqs = [
+      [
+        'How do I get new clients?',
+        'Clients are assigned to you by your gym owner. Once assigned, they appear in My Clients automatically.',
+      ],
+      [
+        'How do I schedule a session?',
+        'Open Schedule and tap Add Session, or use Add Session on your dashboard. Pick one of your clients, the date and the time.',
+      ],
+      [
+        'How do I mark a session as done?',
+        'Tap the session card and choose Mark as Completed. It is counted in your progress and in the client\'s sessions.',
+      ],
+      [
+        'How do I give a client a workout?',
+        'In My Clients tap Workout on the client card, choose a plan and tap Assign Workout.',
+      ],
+      [
+        'Something is wrong with a client\'s plan or expiry?',
+        'Membership plans and expiry dates are managed by your gym owner. Please contact them to make changes.',
+      ],
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF121923),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Help & Support',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ...faqs.map(
+                    (f) => Theme(
+                      data: Theme.of(
+                        sheetContext,
+                      ).copyWith(dividerColor: Colors.transparent),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 9),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.035),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: ExpansionTile(
+                          iconColor: trainerYellow,
+                          collapsedIconColor: Colors.white38,
+                          title: Text(
+                            f[0],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          childrenPadding: const EdgeInsets.fromLTRB(
+                            16,
+                            0,
+                            16,
+                            14,
+                          ),
+                          children: [
+                            Text(
+                              f[1],
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                                height: 1.45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // SECTION
   // ---------------------------------------------------------------------------
@@ -639,6 +793,217 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// =============================================================================
+// EDIT PROFILE SHEET
+// Email, gym and role are managed by the owner/account and are read-only here.
+// =============================================================================
+
+class _EditProfileSheet extends StatefulWidget {
+  const _EditProfileSheet();
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  static const Color trainerYellow = Color(0xFFFFC107);
+
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _name;
+  late final TextEditingController _phone;
+  late final TextEditingController _location;
+  late final TextEditingController _specialization;
+  late final TextEditingController _experience;
+  late final TextEditingController _certification;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = TrainerDashboardProvider.instance.profile;
+    _name = TextEditingController(text: p.name);
+    _phone = TextEditingController(text: p.phone);
+    _location = TextEditingController(text: p.location);
+    _specialization = TextEditingController(text: p.specialization);
+    _experience = TextEditingController(text: p.experience);
+    _certification = TextEditingController(text: p.certification);
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _location.dispose();
+    _specialization.dispose();
+    _experience.dispose();
+    _certification.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    TrainerDashboardProvider.instance.updateProfile(
+      name: _name.text.trim(),
+      phone: _phone.text.trim(),
+      location: _location.text.trim(),
+      specialization: _specialization.text.trim(),
+      experience: _experience.text.trim(),
+      certification: _certification.text.trim(),
+    );
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Profile updated'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  String? _required(String? v) =>
+      (v == null || v.trim().isEmpty) ? 'This field is required' : null;
+
+  String? _phoneValidator(String? v) {
+    final digits = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length < 10) return 'Enter a valid phone number';
+    return null;
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: controller,
+        validator: validator ?? _required,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+        cursorColor: trainerYellow,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+          prefixIcon: Icon(icon, color: trainerYellow, size: 19),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.035),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: trainerYellow.withValues(alpha: 0.5)),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.redAccent),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.redAccent),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0xFF121923),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Edit Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Email and gym details are managed by your gym owner.',
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                ),
+                const SizedBox(height: 18),
+                _field(_name, 'Full Name', Icons.person_outline_rounded),
+                _field(
+                  _phone,
+                  'Phone',
+                  Icons.phone_outlined,
+                  validator: _phoneValidator,
+                  keyboardType: TextInputType.phone,
+                ),
+                _field(_location, 'Location', Icons.location_on_outlined),
+                _field(
+                  _specialization,
+                  'Specialization',
+                  Icons.fitness_center_rounded,
+                ),
+                _field(_experience, 'Experience', Icons.badge_outlined),
+                _field(_certification, 'Certification', Icons.school_outlined),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: trainerYellow,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Changes',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gymora_fitness_management/core/model/trainer_model.dart';
+import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_widget.dart';
+
 
 class TrainerScheduleScreen extends StatefulWidget {
   const TrainerScheduleScreen({super.key});
@@ -18,96 +23,37 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
 
   final Color _background = const Color(0xFF05070C);
   final Color _cardColor = const Color(0xFF10141D);
-  final Color _cardLight = const Color(0xFF151B25);
 
   final Color _green = const Color(0xFF22C55E);
   final Color _blue = const Color(0xFF38BDF8);
-  final Color _red = const Color(0xFFFF5252);
 
-  int _selectedDay = 0;
+  final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
 
-  final List<Map<String, dynamic>> _days = [
-    {'day': 'MON', 'date': '16', 'fullDate': 'Monday, September 16'},
-    {'day': 'TUE', 'date': '17', 'fullDate': 'Tuesday, September 17'},
-    {'day': 'WED', 'date': '18', 'fullDate': 'Wednesday, September 18'},
-    {'day': 'THU', 'date': '19', 'fullDate': 'Thursday, September 19'},
-    {'day': 'FRI', 'date': '20', 'fullDate': 'Friday, September 20'},
-    {'day': 'SAT', 'date': '21', 'fullDate': 'Saturday, September 21'},
-    {'day': 'SUN', 'date': '22', 'fullDate': 'Sunday, September 22'},
-  ];
+  DateTime _selectedDate = dateOnly(DateTime.now());
 
-  final List<Map<String, dynamic>> _sessions = [
-    {
-      'time': '10:30 AM',
-      'endTime': '11:30 AM',
-      'name': 'Aarav Sharma',
-      'goal': 'Weight Loss',
-      'type': 'Personal Training',
-      'status': 'Upcoming',
-      'avatar': 'AS',
-      'duration': '60 min',
-      'location': 'Gym Floor • Zone A',
-      'calories': '420 kcal',
-      'sessionNo': 'Session 08',
-      'color': Color(0xFFFFC107),
-    },
-    {
-      'time': '12:00 PM',
-      'endTime': '01:00 PM',
-      'name': 'Neha Singh',
-      'goal': 'Muscle Gain',
-      'type': 'Strength Training',
-      'status': 'Upcoming',
-      'avatar': 'NS',
-      'duration': '60 min',
-      'location': 'Weight Area • Zone B',
-      'calories': '510 kcal',
-      'sessionNo': 'Session 12',
-      'color': Color(0xFF38BDF8),
-    },
-    {
-      'time': '02:30 PM',
-      'endTime': '03:15 PM',
-      'name': 'Riya Kapoor',
-      'goal': 'Fat Loss',
-      'type': 'HIIT Workout',
-      'status': 'Completed',
-      'avatar': 'RK',
-      'duration': '45 min',
-      'location': 'Functional Area',
-      'calories': '460 kcal',
-      'sessionNo': 'Session 06',
-      'color': Color(0xFF22C55E),
-    },
-    {
-      'time': '04:30 PM',
-      'endTime': '05:30 PM',
-      'name': 'Rahul Verma',
-      'goal': 'Strength',
-      'type': 'Personal Training',
-      'status': 'Upcoming',
-      'avatar': 'RV',
-      'duration': '60 min',
-      'location': 'Gym Floor • Zone A',
-      'calories': '540 kcal',
-      'sessionNo': 'Session 15',
-      'color': Color(0xFFFFA000),
-    },
-    {
-      'time': '06:00 PM',
-      'endTime': '07:00 PM',
-      'name': 'Ananya Gupta',
-      'goal': 'Fitness',
-      'type': 'Cardio Training',
-      'status': 'Upcoming',
-      'avatar': 'AG',
-      'duration': '60 min',
-      'location': 'Cardio Zone',
-      'calories': '390 kcal',
-      'sessionNo': 'Session 04',
-      'color': Color(0xFFFFC107),
-    },
-  ];
+  /// 'All Sessions' | 'Upcoming' | 'Completed'
+  String _filter = 'All Sessions';
+
+  List<DateTime> get _weekDays {
+    final start = startOfWeek(_selectedDate);
+    return List.generate(7, (i) => start.add(Duration(days: i)));
+  }
+
+  List<TrainingSession> get _daySessions => _store.sessionsOn(_selectedDate);
+
+  List<TrainingSession> get _visibleSessions {
+    final sessions = _daySessions;
+    switch (_filter) {
+      case 'Upcoming':
+        return sessions.where((s) => !s.isCompleted).toList();
+      case 'Completed':
+        return sessions.where((s) => s.isCompleted).toList();
+      default:
+        return sessions;
+    }
+  }
+
+  bool get _isTodaySelected => isSameDay(_selectedDate, DateTime.now());
 
   @override
   Widget build(BuildContext context) {
@@ -154,39 +100,44 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                 ),
               ),
 
-              Column(
-                children: [
-                  _buildHeader(),
+              ListenableBuilder(
+                listenable: _store,
+                builder: (context, _) {
+                  return Column(
+                    children: [
+                      _buildHeader(),
 
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 110),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTodayHero(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(18, 4, 18, 110),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildTodayHero(),
 
-                          const SizedBox(height: 18),
+                              const SizedBox(height: 18),
 
-                          _buildSummaryStats(),
+                              _buildSummaryStats(),
 
-                          const SizedBox(height: 25),
+                              const SizedBox(height: 25),
 
-                          _buildDateSelector(),
+                              _buildDateSelector(),
 
-                          const SizedBox(height: 28),
+                              const SizedBox(height: 28),
 
-                          _buildScheduleHeader(),
+                              _buildScheduleHeader(),
 
-                          const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                          _buildScheduleTimeline(),
-                        ],
+                              _buildScheduleTimeline(),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -284,158 +235,180 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   Widget _buildTodayHero() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _yellow.withValues(alpha: 0.15),
-            _yellow.withValues(alpha: 0.045),
-            Colors.transparent,
+    final now = DateTime.now();
+    final todayCount = _store.todaysSessions.length;
+    final upcoming = _store.todaysUpcoming.length;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedDate = dateOnly(now)),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              _yellow.withValues(alpha: 0.15),
+              _yellow.withValues(alpha: 0.045),
+              Colors.transparent,
+            ],
+          ),
+          border: Border.all(color: _yellow.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: _yellow.withValues(alpha: 0.05),
+              blurRadius: 30,
+              spreadRadius: 2,
+            ),
           ],
         ),
-        border: Border.all(color: _yellow.withValues(alpha: 0.18)),
-        boxShadow: [
-          BoxShadow(
-            color: _yellow.withValues(alpha: 0.05),
-            blurRadius: 30,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [_yellowLight, _yellowDark]),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: _yellow.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                ),
-              ],
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [_yellowLight, _yellowDark]),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: _yellow.withValues(alpha: 0.22),
+                    blurRadius: 18,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.today_rounded,
+                color: Colors.black,
+                size: 28,
+              ),
             ),
-            child: const Icon(
-              Icons.today_rounded,
-              color: Colors.black,
-              size: 28,
-            ),
-          ),
 
-          const SizedBox(width: 15),
+            const SizedBox(width: 15),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MONDAY',
-                  style: TextStyle(
-                    color: _yellow,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.4,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    kWeekdayNames[now.weekday - 1].toUpperCase(),
+                    style: TextStyle(
+                      color: _yellow,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'September 16, 2026',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
+                  const SizedBox(height: 4),
+                  Text(
+                    formatLongDate(now),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'You have 5 training sessions today',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.43),
-                    fontSize: 11,
+                  const SizedBox(height: 4),
+                  Text(
+                    todayCount == 0
+                        ? 'No training sessions today'
+                        : 'You have $todayCount training session${todayCount == 1 ? '' : 's'} today',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.43),
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: _green.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: _green.withValues(alpha: 0.18)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: _green,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: _green.withValues(alpha: 0.6),
-                        blurRadius: 8,
-                      ),
-                    ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: (upcoming > 0 ? _green : Colors.white).withValues(
+                  alpha: 0.10,
+                ),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: (upcoming > 0 ? _green : Colors.white).withValues(
+                    alpha: 0.18,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'Active',
-                  style: TextStyle(
-                    color: _green,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: upcoming > 0 ? _green : Colors.white54,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _green.withValues(alpha: 0.6),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    upcoming > 0 ? 'Active' : 'Done',
+                    style: TextStyle(
+                      color: upcoming > 0 ? _green : Colors.white54,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   // ============================================================
-  // SUMMARY
+  // SUMMARY (for the selected day)
   // ============================================================
 
   Widget _buildSummaryStats() {
+    final sessions = _daySessions;
+    final completed = sessions.where((s) => s.isCompleted).length;
+    final upcoming = sessions.length - completed;
+
     return Row(
       children: [
         Expanded(
           child: _buildStatCard(
-            value: '05',
+            value: sessions.length.toString().padLeft(2, '0'),
             label: 'Sessions',
             icon: Icons.event_available_rounded,
             color: _yellow,
+            onTap: () => setState(() => _filter = 'All Sessions'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _buildStatCard(
-            value: '04',
+            value: upcoming.toString().padLeft(2, '0'),
             label: 'Upcoming',
             icon: Icons.schedule_rounded,
             color: _blue,
+            onTap: () => setState(() => _filter = 'Upcoming'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _buildStatCard(
-            value: '01',
+            value: completed.toString().padLeft(2, '0'),
             label: 'Completed',
             icon: Icons.check_circle_outline_rounded,
             color: _green,
+            onTap: () => setState(() => _filter = 'Completed'),
           ),
         ),
       ],
@@ -447,66 +420,70 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
     required String label,
     required IconData icon,
     required Color color,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-      decoration: BoxDecoration(
-        color: _cardColor.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.065)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 17, color: color),
-              const Spacer(),
-              Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color,
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.55),
-                      blurRadius: 8,
-                    ),
-                  ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+        decoration: BoxDecoration(
+          color: _cardColor.withValues(alpha: 0.86),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.065)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 17, color: color),
+                const Spacer(),
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.55),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
               ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
             ),
-          ),
 
-          const SizedBox(height: 3),
+            const SizedBox(height: 3),
 
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.42),
-              fontSize: 10,
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.42),
+                fontSize: 10,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -516,14 +493,17 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   Widget _buildDateSelector() {
+    final days = _weekDays;
+    final today = DateTime.now();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
-              'September 2026',
-              style: TextStyle(
+            Text(
+              '${kMonthNames[_selectedDate.month - 1]} ${_selectedDate.year}',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -535,7 +515,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
             GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedDay = 0;
+                  _selectedDate = dateOnly(DateTime.now());
                 });
               },
               child: Container(
@@ -568,16 +548,18 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            itemCount: _days.length,
+            itemCount: days.length,
             separatorBuilder: (_, _) => const SizedBox(width: 9),
             itemBuilder: (context, index) {
-              final selected = _selectedDay == index;
-              final day = _days[index];
+              final day = days[index];
+              final selected = isSameDay(day, _selectedDate);
+              final isToday = isSameDay(day, today);
+              final hasSessions = _store.sessionsOn(day).isNotEmpty;
 
               return GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedDay = index;
+                    _selectedDate = day;
                   });
                 },
                 child: AnimatedContainer(
@@ -591,6 +573,8 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     border: Border.all(
                       color: selected
                           ? _yellow
+                          : isToday
+                          ? _yellow.withValues(alpha: 0.45)
                           : Colors.white.withValues(alpha: 0.07),
                     ),
                     boxShadow: selected
@@ -607,7 +591,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        day['day'],
+                        kWeekdayNames[day.weekday - 1]
+                            .substring(0, 3)
+                            .toUpperCase(),
                         style: TextStyle(
                           color: selected
                               ? Colors.black
@@ -618,7 +604,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        day['date'],
+                        day.day.toString(),
                         style: TextStyle(
                           color: selected ? Colors.black : Colors.white,
                           fontSize: 20,
@@ -626,12 +612,12 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      if (selected)
+                      if (selected || hasSessions)
                         Container(
                           width: 4,
                           height: 4,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
+                          decoration: BoxDecoration(
+                            color: selected ? Colors.black : _yellow,
                             shape: BoxShape.circle,
                           ),
                         )
@@ -653,15 +639,18 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   Widget _buildScheduleHeader() {
+    final count = _visibleSessions.length;
+    final filterSuffix = _filter == 'All Sessions' ? '' : ' • $_filter';
+
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Today\'s Sessions',
-                style: TextStyle(
+              Text(
+                _isTodaySelected ? 'Today\'s Sessions' : 'Sessions',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
@@ -669,7 +658,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                _days[_selectedDay]['fullDate'],
+                '${formatFullDate(_selectedDate)}$filterSuffix',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.38),
                   fontSize: 11,
@@ -691,7 +680,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
               Icon(Icons.access_time_rounded, color: _yellow, size: 14),
               const SizedBox(width: 5),
               Text(
-                '5 Sessions',
+                '$count Session${count == 1 ? '' : 's'}',
                 style: TextStyle(
                   color: _yellow,
                   fontSize: 10,
@@ -710,26 +699,64 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   Widget _buildScheduleTimeline() {
-    return Column(
-      children: List.generate(_sessions.length, (index) {
-        final session = _sessions[index];
+    final sessions = _visibleSessions;
 
+    if (sessions.isEmpty) return _buildEmptyState();
+
+    return Column(
+      children: List.generate(sessions.length, (index) {
         return _buildTimelineSession(
-          session: session,
-          index: index,
-          isLast: index == _sessions.length - 1,
+          session: sessions[index],
+          isLast: index == sessions.length - 1,
         );
       }),
     );
   }
 
+  Widget _buildEmptyState() {
+    final canAdd = !_selectedDate.isBefore(dateOnly(DateTime.now()));
+
+    return GestureDetector(
+      onTap: canAdd ? _openAddSession : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 25),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.025),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.event_busy_rounded, color: _yellow, size: 42),
+            const SizedBox(height: 14),
+            Text(
+              _filter == 'All Sessions'
+                  ? 'No sessions on this day'
+                  : 'No ${_filter.toLowerCase()} sessions',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              canAdd ? 'Tap here to add a session.' : 'Pick another day.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTimelineSession({
-    required Map<String, dynamic> session,
-    required int index,
+    required TrainingSession session,
     required bool isLast,
   }) {
-    final bool completed = session['status'] == 'Completed';
-    final Color sessionColor = session['color'] as Color;
+    final bool completed = session.isCompleted;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,7 +767,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
           child: Column(
             children: [
               Text(
-                session['time'],
+                formatTime(session.start),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: completed ? Colors.white38 : _yellow,
@@ -786,7 +813,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: _buildDetailedSessionCard(session, sessionColor, completed),
+            child: _buildDetailedSessionCard(session, completed),
           ),
         ),
       ],
@@ -797,16 +824,15 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // DETAILED SESSION CARD
   // ============================================================
 
-  Widget _buildDetailedSessionCard(
-    Map<String, dynamic> session,
-    Color sessionColor,
-    bool completed,
-  ) {
+  Widget _buildDetailedSessionCard(TrainingSession session, bool completed) {
+    final client = _store.clientById(session.clientId);
+    final Color sessionColor = TrainerOptions.colorForType(session.type);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(23),
-        onTap: () => _showSessionDetails(session),
+        onTap: () => showSessionDetailsSheet(context, session),
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
@@ -850,7 +876,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        session['avatar'],
+                        client?.initials ?? '?',
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 12,
@@ -867,7 +893,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          session['name'],
+                          client?.name ?? 'Unknown client',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -878,7 +904,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          session['goal'],
+                          client?.goal ?? '-',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.42),
                             fontSize: 10,
@@ -888,7 +914,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     ),
                   ),
 
-                  _buildStatusPill(session['status'], completed),
+                  sessionStatusPill(session),
                 ],
               ),
 
@@ -915,7 +941,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Icon(
-                        Icons.fitness_center_rounded,
+                        TrainerOptions.iconForType(session.type),
                         color: _yellow,
                         size: 15,
                       ),
@@ -925,7 +951,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
 
                     Expanded(
                       child: Text(
-                        session['type'],
+                        session.type,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -935,7 +961,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     ),
 
                     Text(
-                      session['sessionNo'],
+                      _store.sessionNumber(session),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.30),
                         fontSize: 9,
@@ -955,7 +981,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     child: _buildSmallInfo(
                       icon: Icons.timer_outlined,
                       title: 'Duration',
-                      value: session['duration'],
+                      value: '${session.durationMinutes} min',
                     ),
                   ),
 
@@ -969,7 +995,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     child: _buildSmallInfo(
                       icon: Icons.local_fire_department_outlined,
                       title: 'Calories',
-                      value: session['calories'],
+                      value: session.calories,
                     ),
                   ),
 
@@ -983,11 +1009,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     child: _buildSmallInfo(
                       icon: Icons.location_on_outlined,
                       title: 'Location',
-                      value: session['location']
-                          .toString()
-                          .split('•')
-                          .first
-                          .trim(),
+                      value: session.location.split('•').first.trim(),
                     ),
                   ),
                 ],
@@ -1019,7 +1041,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     child: Text(
                       completed
                           ? 'Session completed successfully'
-                          : 'Reminder set • 15 min before',
+                          : '${formatTime(session.start)} - ${formatTime(session.end)} • Tap for actions',
                       style: TextStyle(
                         color: completed
                             ? _green.withValues(alpha: 0.72)
@@ -1090,41 +1112,16 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   }
 
   // ============================================================
-  // STATUS
-  // ============================================================
-
-  Widget _buildStatusPill(String status, bool completed) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: completed
-            ? _green.withValues(alpha: 0.10)
-            : _yellow.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: completed
-              ? _green.withValues(alpha: 0.12)
-              : _yellow.withValues(alpha: 0.12),
-        ),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: completed ? _green : _yellow,
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
   // FLOATING ADD BUTTON
   // ============================================================
 
+  void _openAddSession() {
+    showSessionFormSheet(context, initialDate: _selectedDate);
+  }
+
   Widget _buildAddButton() {
     return GestureDetector(
-      onTap: _showAddSessionDialog,
+      onTap: _openAddSession,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 14),
         decoration: BoxDecoration(
@@ -1159,455 +1156,16 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   }
 
   // ============================================================
-  // SESSION DETAILS
-  // ============================================================
-
-  void _showSessionDetails(Map<String, dynamic> session) {
-    final bool completed = session['status'] == 'Completed';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 15, 20, 28),
-          decoration: BoxDecoration(
-            color: const Color(0xFF11151E),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 22),
-
-                Row(
-                  children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [_yellowLight, _yellowDark],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          session['avatar'],
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 13),
-
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            session['name'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            session['type'],
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.42),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    _buildStatusPill(session['status'], completed),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _yellow.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(17),
-                    border: Border.all(color: _yellow.withValues(alpha: 0.10)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.access_time_rounded, color: _yellow, size: 20),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Session Time',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              fontSize: 9,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${session['time']} - ${session['endTime']}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                _buildDetailRow(Icons.flag_outlined, 'Goal', session['goal']),
-
-                _buildDetailRow(
-                  Icons.timer_outlined,
-                  'Duration',
-                  session['duration'],
-                ),
-
-                _buildDetailRow(
-                  Icons.local_fire_department_outlined,
-                  'Calories',
-                  session['calories'],
-                ),
-
-                _buildDetailRow(
-                  Icons.location_on_outlined,
-                  'Location',
-                  session['location'],
-                ),
-
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.edit_rounded,
-                        text: 'Edit',
-                        filled: false,
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: completed
-                            ? Icons.replay_rounded
-                            : Icons.close_rounded,
-                        text: completed ? 'Reschedule' : 'Cancel',
-                        filled: true,
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: _yellow.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: _yellow, size: 17),
-          ),
-
-          const SizedBox(width: 12),
-
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.38),
-              fontSize: 10,
-            ),
-          ),
-
-          const Spacer(),
-
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String text,
-    required bool filled,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: filled ? _yellow : Colors.white.withValues(alpha: 0.045),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: filled ? _yellow : Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: filled ? Colors.black : Colors.white),
-            const SizedBox(width: 7),
-            Text(
-              text,
-              style: TextStyle(
-                color: filled ? Colors.black : Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // ADD SESSION
-  // ============================================================
-
-  void _showAddSessionDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
-          decoration: const BoxDecoration(
-            color: Color(0xFF11151E),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 22),
-
-                Row(
-                  children: [
-                    Container(
-                      width: 45,
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color: _yellow.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(Icons.add_task_rounded, color: _yellow),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Add Training Session',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            'Schedule a session with your client',
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                _buildInputTile(
-                  icon: Icons.person_outline_rounded,
-                  title: 'Client',
-                  value: 'Choose a client',
-                ),
-
-                _buildInputTile(
-                  icon: Icons.calendar_today_outlined,
-                  title: 'Date',
-                  value: _days[_selectedDay]['fullDate'],
-                ),
-
-                _buildInputTile(
-                  icon: Icons.access_time_rounded,
-                  title: 'Time',
-                  value: 'Select session time',
-                ),
-
-                _buildInputTile(
-                  icon: Icons.fitness_center_outlined,
-                  title: 'Session Type',
-                  value: 'Personal Training',
-                ),
-
-                const SizedBox(height: 12),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _yellow,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Create Session',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInputTile({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: _yellow, size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    fontSize: 9,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
   // CALENDAR
   // ============================================================
 
-  void _showCalendarDialog() {
-    showDatePicker(
+  Future<void> _showCalendarDialog() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2026, 9, 16),
-      firstDate: DateTime(2026, 1, 1),
-      lastDate: DateTime(2027, 12, 31),
+      initialDate: _selectedDate,
+      firstDate: DateTime(now.year - 1, 1, 1),
+      lastDate: DateTime(now.year + 1, 12, 31),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -1621,6 +1179,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
         );
       },
     );
+    if (picked != null && mounted) {
+      setState(() => _selectedDate = dateOnly(picked));
+    }
   }
 
   // ============================================================
@@ -1634,7 +1195,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1658,12 +1219,12 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                   'Filter Sessions',
                   style: TextStyle(color: Colors.white),
                 ),
-                subtitle: const Text(
-                  'Filter by status or session type',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                subtitle: Text(
+                  'Showing: $_filter',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showFilterDialog();
                 },
               ),
@@ -1679,7 +1240,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                   style: TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showWeekView();
                 },
               ),
@@ -1691,17 +1252,12 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                   style: TextStyle(color: Colors.white),
                 ),
                 subtitle: const Text(
-                  'Export your training schedule',
+                  'Copy this week\'s schedule to share',
                   style: TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Schedule export coming soon'),
-                    ),
-                  );
+                  Navigator.pop(sheetContext);
+                  _exportWeek();
                 },
               ),
 
@@ -1710,6 +1266,38 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _exportWeek() async {
+    final buffer = StringBuffer()
+      ..writeln('GYMORA — ${_store.profile.name}\'s Schedule')
+      ..writeln(
+        '${formatLongDate(_weekDays.first)} - ${formatLongDate(_weekDays.last)}',
+      );
+
+    for (final day in _weekDays) {
+      final sessions = _store.sessionsOn(day);
+      buffer
+        ..writeln()
+        ..writeln(formatFullDate(day));
+      if (sessions.isEmpty) {
+        buffer.writeln('  No sessions');
+      }
+      for (final s in sessions) {
+        final client = _store.clientById(s.clientId);
+        buffer.writeln(
+          '  ${formatTime(s.start)} - ${formatTime(s.end)}  '
+          '${client?.name ?? '-'} • ${s.type} • ${s.location} (${s.statusLabel})',
+        );
+      }
+    }
+
+    await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    if (!mounted) return;
+    showTrainerSnack(
+      context,
+      'Week schedule copied — paste it anywhere to share',
     );
   }
 
@@ -1724,7 +1312,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 25),
@@ -1751,21 +1339,21 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                 const SizedBox(height: 20),
 
                 _filterOption(
+                  sheetContext,
                   icon: Icons.all_inclusive_rounded,
                   title: 'All Sessions',
-                  selected: true,
                 ),
 
                 _filterOption(
+                  sheetContext,
                   icon: Icons.schedule_rounded,
                   title: 'Upcoming',
-                  selected: false,
                 ),
 
                 _filterOption(
+                  sheetContext,
                   icon: Icons.check_circle_outline_rounded,
                   title: 'Completed',
-                  selected: false,
                 ),
               ],
             ),
@@ -1775,11 +1363,13 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
     );
   }
 
-  Widget _filterOption({
+  Widget _filterOption(
+    BuildContext sheetContext, {
     required IconData icon,
     required String title,
-    required bool selected,
   }) {
+    final selected = _filter == title;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 9),
       decoration: BoxDecoration(
@@ -1807,7 +1397,8 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
             ? Icon(Icons.check_circle_rounded, color: _yellow, size: 20)
             : null,
         onTap: () {
-          Navigator.pop(context);
+          setState(() => _filter = title);
+          Navigator.pop(sheetContext);
         },
       ),
     );
@@ -1818,6 +1409,8 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   void _showWeekView() {
+    final days = _weekDays;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF11151E),
@@ -1825,9 +1418,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.65,
+          height: MediaQuery.of(sheetContext).size.height * 0.65,
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -1861,7 +1454,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'September 16 - 22, 2026',
+                      '${formatLongDate(days.first)} - ${formatLongDate(days.last)}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 11,
@@ -1874,25 +1467,32 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                   Expanded(
                     child: ListView.separated(
                       physics: const BouncingScrollPhysics(),
-                      itemCount: _days.length,
+                      itemCount: days.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
+                        final day = days[index];
+                        final selected = isSameDay(day, _selectedDate);
+                        final sessions = _store.sessionsOn(day);
+                        final done = sessions
+                            .where((s) => s.isCompleted)
+                            .length;
+
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              _selectedDay = index;
+                              _selectedDate = day;
                             });
-                            Navigator.pop(context);
+                            Navigator.pop(sheetContext);
                           },
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: index == _selectedDay
+                              color: selected
                                   ? _yellow.withValues(alpha: 0.09)
                                   : Colors.white.withValues(alpha: 0.035),
                               borderRadius: BorderRadius.circular(17),
                               border: Border.all(
-                                color: index == _selectedDay
+                                color: selected
                                     ? _yellow.withValues(alpha: 0.17)
                                     : Colors.white.withValues(alpha: 0.06),
                               ),
@@ -1903,7 +1503,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                                   width: 50,
                                   height: 50,
                                   decoration: BoxDecoration(
-                                    color: index == _selectedDay
+                                    color: selected
                                         ? _yellow
                                         : Colors.white.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(14),
@@ -1912,9 +1512,11 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        _days[index]['day'],
+                                        kWeekdayNames[day.weekday - 1]
+                                            .substring(0, 3)
+                                            .toUpperCase(),
                                         style: TextStyle(
-                                          color: index == _selectedDay
+                                          color: selected
                                               ? Colors.black
                                               : Colors.white.withValues(
                                                   alpha: 0.4,
@@ -1925,9 +1527,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                                       ),
                                       const SizedBox(height: 3),
                                       Text(
-                                        _days[index]['date'],
+                                        day.day.toString(),
                                         style: TextStyle(
-                                          color: index == _selectedDay
+                                          color: selected
                                               ? Colors.black
                                               : Colors.white,
                                           fontSize: 17,
@@ -1946,7 +1548,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _days[index]['fullDate'],
+                                        formatFullDate(day),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -1955,9 +1557,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                                       ),
                                       const SizedBox(height: 5),
                                       Text(
-                                        index == 0
-                                            ? '5 training sessions'
-                                            : '${2 + (index % 4)} training sessions',
+                                        sessions.isEmpty
+                                            ? 'No sessions'
+                                            : '${sessions.length} training session${sessions.length == 1 ? '' : 's'} • $done completed',
                                         style: TextStyle(
                                           color: Colors.white.withValues(
                                             alpha: 0.38,

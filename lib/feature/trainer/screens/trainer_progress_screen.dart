@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/core/model/trainer_model.dart';
+import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
 
@@ -29,15 +31,166 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
   String _selectedPeriod = 'This Week';
 
-  final List<_ChartData> _weeklyData = [
-    _ChartData(day: 'MON', value: 0.45, sessions: 4),
-    _ChartData(day: 'TUE', value: 0.68, sessions: 6),
-    _ChartData(day: 'WED', value: 0.55, sessions: 5),
-    _ChartData(day: 'THU', value: 0.82, sessions: 8),
-    _ChartData(day: 'FRI', value: 0.72, sessions: 7),
-    _ChartData(day: 'SAT', value: 0.94, sessions: 9),
-    _ChartData(day: 'SUN', value: 0.50, sessions: 5),
-  ];
+  final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
+
+  // ------------------------------------------------------------
+  // PERIOD CALCULATIONS (all live from the shared store)
+  // ------------------------------------------------------------
+
+  DateTime get _periodStart {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 'This Month':
+        return DateTime(now.year, now.month, 1);
+      case 'Last 3 Months':
+        return DateTime(now.year, now.month - 2, 1);
+      case 'This Year':
+        return DateTime(now.year, 1, 1);
+      default:
+        return startOfWeek(now);
+    }
+  }
+
+  DateTime get _periodEnd {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 'This Month':
+      case 'Last 3 Months':
+        return DateTime(now.year, now.month + 1, 1);
+      case 'This Year':
+        return DateTime(now.year + 1, 1, 1);
+      default:
+        return startOfWeek(now).add(const Duration(days: 7));
+    }
+  }
+
+  /// Start of the previous period of the same kind.
+  DateTime get _previousStart {
+    final start = _periodStart;
+    switch (_selectedPeriod) {
+      case 'This Month':
+        return DateTime(start.year, start.month - 1, 1);
+      case 'Last 3 Months':
+        return DateTime(start.year, start.month - 3, 1);
+      case 'This Year':
+        return DateTime(start.year - 1, 1, 1);
+      default:
+        return start.subtract(const Duration(days: 7));
+    }
+  }
+
+  String get _periodPhrase {
+    switch (_selectedPeriod) {
+      case 'This Month':
+        return 'this month';
+      case 'Last 3 Months':
+        return 'in the last 3 months';
+      case 'This Year':
+        return 'this year';
+      default:
+        return 'this week';
+    }
+  }
+
+  int get _completedInPeriod =>
+      _store.completedBetween(_periodStart, _periodEnd);
+
+  /// Previous period, compared over the same elapsed time so a half-finished
+  /// week is compared with the first half of last week.
+  int get _completedInPreviousPeriod {
+    final elapsed = DateTime.now().difference(_periodStart);
+    final prevStart = _previousStart;
+    return _store.completedBetween(prevStart, prevStart.add(elapsed));
+  }
+
+  double get _growth {
+    final previous = _completedInPreviousPeriod;
+    if (previous == 0) return _completedInPeriod > 0 ? 100 : 0;
+    return (_completedInPeriod - previous) / previous * 100;
+  }
+
+  String get _growthText =>
+      '${_growth >= 0 ? '+' : ''}${_growth.toStringAsFixed(1)}%';
+
+  List<_ChartData> get _chartData {
+    final start = _periodStart;
+    final buckets = <_ChartData>[];
+
+    void add(String label, DateTime from, DateTime to) {
+      buckets.add(
+        _ChartData(
+          day: label,
+          value: 0,
+          sessions: _store.completedBetween(from, to),
+        ),
+      );
+    }
+
+    switch (_selectedPeriod) {
+      case 'This Month':
+        final end = _periodEnd;
+        var from = start;
+        var week = 1;
+        while (from.isBefore(end)) {
+          var to = from.add(const Duration(days: 7));
+          if (to.isAfter(end)) to = end;
+          add('W$week', from, to);
+          from = to;
+          week++;
+        }
+        break;
+      case 'Last 3 Months':
+      case 'This Year':
+        final months = _selectedPeriod == 'This Year' ? 12 : 3;
+        for (int i = 0; i < months; i++) {
+          final from = DateTime(start.year, start.month + i, 1);
+          final to = DateTime(start.year, start.month + i + 1, 1);
+          add(
+            kMonthNames[from.month - 1].substring(0, 3).toUpperCase(),
+            from,
+            to,
+          );
+        }
+        break;
+      default:
+        for (int i = 0; i < 7; i++) {
+          final from = start.add(Duration(days: i));
+          add(
+            kWeekdayNames[from.weekday - 1].substring(0, 3).toUpperCase(),
+            from,
+            from.add(const Duration(days: 1)),
+          );
+        }
+    }
+
+    final maxSessions = buckets.fold<int>(
+      0,
+      (m, b) => b.sessions > m ? b.sessions : m,
+    );
+    return buckets
+        .map(
+          (b) => _ChartData(
+            day: b.day,
+            value: maxSessions == 0 ? 0 : b.sessions / maxSessions,
+            sessions: b.sessions,
+          ),
+        )
+        .toList();
+  }
+
+  bool get _streakUnlocked => _store.bestStreak >= 7;
+  bool get _sessionsUnlocked => _store.totalCompleted >= 100;
+  bool get _ratingUnlocked => _store.profile.rating >= 4.5;
+  int get _championClients =>
+      _store.clients.where((c) => c.progress >= 75).length;
+  bool get _championUnlocked => _championClients >= 3;
+
+  int get _unlockedAchievements => [
+    _streakUnlocked,
+    _sessionsUnlocked,
+    _ratingUnlocked,
+    _championUnlocked,
+  ].where((u) => u).length;
 
   // ============================================================
   // BUILD
@@ -63,104 +216,96 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 35),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
+            child: ListenableBuilder(
+              listenable: _store,
+              builder: (context, _) => SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 35),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  _buildPerformanceHero(),
+                    _buildPerformanceHero(),
 
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
 
-                  _buildOverviewStats(),
+                    _buildOverviewStats(),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  _buildSectionHeader(
-                    title: 'Weekly Performance',
-                    actionText: _selectedPeriod,
-                    onTap: _showPeriodSelector,
-                  ),
+                    _buildSectionHeader(
+                      title: 'Weekly Performance',
+                      actionText: _selectedPeriod,
+                      onTap: _showPeriodSelector,
+                    ),
 
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
 
-                  _buildWeeklyChart(),
+                    _buildWeeklyChart(),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  _buildSectionHeader(
-                    title: 'Training Insights',
-                    actionText: '',
-                  ),
+                    _buildSectionHeader(
+                      title: 'Training Insights',
+                      actionText: '',
+                    ),
 
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
 
-                  _buildInsights(),
+                    _buildInsights(),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  _buildSectionHeader(
-                    title: 'Client Progress',
-                    actionText: 'View All',
-                    onTap: _openClients,
-                  ),
+                    _buildSectionHeader(
+                      title: 'Client Progress',
+                      actionText: 'View All',
+                      onTap: _openClients,
+                    ),
 
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
 
-                  _buildClientProgressCard(
-                    name: 'Rahul Sharma',
-                    initials: 'RS',
-                    goal: 'Muscle Building',
-                    progress: 0.84,
-                    sessions: '18 sessions',
-                    change: '+12%',
-                  ),
+                    ..._store.clientsByProgress.take(3).map((client) {
+                      final weekStart = startOfWeek(DateTime.now());
+                      final thisWeek = _store.completedForClientBetween(
+                        client.id,
+                        weekStart,
+                        weekStart.add(const Duration(days: 7)),
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildClientProgressCard(
+                          name: client.name,
+                          initials: client.initials,
+                          goal: client.goal,
+                          progress: client.progress / 100,
+                          sessions: '${client.sessions} sessions',
+                          change: '+$thisWeek this wk',
+                        ),
+                      );
+                    }),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                  _buildClientProgressCard(
-                    name: 'Neha Singh',
-                    initials: 'NS',
-                    goal: 'Weight Loss',
-                    progress: 0.72,
-                    sessions: '14 sessions',
-                    change: '+9%',
-                  ),
+                    _buildSectionHeader(
+                      title: 'Achievements',
+                      actionText: 'View All',
+                      onTap: _showAchievements,
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
-                  _buildClientProgressCard(
-                    name: 'Arjun Mehta',
-                    initials: 'AM',
-                    goal: 'Strength Training',
-                    progress: 0.91,
-                    sessions: '21 sessions',
-                    change: '+18%',
-                  ),
+                    _buildAchievements(),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  _buildSectionHeader(
-                    title: 'Achievements',
-                    actionText: 'View All',
-                    onTap: _showAchievements,
-                  ),
+                    _buildMonthlyGoal(),
 
-                  const SizedBox(height: 14),
-
-                  _buildAchievements(),
-
-                  const SizedBox(height: 28),
-
-                  _buildMonthlyGoal(),
-
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -314,8 +459,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
                     const SizedBox(height: 7),
 
-                    const Text(
-                      'Excellent',
+                    Text(
+                      _scoreLabel,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 25,
@@ -326,7 +471,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                     const SizedBox(height: 7),
 
                     Text(
-                      'You are performing above your monthly average.',
+                      _growth >= 0
+                          ? 'You are performing above your previous period.'
+                          : 'Slightly below your previous period — keep pushing.',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.45),
                         fontSize: 10,
@@ -339,7 +486,10 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
               const SizedBox(width: 15),
 
-              _buildCircularProgress(value: 0.88, label: '88%'),
+              _buildCircularProgress(
+                value: _store.averageClientProgress,
+                label: '${(_store.averageClientProgress * 100).round()}%',
+              ),
             ],
           ),
 
@@ -354,7 +504,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               Expanded(
                 child: _heroStat(
                   icon: Icons.trending_up_rounded,
-                  value: '+18.4%',
+                  value: _growthText,
                   label: 'Growth',
                 ),
               ),
@@ -362,7 +512,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               Expanded(
                 child: _heroStat(
                   icon: Icons.check_circle_outline_rounded,
-                  value: '186',
+                  value: '$_completedInPeriod',
                   label: 'Completed',
                 ),
               ),
@@ -370,7 +520,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               Expanded(
                 child: _heroStat(
                   icon: Icons.timer_outlined,
-                  value: '124h',
+                  value:
+                      '${(_store.minutesBetween(_periodStart, _periodEnd) / 60).round()}h',
                   label: 'Training',
                 ),
               ),
@@ -379,6 +530,13 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         ],
       ),
     );
+  }
+
+  String get _scoreLabel {
+    final score = _store.averageClientProgress;
+    if (score >= 0.8) return 'Excellent';
+    if (score >= 0.6) return 'Good';
+    return 'Keep Going';
   }
 
   Widget _buildCircularProgress({
@@ -491,9 +649,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _overviewCard(
             icon: Icons.people_alt_rounded,
-            value: '24',
+            value: '${_store.totalClients}',
             label: 'Clients',
-            change: '+4',
+            change: '${_store.countByStatus('Active')} active',
           ),
         ),
 
@@ -502,9 +660,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _overviewCard(
             icon: Icons.calendar_month_rounded,
-            value: '38',
+            value: '$_completedInPeriod',
             label: 'Sessions',
-            change: '+8',
+            change: _sessionDiffText,
           ),
         ),
 
@@ -513,13 +671,18 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _overviewCard(
             icon: Icons.star_rounded,
-            value: '4.9',
+            value: _store.profile.rating.toStringAsFixed(1),
             label: 'Rating',
-            change: '+0.2',
+            change: 'Average',
           ),
         ),
       ],
     );
+  }
+
+  String get _sessionDiffText {
+    final diff = _completedInPeriod - _completedInPreviousPeriod;
+    return '${diff >= 0 ? '+' : ''}$diff';
   }
 
   Widget _overviewCard({
@@ -650,11 +813,11 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Training Sessions',
                       style: TextStyle(
                         color: Colors.white,
@@ -662,10 +825,13 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Sessions completed this week',
-                      style: TextStyle(color: Colors.white38, fontSize: 9),
+                      'Sessions completed $_periodPhrase',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 9,
+                      ),
                     ),
                   ],
                 ),
@@ -677,18 +843,20 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                   color: trainerYellow.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.trending_up_rounded,
+                      _growth >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
                       color: trainerYellow,
                       size: 14,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '+18.4%',
-                      style: TextStyle(
+                      _growthText,
+                      style: const TextStyle(
                         color: trainerYellow,
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
@@ -706,13 +874,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
             height: 205,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: List.generate(_weeklyData.length, (index) {
-                final data = _weeklyData[index];
-
-                return Expanded(
-                  child: _chartBar(data: data, isHighest: data.value == 0.94),
-                );
-              }),
+              children: _buildChartBars(),
             ),
           ),
 
@@ -744,9 +906,28 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
     );
   }
 
-  Widget _chartBar({required _ChartData data, required bool isHighest}) {
+  List<Widget> _buildChartBars() {
+    final data = _chartData;
+    final hasData = data.any((d) => d.sessions > 0);
+    final compact = data.length > 7;
+    return List.generate(data.length, (index) {
+      return Expanded(
+        child: _chartBar(
+          data: data[index],
+          isHighest: hasData && data[index].value == 1,
+          compact: compact,
+        ),
+      );
+    });
+  }
+
+  Widget _chartBar({
+    required _ChartData data,
+    required bool isHighest,
+    bool compact = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 5),
       child: Column(
         children: [
           SizedBox(
@@ -761,8 +942,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                       color: trainerYellow,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text(
-                      'TOP',
+                    child: Text(
+                      compact ? '${data.sessions}' : 'TOP',
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 7,
@@ -790,7 +971,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                       child: FractionallySizedBox(
                         heightFactor: data.value,
                         child: Container(
-                          width: 18,
+                          width: compact ? 10 : 18,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(9),
                             gradient: const LinearGradient(
@@ -842,7 +1023,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               child: _insightCard(
                 icon: Icons.local_fire_department_rounded,
                 title: 'Best Streak',
-                value: '12 Days',
+                value: '${_store.bestStreak} Days',
                 subtitle: 'Consistency',
               ),
             ),
@@ -853,7 +1034,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               child: _insightCard(
                 icon: Icons.timer_rounded,
                 title: 'Avg. Session',
-                value: '58 Min',
+                value: '${_store.averageSessionMinutes.round()} Min',
                 subtitle: 'Per session',
               ),
             ),
@@ -868,7 +1049,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               child: _insightCard(
                 icon: Icons.fitness_center_rounded,
                 title: 'Workouts',
-                value: '142',
+                value: '${_store.totalCompleted}',
                 subtitle: 'Completed',
               ),
             ),
@@ -879,7 +1060,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               child: _insightCard(
                 icon: Icons.emoji_events_rounded,
                 title: 'Achievements',
-                value: '08',
+                value: '$_unlockedAchievements / 4',
                 subtitle: 'Unlocked',
               ),
             ),
@@ -1120,7 +1301,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _achievementCard(
             icon: Icons.local_fire_department_rounded,
-            title: '12 Day',
+            title: '${_store.bestStreak} Day',
             subtitle: 'Streak',
           ),
         ),
@@ -1130,7 +1311,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _achievementCard(
             icon: Icons.fitness_center_rounded,
-            title: '100+',
+            title: _store.totalCompleted >= 100
+                ? '100+'
+                : '${_store.totalCompleted}',
             subtitle: 'Sessions',
           ),
         ),
@@ -1140,7 +1323,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
         Expanded(
           child: _achievementCard(
             icon: Icons.star_rounded,
-            title: '4.9',
+            title: _store.profile.rating.toStringAsFixed(1),
             subtitle: 'Rating',
           ),
         ),
@@ -1204,7 +1387,10 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
   // ============================================================
 
   Widget _buildMonthlyGoal() {
-    const double progress = 0.76;
+    const goal = TrainerDashboardProvider.monthlySessionGoal;
+    final done = _store.completedThisMonth;
+    final double progress = done >= goal ? 1.0 : done / goal;
+    final remaining = done >= goal ? 0 : goal - done;
 
     return Container(
       width: double.infinity,
@@ -1252,15 +1438,15 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Complete 50 training sessions',
+                      'Complete $goal training sessions',
                       style: TextStyle(color: Colors.white38, fontSize: 9),
                     ),
                   ],
                 ),
               ),
 
-              const Text(
-                '38 / 50',
+              Text(
+                '$done / $goal',
                 style: TextStyle(
                   color: trainerYellow,
                   fontSize: 12,
@@ -1287,7 +1473,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
           Row(
             children: [
               Text(
-                '76% completed',
+                '${(progress * 100).round()}% completed',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.38),
                   fontSize: 9,
@@ -1296,7 +1482,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               ),
               const Spacer(),
               Text(
-                '12 sessions remaining',
+                remaining == 0
+                    ? 'Goal reached'
+                    : '$remaining sessions remaining',
                 style: TextStyle(
                   color: trainerYellow.withValues(alpha: 0.75),
                   fontSize: 9,
@@ -1546,8 +1734,10 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
               _achievementRow(
                 icon: Icons.local_fire_department_rounded,
-                title: '12 Day Streak',
-                subtitle: 'Trained consistently for 12 days',
+                title: '7 Day Streak',
+                subtitle:
+                    'Best streak so far: ${_store.bestStreak} days in a row',
+                unlocked: _streakUnlocked,
               ),
 
               const SizedBox(height: 10),
@@ -1555,7 +1745,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               _achievementRow(
                 icon: Icons.fitness_center_rounded,
                 title: '100+ Sessions',
-                subtitle: 'Successfully completed 100 sessions',
+                subtitle: '${_store.totalCompleted} sessions completed so far',
+                unlocked: _sessionsUnlocked,
               ),
 
               const SizedBox(height: 10),
@@ -1563,7 +1754,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               _achievementRow(
                 icon: Icons.star_rounded,
                 title: 'Top Rated Trainer',
-                subtitle: 'Maintained a 4.9 average rating',
+                subtitle:
+                    'Keep a 4.5+ rating (now ${_store.profile.rating.toStringAsFixed(1)})',
+                unlocked: _ratingUnlocked,
               ),
 
               const SizedBox(height: 10),
@@ -1571,7 +1764,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               _achievementRow(
                 icon: Icons.people_alt_rounded,
                 title: 'Client Champion',
-                subtitle: 'Helped 20+ clients reach their goals',
+                subtitle: '$_championClients clients at 75%+ progress (need 3)',
+                unlocked: _championUnlocked,
               ),
             ],
           ),
@@ -1584,6 +1778,7 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
+    required bool unlocked,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1630,9 +1825,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
             ),
           ),
 
-          const Icon(
-            Icons.check_circle_rounded,
-            color: trainerYellow,
+          Icon(
+            unlocked ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
+            color: unlocked ? trainerYellow : Colors.white24,
             size: 19,
           ),
         ],

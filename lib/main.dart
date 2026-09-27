@@ -5,6 +5,7 @@ import 'package:gymora_fitness_management/config/theme/app_theme.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/payment_provider.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/trainer_login_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
@@ -33,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => TrainerProvider()),
         ChangeNotifierProvider(create: (_) => MemberProvider()),
+        ChangeNotifierProvider(create: (_) => TrainerLoginProvider()),
       ],
       child: const MyApp(),
     ),

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/core/model/trainer_model.dart';
+
+import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_widget.dart';
+
 
 class TrainerClientsScreen extends StatefulWidget {
   const TrainerClientsScreen({super.key});
@@ -12,98 +17,8 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
 
   String _selectedFilter = 'All';
 
-  final List<_ClientData> _clients = [
-    const _ClientData(
-      name: 'Aarav Sharma',
-      initials: 'AS',
-      goal: 'Weight Loss',
-      plan: 'Premium',
-      progress: 82,
-      attendance: 92,
-      sessions: 18,
-      remainingSessions: 6,
-      expiry: '28 Sep 2026',
-      status: 'Active',
-      age: '26 yrs',
-      height: '5\'9"',
-      weight: '78 kg',
-    ),
-    const _ClientData(
-      name: 'Neha Singh',
-      initials: 'NS',
-      goal: 'Muscle Gain',
-      plan: 'Standard',
-      progress: 68,
-      attendance: 86,
-      sessions: 14,
-      remainingSessions: 4,
-      expiry: '12 Oct 2026',
-      status: 'Active',
-      age: '24 yrs',
-      height: '5\'5"',
-      weight: '61 kg',
-    ),
-    const _ClientData(
-      name: 'Rahul Verma',
-      initials: 'RV',
-      goal: 'Strength',
-      plan: 'Premium',
-      progress: 91,
-      attendance: 96,
-      sessions: 24,
-      remainingSessions: 8,
-      expiry: '04 Nov 2026',
-      status: 'Active',
-      age: '29 yrs',
-      height: '5\'11"',
-      weight: '84 kg',
-    ),
-    const _ClientData(
-      name: 'Priya Patel',
-      initials: 'PP',
-      goal: 'Fat Loss',
-      plan: 'Basic',
-      progress: 54,
-      attendance: 72,
-      sessions: 9,
-      remainingSessions: 2,
-      expiry: '22 Sep 2026',
-      status: 'Expiring',
-      age: '27 yrs',
-      height: '5\'4"',
-      weight: '69 kg',
-    ),
-    const _ClientData(
-      name: 'Rohan Mehta',
-      initials: 'RM',
-      goal: 'Fitness',
-      plan: 'Premium',
-      progress: 76,
-      attendance: 89,
-      sessions: 16,
-      remainingSessions: 5,
-      expiry: '18 Dec 2026',
-      status: 'Active',
-      age: '31 yrs',
-      height: '5\'10"',
-      weight: '80 kg',
-    ),
-    const _ClientData(
-      name: 'Simran Kaur',
-      initials: 'SK',
-      goal: 'Body Toning',
-      plan: 'Standard',
-      progress: 61,
-      attendance: 81,
-      sessions: 11,
-      remainingSessions: 3,
-      expiry: '15 Sep 2026',
-      status: 'Expired',
-      age: '25 yrs',
-      height: '5\'6"',
-      weight: '63 kg',
-    ),
-  ];
+  // Clients come from the shared store — they are ASSIGNED by the gym owner.
+  final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
 
   @override
   void dispose() {
@@ -111,10 +26,10 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
     super.dispose();
   }
 
-  List<_ClientData> get _filteredClients {
+  List<TrainerClient> get _filteredClients {
     final query = _searchController.text.trim().toLowerCase();
 
-    return _clients.where((client) {
+    return _store.clients.where((client) {
       final matchesSearch =
           client.name.toLowerCase().contains(query) ||
           client.goal.toLowerCase().contains(query) ||
@@ -161,71 +76,73 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
+            child: ListenableBuilder(
+              listenable: _store,
+              builder: (context, _) => Column(
+                children: [
+                  _buildHeader(),
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildOverviewCard(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildOverviewCard(),
 
-                        const SizedBox(height: 22),
+                          const SizedBox(height: 22),
 
-                        _buildSearchBar(),
+                          _buildSearchBar(),
 
-                        const SizedBox(height: 14),
+                          const SizedBox(height: 14),
 
-                        _buildFilters(),
+                          _buildFilters(),
 
-                        const SizedBox(height: 22),
+                          const SizedBox(height: 22),
 
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Your Clients',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Your Clients',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Text(
-                              '${_filteredClients.length} Members',
-                              style: const TextStyle(
-                                color: Color(0xFFFFC107),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                              Text(
+                                '${_filteredClients.length} Members',
+                                style: const TextStyle(
+                                  color: Color(0xFFFFC107),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 13),
-
-                        if (_filteredClients.isEmpty)
-                          _buildEmptyState()
-                        else
-                          ..._filteredClients.map(
-                            (client) => _buildClientCard(client),
+                            ],
                           ),
-                      ],
+
+                          const SizedBox(height: 13),
+
+                          if (_filteredClients.isEmpty)
+                            _buildEmptyState()
+                          else
+                            ..._filteredClients.map(
+                              (client) => _buildClientCard(client),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
-
-      floatingActionButton: _buildAddButton(),
+      // "Add Client" removed — clients are assigned to trainers by the owner.
     );
   }
 
@@ -274,7 +191,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Manage your training members',
+                  'Clients assigned by your gym owner',
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 11,
@@ -285,7 +202,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
             ),
           ),
 
-          _headerButton(Icons.filter_list_rounded, onTap: () {}),
+          _headerButton(Icons.filter_list_rounded, onTap: _showFilterSheet),
         ],
       ),
     );
@@ -413,25 +330,25 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
           Row(
             children: [
               _overviewStat(
-                value: '24',
+                value: _two(_store.totalClients),
                 title: 'Total',
                 icon: Icons.people_alt_outlined,
               ),
               _overviewDivider(),
               _overviewStat(
-                value: '20',
+                value: _two(_store.countByStatus('Active')),
                 title: 'Active',
                 icon: Icons.check_circle_outline_rounded,
               ),
               _overviewDivider(),
               _overviewStat(
-                value: '03',
+                value: _two(_store.countByStatus('Expiring')),
                 title: 'Expiring',
                 icon: Icons.schedule_rounded,
               ),
               _overviewDivider(),
               _overviewStat(
-                value: '01',
+                value: _two(_store.countByStatus('Expired')),
                 title: 'Expired',
                 icon: Icons.error_outline_rounded,
               ),
@@ -589,7 +506,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // CLIENT CARD
   // ---------------------------------------------------------------------------
 
-  Widget _buildClientCard(_ClientData client) {
+  Widget _buildClientCard(TrainerClient client) {
     final statusColor = _getStatusColor(client.status);
 
     return Container(
@@ -718,7 +635,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
               children: [
                 _miniInfo(Icons.workspace_premium_outlined, client.plan),
                 _miniDivider(),
-                _miniInfo(Icons.event_available_outlined, client.expiry),
+                _miniInfo(Icons.event_available_outlined, client.expiryLabel),
                 _miniDivider(),
                 _miniInfo(
                   Icons.fitness_center_outlined,
@@ -784,9 +701,11 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
               Expanded(
                 child: _actionButton(
                   icon: Icons.add_task_rounded,
-                  title: 'Workout',
+                  title: client.workoutPlan == null
+                      ? 'Workout'
+                      : 'Update Workout',
                   filled: true,
-                  onTap: () {},
+                  onTap: () => showAssignWorkoutSheet(context, client),
                 ),
               ),
             ],
@@ -885,6 +804,8 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildEmptyState() {
+    final noneAssigned = _store.clients.isEmpty;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 25),
@@ -893,23 +814,29 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.person_search_rounded, color: Color(0xFFFFC107), size: 45),
-          SizedBox(height: 15),
+          const Icon(
+            Icons.person_search_rounded,
+            color: Color(0xFFFFC107),
+            size: 45,
+          ),
+          const SizedBox(height: 15),
           Text(
-            'No clients found',
-            style: TextStyle(
+            noneAssigned ? 'No clients assigned yet' : 'No clients found',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            'Try another search or filter.',
+            noneAssigned
+                ? 'Your gym owner assigns clients to you. They will appear here.'
+                : 'Try another search or filter.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
         ],
       ),
@@ -917,22 +844,104 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // FLOATING ADD BUTTON
+  // FILTER SHEET (header button)
   // ---------------------------------------------------------------------------
 
-  Widget _buildAddButton() {
-    return FloatingActionButton.extended(
-      onPressed: () {
-        _showAddClientSheet();
-      },
-      backgroundColor: const Color(0xFFFFC107),
-      foregroundColor: Colors.black,
-      elevation: 8,
-      icon: const Icon(Icons.person_add_alt_1_rounded, size: 19),
-      label: const Text(
-        'Add Client',
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0A0D13),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      builder: (sheetContext) {
+        const options = {
+          'All': Icons.people_alt_outlined,
+          'Active': Icons.check_circle_outline_rounded,
+          'Expiring': Icons.schedule_rounded,
+          'Expired': Icons.error_outline_rounded,
+        };
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Filter Clients',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ...options.entries.map((entry) {
+                  final selected = _selectedFilter == entry.key;
+                  final count = entry.key == 'All'
+                      ? _store.totalClients
+                      : _store.countByStatus(entry.key);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 9),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFFFFC107).withValues(alpha: 0.09)
+                          : Colors.white.withValues(alpha: 0.035),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFFFFC107).withValues(alpha: 0.18)
+                            : Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        entry.value,
+                        color: selected
+                            ? const Color(0xFFFFC107)
+                            : Colors.white38,
+                      ),
+                      title: Text(
+                        '${entry.key} ($count)',
+                        style: TextStyle(
+                          color: selected ? Colors.white : Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      trailing: selected
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFFFFC107),
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () {
+                        setState(() => _selectedFilter = entry.key);
+                        Navigator.pop(sheetContext);
+                      },
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -940,7 +949,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // CLIENT DETAILS
   // ---------------------------------------------------------------------------
 
-  void _showClientDetails(_ClientData client) {
+  void _showClientDetails(TrainerClient client) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0A0D13),
@@ -948,9 +957,11 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
+        final plan = client.workoutPlan;
+
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 25),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1000,7 +1011,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                 const SizedBox(height: 4),
 
                 Text(
-                  '${client.goal} • ${client.plan} Plan',
+                  '${client.goal} • ${client.plan} Plan • ${client.status}',
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
 
@@ -1028,32 +1039,126 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC107),
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                if (plan != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.035),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
                       ),
                     ),
-                    icon: const Icon(Icons.fitness_center_rounded, size: 18),
-                    label: const Text(
-                      'Create Workout Plan',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Current Workout • ${plan.title}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFC107),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ...plan.exercises.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              '• $e',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (plan.notes.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            'Notes: ${plan.notes}',
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
+                ],
+
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            showSessionFormSheet(
+                              context,
+                              initialClientId: client.id,
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFFFC107),
+                            side: BorderSide(
+                              color: const Color(
+                                0xFFFFC107,
+                              ).withValues(alpha: 0.35),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          icon: const Icon(Icons.event_rounded, size: 17),
+                          label: const Text(
+                            'Book Session',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            showAssignWorkoutSheet(context, client);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFC107),
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.fitness_center_rounded,
+                            size: 18,
+                          ),
+                          label: Text(
+                            plan == null ? 'Workout Plan' : 'Update Plan',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1093,126 +1198,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // ADD CLIENT
-  // ---------------------------------------------------------------------------
-
-  void _showAddClientSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF0A0D13),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              MediaQuery.of(context).viewInsets.bottom + 25,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.person_add_alt_1_rounded,
-                      color: Color(0xFFFFC107),
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Add New Client',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                _sheetField(
-                  hint: 'Client Name',
-                  icon: Icons.person_outline_rounded,
-                ),
-
-                const SizedBox(height: 10),
-
-                _sheetField(hint: 'Email Address', icon: Icons.email_outlined),
-
-                const SizedBox(height: 10),
-
-                _sheetField(hint: 'Phone Number', icon: Icons.phone_outlined),
-
-                const SizedBox(height: 18),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC107),
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      'Add Client',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _sheetField({required String hint, required IconData icon}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-      ),
-      child: TextField(
-        style: const TextStyle(color: Colors.white, fontSize: 12),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          prefixIcon: Icon(icon, color: const Color(0xFFFFC107), size: 19),
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
-        ),
-      ),
-    );
-  }
+  String _two(int n) => n.toString().padLeft(2, '0');
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -1226,40 +1212,4 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
         return Colors.white38;
     }
   }
-}
-
-// =============================================================================
-// CLIENT MODEL
-// =============================================================================
-
-class _ClientData {
-  final String name;
-  final String initials;
-  final String goal;
-  final String plan;
-  final int progress;
-  final int attendance;
-  final int sessions;
-  final int remainingSessions;
-  final String expiry;
-  final String status;
-  final String age;
-  final String height;
-  final String weight;
-
-  const _ClientData({
-    required this.name,
-    required this.initials,
-    required this.goal,
-    required this.plan,
-    required this.progress,
-    required this.attendance,
-    required this.sessions,
-    required this.remainingSessions,
-    required this.expiry,
-    required this.status,
-    required this.age,
-    required this.height,
-    required this.weight,
-  });
 }
