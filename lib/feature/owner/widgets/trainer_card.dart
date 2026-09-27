@@ -4,7 +4,6 @@ import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 
 import 'package:gymora_fitness_management/feature/owner/widgets/trainer_avatar.dart';
 
-
 /// Card widget displaying a trainer's info in the trainers list.
 class TrainerCard extends StatelessWidget {
   final OwnerTrainerModel trainer;
@@ -20,7 +19,11 @@ class TrainerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = trainer.status == 'Active';
+    final isActive = trainer.isActive;
+    final statusLabel = trainer.status.isEmpty
+        ? ''
+        : trainer.status[0].toUpperCase() +
+              trainer.status.substring(1).toLowerCase();
 
     return GestureDetector(
       onTap: onTap,
@@ -65,31 +68,35 @@ class TrainerCard extends StatelessWidget {
                       Row(
                         children: [
                           const Icon(
-                            Icons.star_rounded,
-                            color: Color(0xFFFFC107),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${trainer.rating}',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 9),
-                          const Icon(
-                            Icons.people_alt_outlined,
+                            Icons.phone_outlined,
                             color: Colors.white30,
                             size: 13,
                           ),
-                          const SizedBox(width: 3),
+                          const SizedBox(width: 4),
                           Text(
-                            '${trainer.clients} Clients',
+                            trainer.phone.isEmpty ? '—' : trainer.phone,
                             style: const TextStyle(
-                              color: Colors.white38,
+                              color: Colors.white70,
                               fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(
+                            Icons.email_outlined,
+                            color: Colors.white30,
+                            size: 13,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              trainer.email.isEmpty ? '—' : trainer.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 9,
+                              ),
                             ),
                           ),
                         ],
@@ -127,7 +134,7 @@ class TrainerCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            trainer.status,
+                            statusLabel,
                             style: TextStyle(
                               color: isActive
                                   ? const Color(0xFF48DF8B)

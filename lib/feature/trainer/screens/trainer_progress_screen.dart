@@ -3,6 +3,7 @@ import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
 
 class TrainerProgressScreen extends StatefulWidget {
   const TrainerProgressScreen({super.key});
@@ -32,6 +33,19 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
   String _selectedPeriod = 'This Week';
 
   final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    // GET /trainers/progress (+ sessions for the period charts).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_store.hasLoaded) {
+        _store.refreshProgress();
+      } else {
+        _store.loadAll();
+      }
+    });
+  }
 
   // ------------------------------------------------------------
   // PERIOD CALCULATIONS (all live from the shared store)
@@ -180,7 +194,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
   bool get _streakUnlocked => _store.bestStreak >= 7;
   bool get _sessionsUnlocked => _store.totalCompleted >= 100;
-  bool get _ratingUnlocked => _store.profile.rating >= 4.5;
+  double get _completionRate => _store.progressData.completionRate;
+  bool get _ratingUnlocked => _completionRate >= 80;
   int get _championClients =>
       _store.clients.where((c) => c.progress >= 75).length;
   bool get _championUnlocked => _championClients >= 3;
@@ -218,95 +233,131 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
           SafeArea(
             child: ListenableBuilder(
               listenable: _store,
-              builder: (context, _) => SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 35),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-
-                    const SizedBox(height: 24),
-
-                    _buildPerformanceHero(),
-
-                    const SizedBox(height: 18),
-
-                    _buildOverviewStats(),
-
-                    const SizedBox(height: 28),
-
-                    _buildSectionHeader(
-                      title: 'Weekly Performance',
-                      actionText: _selectedPeriod,
-                      onTap: _showPeriodSelector,
+              builder: (context, _) {
+                if (_store.isLoading && !_store.hasLoaded) {
+                  return const TrainerLoadingView(
+                    message: 'Loading your progress...',
+                  );
+                }
+                if (!_store.hasLoaded && _store.error != null) {
+                  return TrainerErrorView(
+                    message: _store.error!,
+                    onRetry: _store.refreshAll,
+                  );
+                }
+                return RefreshIndicator(
+                  color: trainerYellow,
+                  backgroundColor: cardColor,
+                  onRefresh: _store.refreshProgress,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 35),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_store.error != null)
+                          TrainerErrorBanner(
+                            message: _store.error!,
+                            onRetry: _store.refreshProgress,
+                          ),
 
-                    const SizedBox(height: 14),
+                        _buildHeader(),
 
-                    _buildWeeklyChart(),
+                        const SizedBox(height: 24),
 
-                    const SizedBox(height: 28),
+                        _buildPerformanceHero(),
 
-                    _buildSectionHeader(
-                      title: 'Training Insights',
-                      actionText: '',
-                    ),
+                        const SizedBox(height: 18),
 
-                    const SizedBox(height: 14),
+                        _buildOverviewStats(),
 
-                    _buildInsights(),
+                        const SizedBox(height: 28),
 
-                    const SizedBox(height: 28),
-
-                    _buildSectionHeader(
-                      title: 'Client Progress',
-                      actionText: 'View All',
-                      onTap: _openClients,
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    ..._store.clientsByProgress.take(3).map((client) {
-                      final weekStart = startOfWeek(DateTime.now());
-                      final thisWeek = _store.completedForClientBetween(
-                        client.id,
-                        weekStart,
-                        weekStart.add(const Duration(days: 7)),
-                      );
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildClientProgressCard(
-                          name: client.name,
-                          initials: client.initials,
-                          goal: client.goal,
-                          progress: client.progress / 100,
-                          sessions: '${client.sessions} sessions',
-                          change: '+$thisWeek this wk',
+                        _buildSectionHeader(
+                          title: 'Weekly Performance',
+                          actionText: _selectedPeriod,
+                          onTap: _showPeriodSelector,
                         ),
-                      );
-                    }),
 
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
-                    _buildSectionHeader(
-                      title: 'Achievements',
-                      actionText: 'View All',
-                      onTap: _showAchievements,
+                        _buildWeeklyChart(),
+
+                        const SizedBox(height: 28),
+
+                        _buildSectionHeader(
+                          title: 'Training Insights',
+                          actionText: '',
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildInsights(),
+
+                        const SizedBox(height: 28),
+
+                        _buildSectionHeader(
+                          title: 'Client Progress',
+                          actionText: 'View All',
+                          onTap: _openClients,
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        if (_store.clients.isEmpty)
+                          Text(
+                            'No clients assigned yet.',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 12,
+                            ),
+                          ),
+
+                        ..._store.clientsByProgress.take(3).map((client) {
+                          final weekStart = startOfWeek(DateTime.now());
+                          final thisWeek = _store.completedForClientBetween(
+                            client.id,
+                            weekStart,
+                            weekStart.add(const Duration(days: 7)),
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildClientProgressCard(
+                              name: client.name,
+                              initials: client.initials,
+                              goal: client.planName,
+                              progress: client.progress / 100,
+                              sessions:
+                                  '${client.completedSessions}/${client.totalSessions} sessions',
+                              change: '+$thisWeek this wk',
+                            ),
+                          );
+                        }),
+
+                        const SizedBox(height: 16),
+
+                        _buildSectionHeader(
+                          title: 'Achievements',
+                          actionText: 'View All',
+                          onTap: _showAchievements,
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildAchievements(),
+
+                        const SizedBox(height: 28),
+
+                        _buildMonthlyGoal(),
+
+                        const SizedBox(height: 20),
+                      ],
                     ),
-
-                    const SizedBox(height: 14),
-
-                    _buildAchievements(),
-
-                    const SizedBox(height: 28),
-
-                    _buildMonthlyGoal(),
-
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -670,10 +721,11 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
         Expanded(
           child: _overviewCard(
-            icon: Icons.star_rounded,
-            value: _store.profile.rating.toStringAsFixed(1),
-            label: 'Rating',
-            change: 'Average',
+            icon: Icons.verified_rounded,
+            value: '${_completionRate.round()}%',
+            label: 'Completion',
+            change:
+                '${_store.progressData.trainingHours.toStringAsFixed(1)}h trained',
           ),
         ),
       ],
@@ -1322,9 +1374,9 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
 
         Expanded(
           child: _achievementCard(
-            icon: Icons.star_rounded,
-            title: _store.profile.rating.toStringAsFixed(1),
-            subtitle: 'Rating',
+            icon: Icons.verified_rounded,
+            title: '${_completionRate.round()}%',
+            subtitle: 'Completion',
           ),
         ),
       ],
@@ -1752,10 +1804,10 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               const SizedBox(height: 10),
 
               _achievementRow(
-                icon: Icons.star_rounded,
-                title: 'Top Rated Trainer',
+                icon: Icons.verified_rounded,
+                title: 'Reliable Trainer',
                 subtitle:
-                    'Keep a 4.5+ rating (now ${_store.profile.rating.toStringAsFixed(1)})',
+                    'Keep an 80%+ completion rate (now ${_completionRate.round()}%)',
                 unlocked: _ratingUnlocked,
               ),
 

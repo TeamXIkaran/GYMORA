@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
-
-
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
 
 class TrainerProfileScreen extends StatefulWidget {
   const TrainerProfileScreen({super.key});
@@ -14,6 +14,22 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
   static const Color trainerYellow = Color(0xFFFFC107);
 
   final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
+
+  /// Only read after build() has checked the profile is loaded.
+  TrainerProfile get _profile => _store.profile!;
+
+  @override
+  void initState() {
+    super.initState();
+    // GET /trainers/profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_store.hasLoaded) {
+        _store.refreshProfile();
+      } else {
+        _store.loadAll();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,25 +68,45 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           top: false,
           child: ListenableBuilder(
             listenable: _store,
-            builder: (context, _) => SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
-              child: Column(
-                children: [
-                  _buildProfileHeader(),
-                  const SizedBox(height: 22),
-                  _buildPersonalInformation(),
-                  const SizedBox(height: 16),
-                  _buildProfessionalInformation(),
-                  const SizedBox(height: 16),
-                  _buildGymInformation(),
-                  const SizedBox(height: 16),
-                  _buildStatistics(),
-                  const SizedBox(height: 16),
-                  _buildAccountOptions(),
-                ],
-              ),
-            ),
+            builder: (context, _) {
+              if (_store.profile == null) {
+                if (_store.error != null && !_store.isLoading) {
+                  return TrainerErrorView(
+                    message: _store.error!,
+                    onRetry: _store.refreshProfile,
+                  );
+                }
+                return const TrainerLoadingView(
+                  message: 'Loading your profile...',
+                );
+              }
+              return RefreshIndicator(
+                color: trainerYellow,
+                backgroundColor: const Color(0xFF121923),
+                onRefresh: _store.refreshProfile,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(),
+                      const SizedBox(height: 22),
+                      _buildPersonalInformation(),
+                      const SizedBox(height: 16),
+                      _buildProfessionalInformation(),
+                      const SizedBox(height: 16),
+                      _buildGymInformation(),
+                      const SizedBox(height: 16),
+                      _buildStatistics(),
+                      const SizedBox(height: 16),
+                      _buildAccountOptions(),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -122,7 +158,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _store.profile.initials,
+                    _profile.initials,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 31,
@@ -153,7 +189,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           const SizedBox(height: 15),
 
           Text(
-            _store.profile.name,
+            _profile.name,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -165,7 +201,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           const SizedBox(height: 5),
 
           Text(
-            _store.profile.specialization,
+            _profile.specialization,
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
@@ -182,14 +218,18 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: trainerYellow.withValues(alpha: 0.16)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.verified_rounded, color: trainerYellow, size: 14),
-                SizedBox(width: 6),
+                const Icon(
+                  Icons.verified_rounded,
+                  color: trainerYellow,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
                 Text(
-                  'ACTIVE TRAINER',
-                  style: TextStyle(
+                  '${_profile.status.toUpperCase()} TRAINER',
+                  style: const TextStyle(
                     color: trainerYellow,
                     fontSize: 9,
                     fontWeight: FontWeight.w900,
@@ -238,25 +278,25 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _infoTile(
           icon: Icons.person_outline_rounded,
           title: 'Full Name',
-          value: _store.profile.name,
+          value: _profile.name,
         ),
         _divider(),
         _infoTile(
           icon: Icons.email_outlined,
           title: 'Email',
-          value: _store.profile.email,
+          value: _profile.email,
         ),
         _divider(),
         _infoTile(
           icon: Icons.phone_outlined,
           title: 'Phone',
-          value: _store.profile.phone,
+          value: _profile.phone,
         ),
         _divider(),
         _infoTile(
-          icon: Icons.location_on_outlined,
-          title: 'Location',
-          value: _store.profile.location,
+          icon: Icons.badge_outlined,
+          title: 'Trainer ID',
+          value: _profile.trainerId,
         ),
       ],
     );
@@ -274,19 +314,13 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
         _infoTile(
           icon: Icons.fitness_center_rounded,
           title: 'Specialization',
-          value: _store.profile.specialization,
+          value: _profile.specialization,
         ),
         _divider(),
         _infoTile(
           icon: Icons.badge_outlined,
           title: 'Experience',
-          value: _store.profile.experience,
-        ),
-        _divider(),
-        _infoTile(
-          icon: Icons.school_outlined,
-          title: 'Certification',
-          value: _store.profile.certification,
+          value: _profile.experienceLabel,
         ),
         _divider(),
         _infoTile(
@@ -309,15 +343,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
       icon: Icons.business_outlined,
       children: [
         _infoTile(
-          icon: Icons.business_rounded,
-          title: 'Gym Name',
-          value: _store.profile.gymName,
-        ),
-        _divider(),
-        _infoTile(
           icon: Icons.tag_rounded,
           title: 'Gym ID',
-          value: _store.profile.gymId,
+          value: _profile.gymId,
         ),
         _divider(),
         _infoTile(
@@ -325,6 +353,14 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           title: 'Role',
           value: 'Trainer',
         ),
+        if (_profile.createdAt != null) ...[
+          _divider(),
+          _infoTile(
+            icon: Icons.event_available_outlined,
+            title: 'Member Since',
+            value: formatLongDate(_profile.createdAt!),
+          ),
+        ],
       ],
     );
   }
@@ -366,22 +402,22 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
             children: [
               Expanded(
                 child: _statItem(
-                  value: '${_store.totalClients}',
+                  value: '${_profile.totalClients}',
                   title: 'Clients',
                 ),
               ),
               _verticalDivider(),
               Expanded(
                 child: _statItem(
-                  value: '${_store.totalCompleted}',
+                  value: '${_profile.completedSessions}',
                   title: 'Sessions',
                 ),
               ),
               _verticalDivider(),
               Expanded(
                 child: _statItem(
-                  value: '${(_store.averageClientProgress * 100).round()}%',
-                  title: 'Success',
+                  value: _profile.trainingHours.toStringAsFixed(1),
+                  title: 'Hours',
                 ),
               ),
             ],
@@ -458,8 +494,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
               onPressed: () {
                 Navigator.pop(context);
 
-                // Add your actual logout logic here.
-                // Example:
+                // Drop cached trainer data so the next login starts clean.
+                _store.clear();
+                // Also clear the token here, e.g.
                 // context.read<AuthProvider>().logout();
 
                 Navigator.pushNamedAndRemoveUntil(
@@ -815,45 +852,51 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _phone;
-  late final TextEditingController _location;
   late final TextEditingController _specialization;
   late final TextEditingController _experience;
-  late final TextEditingController _certification;
+
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     final p = TrainerDashboardProvider.instance.profile;
-    _name = TextEditingController(text: p.name);
-    _phone = TextEditingController(text: p.phone);
-    _location = TextEditingController(text: p.location);
-    _specialization = TextEditingController(text: p.specialization);
-    _experience = TextEditingController(text: p.experience);
-    _certification = TextEditingController(text: p.certification);
+    _name = TextEditingController(text: p?.name ?? '');
+    _phone = TextEditingController(text: p?.phone ?? '');
+    _specialization = TextEditingController(text: p?.specialization ?? '');
+    _experience = TextEditingController(
+      text: p == null || p.experience == 0 ? '' : '${p.experience}',
+    );
   }
 
   @override
   void dispose() {
     _name.dispose();
     _phone.dispose();
-    _location.dispose();
     _specialization.dispose();
     _experience.dispose();
-    _certification.dispose();
     super.dispose();
   }
 
-  void _save() {
-    if (!_formKey.currentState!.validate()) return;
-    TrainerDashboardProvider.instance.updateProfile(
+  /// PUT /trainers/profile
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    final error = await TrainerDashboardProvider.instance.updateProfile(
       name: _name.text.trim(),
       phone: _phone.text.trim(),
-      location: _location.text.trim(),
       specialization: _specialization.text.trim(),
-      experience: _experience.text.trim(),
-      certification: _certification.text.trim(),
+      experience: int.tryParse(_experience.text.trim()) ?? 0,
     );
+    if (!mounted) return;
+    setState(() => _saving = false);
+
     final messenger = ScaffoldMessenger.of(context);
+    if (error != null) {
+      showTrainerErrorSnack(context, error);
+      return;
+    }
     Navigator.pop(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -861,6 +904,12 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  String? _experienceValidator(String? v) {
+    final n = int.tryParse((v ?? '').trim());
+    if (n == null || n < 0 || n > 60) return 'Enter years as a number';
+    return null;
   }
 
   String? _required(String? v) =>
@@ -968,20 +1017,24 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   validator: _phoneValidator,
                   keyboardType: TextInputType.phone,
                 ),
-                _field(_location, 'Location', Icons.location_on_outlined),
                 _field(
                   _specialization,
                   'Specialization',
                   Icons.fitness_center_rounded,
                 ),
-                _field(_experience, 'Experience', Icons.badge_outlined),
-                _field(_certification, 'Certification', Icons.school_outlined),
+                _field(
+                  _experience,
+                  'Experience (years)',
+                  Icons.badge_outlined,
+                  validator: _experienceValidator,
+                  keyboardType: TextInputType.number,
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _save,
+                    onPressed: _saving ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: trainerYellow,
                       foregroundColor: Colors.black,
@@ -990,13 +1043,22 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    child: const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                   ),
                 ),
               ],

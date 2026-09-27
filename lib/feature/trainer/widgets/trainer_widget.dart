@@ -215,7 +215,7 @@ Future<void> showSessionDetailsSheet(
                           );
                         } else {
                           final removed = _store.cancelSession(session.id);
-                          if (removed == null) return;
+
                           messenger
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
@@ -225,8 +225,9 @@ Future<void> showSessionDetailsSheet(
                                 action: SnackBarAction(
                                   label: 'UNDO',
                                   textColor: _yellow,
-                                  onPressed: () =>
-                                      _store.restoreSession(removed),
+                                  onPressed: () => _store.restoreSession(
+                                    removed as TrainingSession,
+                                  ),
                                 ),
                               ),
                             );
@@ -524,10 +525,8 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
             type: _type,
             location: _location,
           );
-    if (error != null) {
-      setState(() => _error = error);
-      return;
-    }
+    setState(() async => _error = await error);
+    return;
     final name = _store.clientById(_clientId!)?.name ?? 'client';
     Navigator.pop(context);
     widget.onSaved(

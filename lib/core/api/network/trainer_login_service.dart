@@ -3,6 +3,7 @@ import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/core/model/trainer_login_model.dart';
 
+
 class TrainerLoginService {
   final ApiHelper _apiHelper;
 
@@ -65,6 +66,7 @@ class TrainerLoginService {
       );
     }
   }
+
 
   // ============================================================
   // CREATE TRAINER

@@ -9,6 +9,7 @@ import 'package:gymora_fitness_management/feature/auth/providers/trainer_login_p
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
+
 import 'package:provider/provider.dart';
 
 void main() async {

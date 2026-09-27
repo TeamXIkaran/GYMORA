@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
 import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_widget.dart';
-
 
 class TrainerClientsScreen extends StatefulWidget {
   const TrainerClientsScreen({super.key});
@@ -20,27 +22,49 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // Clients come from the shared store — they are ASSIGNED by the gym owner.
   final TrainerDashboardProvider _store = TrainerDashboardProvider.instance;
 
+  Timer? _debounce;
+  bool _firstLoadDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetch());
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<TrainerClient> get _filteredClients {
-    final query = _searchController.text.trim().toLowerCase();
-
-    return _store.clients.where((client) {
-      final matchesSearch =
-          client.name.toLowerCase().contains(query) ||
-          client.goal.toLowerCase().contains(query) ||
-          client.plan.toLowerCase().contains(query);
-
-      final matchesFilter =
-          _selectedFilter == 'All' || client.status == _selectedFilter;
-
-      return matchesSearch && matchesFilter;
-    }).toList();
+  /// GET /trainers/clients?status=...&search=...
+  Future<void> _fetch() async {
+    await _store.fetchFilteredClients(
+      filter: _selectedFilter,
+      search: _searchController.text,
+    );
+    if (mounted && !_firstLoadDone) setState(() => _firstLoadDone = true);
   }
+
+  Future<void> _refresh() async {
+    await _store.refreshClients();
+    await _fetch();
+  }
+
+  void _onSearchChanged(String _) {
+    setState(() {}); // shows / hides the clear button
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), _fetch);
+  }
+
+  void _setFilter(String filter) {
+    if (_selectedFilter == filter) return;
+    setState(() => _selectedFilter = filter);
+    _fetch();
+  }
+
+  List<TrainerClient> get _filteredClients => _store.filteredClients;
 
   @override
   Widget build(BuildContext context) {
@@ -83,56 +107,88 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                   _buildHeader(),
 
                   Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildOverviewCard(),
+                    child: RefreshIndicator(
+                      color: const Color(0xFFFFC107),
+                      backgroundColor: const Color(0xFF0C111A),
+                      onRefresh: _refresh,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_store.error != null && _firstLoadDone)
+                              TrainerErrorBanner(
+                                message: _store.error!,
+                                onRetry: _refresh,
+                              ),
 
-                          const SizedBox(height: 22),
+                            _buildOverviewCard(),
 
-                          _buildSearchBar(),
+                            const SizedBox(height: 22),
 
-                          const SizedBox(height: 14),
+                            _buildSearchBar(),
 
-                          _buildFilters(),
+                            const SizedBox(height: 14),
 
-                          const SizedBox(height: 22),
+                            _buildFilters(),
 
-                          Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Your Clients',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
+                            const SizedBox(height: 22),
+
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Your Clients',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Text(
-                                '${_filteredClients.length} Members',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFC107),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
+                                if (_store.isFilteringClients)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFFFFC107),
+                                      ),
+                                    ),
+                                  ),
+                                Text(
+                                  '${_filteredClients.length} Members',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFC107),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 13),
-
-                          if (_filteredClients.isEmpty)
-                            _buildEmptyState()
-                          else
-                            ..._filteredClients.map(
-                              (client) => _buildClientCard(client),
+                              ],
                             ),
-                        ],
+
+                            const SizedBox(height: 13),
+
+                            if (!_firstLoadDone)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 40),
+                                child: TrainerLoadingView(
+                                  message: 'Loading your clients...',
+                                ),
+                              )
+                            else if (_filteredClients.isEmpty)
+                              _buildEmptyState()
+                            else
+                              ..._filteredClients.map(
+                                (client) => _buildClientCard(client),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -413,9 +469,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) {
-          setState(() {});
-        },
+        onChanged: _onSearchChanged,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
@@ -429,13 +483,13 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
             color: Color(0xFFFFC107),
             size: 21,
           ),
-          hintText: 'Search clients, goals or plans...',
+          hintText: 'Search by name, phone or email...',
           hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   onPressed: () {
                     _searchController.clear();
-                    setState(() {});
+                    _onSearchChanged('');
                   },
                   icon: const Icon(
                     Icons.close_rounded,
@@ -467,11 +521,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
           final selected = _selectedFilter == filter;
 
           return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedFilter = filter;
-              });
-            },
+            onTap: () => _setFilter(filter),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 17),
@@ -587,16 +637,20 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                     Row(
                       children: [
                         const Icon(
-                          Icons.flag_outlined,
+                          Icons.phone_outlined,
                           color: Color(0xFFFFC107),
                           size: 12,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          client.goal,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
+                        Flexible(
+                          child: Text(
+                            '${client.phone} • ID ${client.id}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
                           ),
                         ),
                       ],
@@ -639,7 +693,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                 _miniDivider(),
                 _miniInfo(
                   Icons.fitness_center_outlined,
-                  '${client.sessions} sessions',
+                  '${client.completedSessions}/${client.totalSessions} done',
                 ),
               ],
             ),
@@ -804,7 +858,7 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildEmptyState() {
-    final noneAssigned = _store.clients.isEmpty;
+    final noneAssigned = _store.totalClients == 0;
 
     return Container(
       width: double.infinity,
@@ -931,8 +985,8 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                             )
                           : null,
                       onTap: () {
-                        setState(() => _selectedFilter = entry.key);
                         Navigator.pop(sheetContext);
+                        _setFilter(entry.key);
                       },
                     ),
                   );
@@ -950,6 +1004,9 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
   // ---------------------------------------------------------------------------
 
   void _showClientDetails(TrainerClient client) {
+    // GET /trainers/progress/clients/{clientId}
+    final progressFuture = _store.loadClientProgress(client.id);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0A0D13),
@@ -1011,32 +1068,87 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
                 const SizedBox(height: 4),
 
                 Text(
-                  '${client.goal} • ${client.plan} Plan • ${client.status}',
+                  '${client.planName} • ${client.status} • ID ${client.id}',
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
 
                 const SizedBox(height: 22),
 
-                Row(
-                  children: [
-                    _detailBox('Age', client.age),
-                    const SizedBox(width: 8),
-                    _detailBox('Height', client.height),
-                    const SizedBox(width: 8),
-                    _detailBox('Weight', client.weight),
-                  ],
-                ),
+                _contactRow(Icons.phone_outlined, 'Phone', client.phone),
+                const SizedBox(height: 8),
+                _contactRow(Icons.email_outlined, 'Email', client.email),
 
                 const SizedBox(height: 12),
 
                 Row(
                   children: [
-                    _detailBox('Attendance', '${client.attendance}%'),
+                    _detailBox('Start', client.startLabel),
                     const SizedBox(width: 8),
-                    _detailBox('Sessions', '${client.sessions}'),
+                    _detailBox('Expiry', client.expiryLabel),
                     const SizedBox(width: 8),
-                    _detailBox('Remaining', '${client.remainingSessions}'),
+                    _detailBox(
+                      'Days Left',
+                      client.daysLeft < 0 ? 'Expired' : '${client.daysLeft}',
+                    ),
                   ],
+                ),
+
+                const SizedBox(height: 12),
+
+                FutureBuilder<ClientProgressDetail?>(
+                  future: progressFuture,
+                  builder: (context, snapshot) {
+                    final loading =
+                        snapshot.connectionState != ConnectionState.done;
+                    final c = snapshot.data?.client ?? client;
+                    String v(String value) => loading ? '...' : value;
+
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            _detailBox('Progress', v('${c.progress}%')),
+                            const SizedBox(width: 8),
+                            _detailBox(
+                              'Completed',
+                              v('${c.completedSessions}'),
+                            ),
+                            const SizedBox(width: 8),
+                            _detailBox(
+                              'Scheduled',
+                              v('${c.scheduledSessions}'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _detailBox('Total', v('${c.totalSessions}')),
+                            const SizedBox(width: 8),
+                            _detailBox(
+                              'Cancelled',
+                              v('${c.cancelledSessions}'),
+                            ),
+                            const SizedBox(width: 8),
+                            _detailBox(
+                              'Hours',
+                              v(c.trainingHours.toStringAsFixed(1)),
+                            ),
+                          ],
+                        ),
+                        if (!loading && snapshot.data == null) ...[
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Could not load progress. Pull to refresh and try again.',
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
 
                 if (plan != null) ...[
@@ -1165,6 +1277,42 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _contactRow(IconData icon, String title, String value) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFFFFC107), size: 16),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white38, fontSize: 10),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '-' : value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

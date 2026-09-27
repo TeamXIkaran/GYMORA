@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
 import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_widget.dart';
-
 
 class TrainerScheduleScreen extends StatefulWidget {
   const TrainerScheduleScreen({super.key});
@@ -54,6 +54,25 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   }
 
   bool get _isTodaySelected => isSameDay(_selectedDate, DateTime.now());
+
+  @override
+  void initState() {
+    super.initState();
+    // GET /trainers/sessions — always pull the latest list when opened.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_store.hasLoaded) {
+        _store.refreshSessions();
+      } else {
+        _store.loadAll();
+      }
+    });
+  }
+
+  Future<void> _refresh() => _store.refreshDashboard();
+
+  String _clientNameOf(TrainingSession s) => s.clientName.isNotEmpty
+      ? s.clientName
+      : _store.clientById(s.clientId)?.name ?? 'Unknown client';
 
   @override
   Widget build(BuildContext context) {
@@ -108,30 +127,51 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                       _buildHeader(),
 
                       Expanded(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(18, 4, 18, 110),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildTodayHero(),
+                        child: RefreshIndicator(
+                          color: _yellow,
+                          backgroundColor: _cardColor,
+                          onRefresh: _refresh,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: const EdgeInsets.fromLTRB(18, 4, 18, 110),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_store.error != null)
+                                  TrainerErrorBanner(
+                                    message: _store.error!,
+                                    onRetry: _refresh,
+                                  ),
 
-                              const SizedBox(height: 18),
+                                _buildTodayHero(),
 
-                              _buildSummaryStats(),
+                                const SizedBox(height: 18),
 
-                              const SizedBox(height: 25),
+                                _buildSummaryStats(),
 
-                              _buildDateSelector(),
+                                const SizedBox(height: 25),
 
-                              const SizedBox(height: 28),
+                                _buildDateSelector(),
 
-                              _buildScheduleHeader(),
+                                const SizedBox(height: 28),
 
-                              const SizedBox(height: 16),
+                                _buildScheduleHeader(),
 
-                              _buildScheduleTimeline(),
-                            ],
+                                const SizedBox(height: 16),
+
+                                if (_store.isLoading && !_store.hasLoaded)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 30),
+                                    child: TrainerLoadingView(
+                                      message: 'Loading sessions...',
+                                    ),
+                                  )
+                                else
+                                  _buildScheduleTimeline(),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -825,7 +865,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
   // ============================================================
 
   Widget _buildDetailedSessionCard(TrainingSession session, bool completed) {
-    final client = _store.clientById(session.clientId);
+    final clientName = _clientNameOf(session);
     final Color sessionColor = TrainerOptions.colorForType(session.type);
 
     return Material(
@@ -876,7 +916,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        client?.initials ?? '?',
+                        initialsOf(clientName),
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 12,
@@ -893,7 +933,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          client?.name ?? 'Unknown client',
+                          clientName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -904,7 +944,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          client?.goal ?? '-',
+                          session.membershipPlan.isNotEmpty
+                              ? '${titleCase(session.membershipPlan)} Plan'
+                              : 'ID ${session.clientId}',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.42),
                             fontSize: 10,
@@ -1009,7 +1051,12 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
                     child: _buildSmallInfo(
                       icon: Icons.location_on_outlined,
                       title: 'Location',
-                      value: session.location.split('•').first.trim(),
+                      value: session.location.isEmpty
+                          ? '-'
+                          : session.location
+                                .split(RegExp(r'[•-]'))
+                                .first
+                                .trim(),
                     ),
                   ),
                 ],
@@ -1271,7 +1318,7 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
 
   Future<void> _exportWeek() async {
     final buffer = StringBuffer()
-      ..writeln('GYMORA — ${_store.profile.name}\'s Schedule')
+      ..writeln('GYMORA — ${_store.profile?.name ?? 'Trainer'}\'s Schedule')
       ..writeln(
         '${formatLongDate(_weekDays.first)} - ${formatLongDate(_weekDays.last)}',
       );
@@ -1285,10 +1332,9 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
         buffer.writeln('  No sessions');
       }
       for (final s in sessions) {
-        final client = _store.clientById(s.clientId);
         buffer.writeln(
           '  ${formatTime(s.start)} - ${formatTime(s.end)}  '
-          '${client?.name ?? '-'} • ${s.type} • ${s.location} (${s.statusLabel})',
+          '${_clientNameOf(s)} • ${s.type} • ${s.location} (${s.statusLabel})',
         );
       }
     }

@@ -8,8 +8,8 @@ import 'package:gymora_fitness_management/feature/trainer/screens/trainer_client
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_progress_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_schedule_screen.dart';
+import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
 import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_widget.dart';
-
 
 class TrainerDashboardScreen extends StatefulWidget {
   const TrainerDashboardScreen({super.key});
@@ -42,6 +42,9 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+
+    // Load profile, clients, sessions, dashboard and progress from the API.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _store.loadAll());
   }
 
   @override
@@ -72,7 +75,25 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
           SafeArea(
             child: ListenableBuilder(
               listenable: _store,
-              builder: (context, _) => _buildDashboard(),
+              builder: (context, _) {
+                if (_store.isLoading && !_store.hasLoaded) {
+                  return const TrainerLoadingView(
+                    message: 'Loading your dashboard...',
+                  );
+                }
+                if (!_store.hasLoaded && _store.error != null) {
+                  return TrainerErrorView(
+                    message: _store.error!,
+                    onRetry: _store.refreshAll,
+                  );
+                }
+                return RefreshIndicator(
+                  color: trainerYellow,
+                  backgroundColor: cardColor,
+                  onRefresh: _store.refreshAll,
+                  child: _buildDashboard(),
+                );
+              },
             ),
           ),
         ],
@@ -116,11 +137,19 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
     final topClients = _store.clientsByProgress.take(3).toList();
 
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_store.error != null)
+            TrainerErrorBanner(
+              message: _store.error!,
+              onRetry: _store.refreshAll,
+            ),
+
           _buildHeader(),
 
           const SizedBox(height: 26),
@@ -212,6 +241,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
 
   Widget _buildHeader() {
     final profile = _store.profile;
+    final name = profile?.name ?? 'Trainer';
 
     return Row(
       children: [
@@ -238,7 +268,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
             ),
             child: Center(
               child: Text(
-                profile.initials,
+                initialsOf(name),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 17,
@@ -266,7 +296,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
               ),
               const SizedBox(height: 3),
               Text(
-                profile.name,
+                name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -277,7 +307,9 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
               ),
               const SizedBox(height: 2),
               Text(
-                'Trainer • GYMORA',
+                (profile?.specialization.isNotEmpty ?? false)
+                    ? '${profile!.specialization} • GYMORA'
+                    : 'Trainer • GYMORA',
                 style: TextStyle(
                   color: trainerYellow.withValues(alpha: 0.9),
                   fontSize: 11,
@@ -404,7 +436,12 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
         Expanded(
           child: _statCard(
             icon: Icons.people_alt_rounded,
-            value: _store.totalClients.toString().padLeft(2, '0'),
+            value:
+                (_store.dashboard.totalClients > 0
+                        ? _store.dashboard.totalClients
+                        : _store.totalClients)
+                    .toString()
+                    .padLeft(2, '0'),
             label: 'Clients',
             onTap: _openClients,
           ),
@@ -414,16 +451,19 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
           child: _statCard(
             icon: Icons.calendar_today_rounded,
             value: _store.todaysSessions.length.toString().padLeft(2, '0'),
-            label: 'Sessions',
+            label: 'Today',
             onTap: _openSchedule,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _statCard(
-            icon: Icons.star_rounded,
-            value: _store.profile.rating.toStringAsFixed(1),
-            label: 'Rating',
+            icon: Icons.task_alt_rounded,
+            value: _store.dashboard.totalCompletedSessions.toString().padLeft(
+              2,
+              '0',
+            ),
+            label: 'Completed',
             onTap: _openProgress,
           ),
         ),
@@ -518,7 +558,9 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
   // ============================================================
 
   Widget _buildScheduleCard(TrainingSession session) {
-    final client = _store.clientById(session.clientId);
+    final clientName = session.clientName.isNotEmpty
+        ? session.clientName
+        : _store.clientById(session.clientId)?.name ?? 'Unknown client';
 
     return GestureDetector(
       onTap: () => showSessionDetailsSheet(context, session),
@@ -570,7 +612,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${client?.goal ?? '-'} • ${client?.name ?? 'Unknown client'}',
+                    '$clientName • ${session.location.isEmpty ? '${session.durationMinutes} min' : session.location}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -709,7 +751,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    client.goal,
+                    '${client.planName} • ${client.completedSessions} sessions',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.45),
                       fontSize: 11,
@@ -850,9 +892,16 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
   Widget _buildPerformanceCard() {
     const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final weekStart = startOfWeek(DateTime.now());
+    // Weekly numbers from GET /trainers/dashboard; falls back to the loaded
+    // session list if the API returns no weekly data.
+    final fromApi = {
+      for (final d in _store.dashboard.weeklySessions) d.day: d.sessions,
+    };
     final counts = List.generate(
       7,
-      (i) => _store.sessionsOn(weekStart.add(Duration(days: i))).length,
+      (i) =>
+          fromApi[labels[i]] ??
+          _store.sessionsOn(weekStart.add(Duration(days: i))).length,
     );
     final maxCount = math.max(1, counts.reduce(math.max));
 

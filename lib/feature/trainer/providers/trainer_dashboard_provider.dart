@@ -1,33 +1,193 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:gymora_fitness_management/core/api/network/trainer_service.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 
-/// Single source of truth for every trainer screen.
+
+/// Single source of truth for every trainer screen. All data comes from the
+/// backend through [TrainerService] — nothing is seeded locally.
 ///
-/// Screens listen with `ListenableBuilder(listenable: TrainerProvider.instance)`
-/// so it works without registering anything in main.dart. If you prefer, you
-/// can also register it in your MultiProvider:
-///   ChangeNotifierProvider.value(value: TrainerProvider.instance)
+/// Screens listen with `ListenableBuilder(listenable: TrainerDashboardProvider.instance)`.
+/// You can also register it in MultiProvider:
+///   ChangeNotifierProvider.value(value: TrainerDashboardProvider.instance)
 ///
-/// Data is currently seeded locally. Each mutating method has a TODO where the
-/// matching API call (AWS Lambda / API Gateway) should go.
+/// Call [loadAll] once after the trainer logs in (the dashboard does this in
+/// initState) and [clear] on logout.
 class TrainerDashboardProvider extends ChangeNotifier {
-  TrainerDashboardProvider._() {
-    _seed();
-  }
+  TrainerDashboardProvider._(this._api);
 
-  static final TrainerDashboardProvider instance = TrainerDashboardProvider._();
+  static final TrainerDashboardProvider instance = TrainerDashboardProvider._(
+    TrainerService.instance,
+  );
 
-  late TrainerProfile profile;
-  final List<TrainerClient> _clients = [];
-  final List<TrainingSession> _sessions = [];
+  final TrainerService _api;
 
   static const int monthlySessionGoal = 50;
 
-  int _idCounter = 0;
-  String _newId() =>
-      'S${DateTime.now().microsecondsSinceEpoch}_${_idCounter++}';
+  // ===========================================================================
+  // STATE
+  // ===========================================================================
+
+  TrainerProfile? profile;
+  TrainerDashboardData dashboard = const TrainerDashboardData();
+  TrainerProgressData progressData = const TrainerProgressData();
+  ClientOverview clientOverview = const ClientOverview();
+
+  final List<TrainerClient> _clients = [];
+  final List<TrainingSession> _sessions = [];
+
+  /// Result of the last server-side search / status filter (Clients screen).
+  List<TrainerClient> filteredClients = [];
+  bool isFilteringClients = false;
+  int _filterRequestId = 0;
+
+  bool isLoading = false;
+  bool hasLoaded = false;
+  bool isSaving = false;
+  String? error;
+
+  // ===========================================================================
+  // LOADING
+  // ===========================================================================
+
+  /// Loads everything the trainer screens need, in parallel.
+  Future<void> loadAll({bool force = false}) async {
+    if (isLoading) return;
+    if (hasLoaded && !force) return;
+
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    final errors = <String>[];
+    Future<void> guard(Future<void> Function() task) async {
+      try {
+        await task();
+      } catch (e) {
+        errors.add(e.toString());
+      }
+    }
+
+    await Future.wait([
+      guard(_fetchProfile),
+      guard(_fetchClients),
+      guard(_fetchSessions),
+      guard(_fetchDashboard),
+    ]);
+    // Progress fills client progress numbers, so it runs after clients.
+    await guard(_fetchProgress);
+
+    isLoading = false;
+    hasLoaded = errors.isEmpty || _clients.isNotEmpty || profile != null;
+    error = errors.isEmpty ? null : errors.first;
+    notifyListeners();
+  }
+
+  Future<void> refreshAll() => loadAll(force: true);
+
+  Future<void> refreshSessions() => _run(() async {
+    await _fetchSessions();
+  });
+
+  Future<void> refreshClients() => _run(() async {
+    await _fetchClients();
+    await _fetchProgress();
+  });
+
+  Future<void> refreshDashboard() => _run(() async {
+    await Future.wait([_fetchDashboard(), _fetchSessions()]);
+  });
+
+  Future<void> refreshProgress() => _run(() async {
+    await Future.wait([_fetchProgress(), _fetchSessions()]);
+  });
+
+  Future<void> refreshProfile() => _run(_fetchProfile);
+
+  /// Runs a refresh and stores its error instead of throwing.
+  Future<void> _run(Future<void> Function() task) async {
+    try {
+      await task();
+      error = null;
+    } catch (e) {
+      error = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> _fetchProfile() async {
+    profile = await _api.getProfile();
+  }
+
+  Future<void> _fetchClients() async {
+    final result = await _api.getClients();
+    final previous = {for (final c in _clients) c.id: c};
+    clientOverview = result.overview;
+    _clients
+      ..clear()
+      ..addAll(result.clients);
+    // Keep progress / workout already known for the same client.
+    for (final c in _clients) {
+      final old = previous[c.id];
+      if (old == null) continue;
+      c
+        ..progress = old.progress
+        ..totalSessions = old.totalSessions
+        ..completedSessions = old.completedSessions
+        ..scheduledSessions = old.scheduledSessions
+        ..cancelledSessions = old.cancelledSessions
+        ..trainingHours = old.trainingHours
+        ..workoutPlan = old.workoutPlan;
+    }
+  }
+
+  Future<void> _fetchSessions() async {
+    final list = await _api.getSessions();
+    _sessions
+      ..clear()
+      ..addAll(list);
+  }
+
+  Future<void> _fetchDashboard() async {
+    dashboard = await _api.getDashboard();
+  }
+
+  Future<void> _fetchProgress() async {
+    final result = await _api.getProgress();
+    progressData = result.progress;
+    for (final c in _clients) {
+      final p = result.clients[c.id];
+      if (p != null) c.applyProgress(p);
+    }
+  }
+
+  /// Everything that changes when a session is created / edited / removed.
+  Future<void> _afterSessionChange() async {
+    try {
+      await Future.wait([
+        _fetchSessions(),
+        _fetchDashboard(),
+        _fetchProgress(),
+      ]);
+    } catch (_) {
+      // The mutation itself succeeded; a failed refresh is not fatal.
+    }
+  }
+
+  /// Clears all trainer data (call on logout).
+  void clear() {
+    profile = null;
+    dashboard = const TrainerDashboardData();
+    progressData = const TrainerProgressData();
+    clientOverview = const ClientOverview();
+    _clients.clear();
+    _sessions.clear();
+    filteredClients = [];
+    hasLoaded = false;
+    error = null;
+    notifyListeners();
+  }
 
   // ===========================================================================
   // CLIENTS (read-only for trainers — assigned by owner)
@@ -42,9 +202,15 @@ class TrainerDashboardProvider extends ChangeNotifier {
     return null;
   }
 
-  int get totalClients => _clients.length;
-  int countByStatus(String status) =>
-      _clients.where((c) => c.status == status).length;
+  int get totalClients =>
+      clientOverview.total > 0 ? clientOverview.total : _clients.length;
+
+  /// 'Active' | 'Expiring' | 'Expired'
+  int countByStatus(String status) {
+    final fromApi = clientOverview.countFor(status);
+    if (clientOverview.total > 0) return fromApi;
+    return _clients.where((c) => c.status == status).length;
+  }
 
   double get averageClientProgress {
     if (_clients.isEmpty) return 0;
@@ -59,7 +225,63 @@ class TrainerDashboardProvider extends ChangeNotifier {
     return list;
   }
 
-  /// TODO(api): POST /api/trainer/clients/{id}/workout
+  /// Server-side search + status filter used by the Clients screen.
+  /// [filter] is 'All' | 'Active' | 'Expiring' | 'Expired'.
+  Future<void> fetchFilteredClients({
+    String filter = 'All',
+    String search = '',
+  }) async {
+    final requestId = ++_filterRequestId;
+    isFilteringClients = true;
+    notifyListeners();
+
+    try {
+      final result = await _api.getClients(
+        status: filter == 'All' ? null : filter.toUpperCase(),
+        search: search,
+      );
+      if (requestId != _filterRequestId) return; // a newer search won
+      clientOverview = result.overview;
+      // Reuse the richer objects (progress, workout) when we have them.
+      filteredClients = result.clients
+          .map((c) => clientById(c.id) ?? c)
+          .toList();
+      error = null;
+    } catch (e) {
+      if (requestId != _filterRequestId) return;
+      error = e.toString();
+    } finally {
+      if (requestId == _filterRequestId) {
+        isFilteringClients = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// GET /trainers/progress/clients/{id} — also updates the cached client.
+  Future<ClientProgressDetail?> loadClientProgress(String clientId) async {
+    try {
+      final detail = await _api.getClientProgress(clientId);
+      final cached = clientById(clientId);
+      if (cached != null) {
+        cached
+          ..progress = detail.client.progress
+          ..totalSessions = detail.client.totalSessions
+          ..completedSessions = detail.client.completedSessions
+          ..scheduledSessions = detail.client.scheduledSessions
+          ..cancelledSessions = detail.client.cancelledSessions
+          ..trainingHours = detail.client.trainingHours;
+        notifyListeners();
+      }
+      return detail;
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// No backend endpoint for workouts yet — kept in memory for this session.
   void assignWorkout(String clientId, WorkoutPlan plan) {
     final client = clientById(clientId);
     if (client == null) return;
@@ -71,8 +293,20 @@ class TrainerDashboardProvider extends ChangeNotifier {
   // SESSIONS
   // ===========================================================================
 
+  List<TrainingSession> get sessions => List.unmodifiable(_sessions);
+
+  TrainingSession? sessionById(String id) {
+    for (final s in _sessions) {
+      if (s.id == id) return s;
+    }
+    return null;
+  }
+
+  /// Sessions on a day (cancelled ones hidden), sorted by start time.
   List<TrainingSession> sessionsOn(DateTime day) {
-    final list = _sessions.where((s) => isSameDay(s.start, day)).toList();
+    final list = _sessions
+        .where((s) => !s.isCancelled && isSameDay(s.start, day))
+        .toList();
     list.sort((a, b) => a.start.compareTo(b.start));
     return list;
   }
@@ -83,32 +317,29 @@ class TrainerDashboardProvider extends ChangeNotifier {
   List<TrainingSession> get todaysUpcoming =>
       todaysSessions.where((s) => !s.isCompleted).toList();
 
-  int completedBetween(DateTime from, DateTime to) => _sessions
-      .where(
+  Iterable<TrainingSession> _completedIn(DateTime from, DateTime to) =>
+      _sessions.where(
         (s) => s.isCompleted && !s.start.isBefore(from) && s.start.isBefore(to),
-      )
-      .length;
+      );
 
-  int minutesBetween(DateTime from, DateTime to) => _sessions
-      .where(
-        (s) => s.isCompleted && !s.start.isBefore(from) && s.start.isBefore(to),
-      )
-      .fold(0, (sum, s) => sum + s.durationMinutes);
+  int completedBetween(DateTime from, DateTime to) =>
+      _completedIn(from, to).length;
+
+  int minutesBetween(DateTime from, DateTime to) =>
+      _completedIn(from, to).fold(0, (sum, s) => sum + s.durationMinutes);
 
   int completedForClientBetween(String clientId, DateTime from, DateTime to) =>
-      _sessions
-          .where(
-            (s) =>
-                s.clientId == clientId &&
-                s.isCompleted &&
-                !s.start.isBefore(from) &&
-                s.start.isBefore(to),
-          )
-          .length;
+      _completedIn(from, to).where((s) => s.clientId == clientId).length;
 
-  int get totalCompleted => _sessions.where((s) => s.isCompleted).length;
+  int get totalCompleted {
+    final local = _sessions.where((s) => s.isCompleted).length;
+    return math.max(local, progressData.completedSessions);
+  }
 
   double get averageSessionMinutes {
+    if (progressData.averageSessionDuration > 0) {
+      return progressData.averageSessionDuration;
+    }
     final done = _sessions.where((s) => s.isCompleted).toList();
     if (done.isEmpty) return 0;
     return done.fold<int>(0, (sum, s) => sum + s.durationMinutes) / done.length;
@@ -139,10 +370,14 @@ class TrainerDashboardProvider extends ChangeNotifier {
   }
 
   int get completedThisMonth {
+    if (progressData.completedThisMonth > 0) {
+      return progressData.completedThisMonth;
+    }
     final now = DateTime.now();
-    final from = DateTime(now.year, now.month, 1);
-    final to = DateTime(now.year, now.month + 1, 1);
-    return completedBetween(from, to);
+    return completedBetween(
+      DateTime(now.year, now.month, 1),
+      DateTime(now.year, now.month + 1, 1),
+    );
   }
 
   /// Returns an error message when the slot clashes, otherwise null.
@@ -151,11 +386,13 @@ class TrainerDashboardProvider extends ChangeNotifier {
       return 'Please choose one of your assigned clients.';
     }
     for (final s in _sessions) {
-      if (s.id == ignoreId) continue;
+      if (s.id == ignoreId || s.isCancelled) continue;
       final overlaps =
           candidate.start.isBefore(s.end) && s.start.isBefore(candidate.end);
       if (overlaps) {
-        final other = clientById(s.clientId)?.name ?? 'another client';
+        final other = s.clientName.isNotEmpty
+            ? s.clientName
+            : clientById(s.clientId)?.name ?? 'another client';
         return 'You already have a session with $other '
             'at ${formatTime(s.start)}.';
       }
@@ -163,82 +400,99 @@ class TrainerDashboardProvider extends ChangeNotifier {
     return null;
   }
 
-  /// TODO(api): POST /api/trainer/sessions
-  String? addSession({
+  /// POST /trainers/sessions — returns an error message or null on success.
+  Future<String?> addSession({
     required String clientId,
     required DateTime start,
     required int durationMinutes,
     required String type,
     required String location,
-  }) {
-    final session = TrainingSession(
-      id: _newId(),
+    String notes = '',
+  }) async {
+    final candidate = TrainingSession(
+      id: '',
       clientId: clientId,
       start: start,
       durationMinutes: durationMinutes,
       type: type,
       location: location,
     );
-    final error = _validate(session);
-    if (error != null) return error;
-    _sessions.add(session);
-    notifyListeners();
-    return null;
+    final clash = _validate(candidate);
+    if (clash != null) return clash;
+
+    return _mutate(() async {
+      await _api.createSession(
+        clientId: clientId,
+        start: start,
+        durationMinutes: durationMinutes,
+        sessionType: type,
+        location: location,
+        notes: notes,
+      );
+    });
   }
 
-  /// TODO(api): PUT /api/trainer/sessions/{id}
-  String? updateSession(
+  /// PUT /trainers/sessions/{id} — returns an error message or null.
+  Future<String?> updateSession(
     String id, {
     required String clientId,
     required DateTime start,
     required int durationMinutes,
     required String type,
     required String location,
-  }) {
-    final index = _sessions.indexWhere((s) => s.id == id);
-    if (index == -1) return 'Session not found.';
-    final updated = _sessions[index].copy()
+  }) async {
+    final current = sessionById(id);
+    if (current == null) return 'Session not found.';
+    final updated = current.copy()
       ..clientId = clientId
       ..start = start
       ..durationMinutes = durationMinutes
       ..type = type
       ..location = location;
-    final error = _validate(updated, ignoreId: id);
-    if (error != null) return error;
-    _sessions[index] = updated;
-    notifyListeners();
-    return null;
+    final clash = _validate(updated, ignoreId: id);
+    if (clash != null) return clash;
+
+    return _mutate(() async {
+      final body = updated.toApiJson()..remove('notes');
+      await _api.updateSession(id, body);
+    });
   }
 
-  /// TODO(api): DELETE /api/trainer/sessions/{id}
-  TrainingSession? cancelSession(String id) {
+  /// DELETE /trainers/sessions/{id}. Returns the removed session (for Undo)
+  /// or null when it failed — check [error] for the reason.
+  Future<TrainingSession?> cancelSession(String id) async {
     final index = _sessions.indexWhere((s) => s.id == id);
     if (index == -1) return null;
-    final removed = _sessions.removeAt(index);
-    notifyListeners();
+    final removed = _sessions[index];
+
+    final failure = await _mutate(() => _api.deleteSession(id));
+    if (failure != null) {
+      error = failure;
+      notifyListeners();
+      return null;
+    }
     return removed;
   }
 
-  /// Puts a cancelled session back (used by the Undo action).
-  void restoreSession(TrainingSession session) {
-    if (_sessions.any((s) => s.id == session.id)) return;
-    _sessions.add(session);
-    notifyListeners();
+  /// Undo for [cancelSession]: creates the same session again.
+  Future<String?> restoreSession(TrainingSession session) {
+    return _mutate(() async {
+      await _api.createSession(
+        clientId: session.clientId,
+        start: session.start,
+        durationMinutes: session.durationMinutes,
+        sessionType: session.type,
+        location: session.location,
+        notes: session.notes,
+      );
+    });
   }
 
-  /// TODO(api): PATCH /api/trainer/sessions/{id}/complete
-  void completeSession(String id) {
-    final index = _sessions.indexWhere((s) => s.id == id);
-    if (index == -1 || _sessions[index].isCompleted) return;
-    final session = _sessions[index];
-    session.status = SessionStatus.completed;
-    final client = clientById(session.clientId);
-    if (client != null) {
-      client.sessions += 1;
-      client.remainingSessions = math.max(0, client.remainingSessions - 1);
-      client.progress = math.min(100, client.progress + 1);
-    }
-    notifyListeners();
+  /// PUT /trainers/sessions/{id} { status: COMPLETED }
+  Future<String?> completeSession(String id) async {
+    final session = sessionById(id);
+    if (session == null || session.isCompleted) return null;
+    return _mutate(() => _api.updateSessionStatus(id, SessionStatus.completed));
   }
 
   /// Session number of this session within the client's history.
@@ -246,199 +500,69 @@ class TrainerDashboardProvider extends ChangeNotifier {
     final count = _sessions
         .where(
           (s) =>
-              s.clientId == session.clientId && !s.start.isAfter(session.start),
+              s.clientId == session.clientId &&
+              !s.isCancelled &&
+              !s.start.isAfter(session.start),
         )
         .length;
     return 'Session ${count.toString().padLeft(2, '0')}';
+  }
+
+  /// Runs a write call, refreshes the affected data and returns an error
+  /// message (or null on success).
+  Future<String?> _mutate(Future<void> Function() call) async {
+    isSaving = true;
+    notifyListeners();
+    try {
+      await call();
+      await _afterSessionChange();
+      return null;
+    } catch (e) {
+      return e.toString();
+    } finally {
+      isSaving = false;
+      notifyListeners();
+    }
   }
 
   // ===========================================================================
   // PROFILE
   // ===========================================================================
 
-  /// TODO(api): PUT /api/trainer/profile
-  void updateProfile({
+  /// PUT /trainers/profile — only changed fields are sent.
+  Future<String?> updateProfile({
     required String name,
     required String phone,
-    required String location,
     required String specialization,
-    required String experience,
-    required String certification,
-  }) {
-    profile
-      ..name = name
-      ..phone = phone
-      ..location = location
-      ..specialization = specialization
-      ..experience = experience
-      ..certification = certification;
+    required int experience,
+  }) async {
+    final p = profile;
+    if (p == null) return 'Profile not loaded yet.';
+
+    final changes = <String, dynamic>{
+      if (name != p.name) 'fullName': name,
+      if (phone != p.phone) 'phone': phone,
+      if (specialization != p.specialization) 'specialization': specialization,
+      if (experience != p.experience) 'experience': experience,
+    };
+    if (changes.isEmpty) return null;
+
+    isSaving = true;
     notifyListeners();
-  }
-
-  // ===========================================================================
-  // SEED DATA (replace with API fetch)
-  // ===========================================================================
-
-  void _seed() {
-    final now = DateTime.now();
-    final today = dateOnly(now);
-
-    profile = TrainerProfile(
-      name: 'Amit Kumar',
-      email: 'amit.kumar@gmail.com',
-      phone: '+91 98765 43210',
-      location: 'New Delhi, India',
-      specialization: 'Strength & Fitness',
-      experience: '5+ Years',
-      certification: 'Certified Fitness Trainer',
-      gymName: 'GYMO Fitness',
-      gymId: 'GYMO07',
-      rating: 4.9,
-    );
-
-    _clients.addAll([
-      TrainerClient(
-        id: 'C1',
-        name: 'Aarav Sharma',
-        goal: 'Weight Loss',
-        plan: 'Premium',
-        expiry: today.add(const Duration(days: 45)),
-        age: '26 yrs',
-        height: '5\'9"',
-        weight: '78 kg',
-        progress: 82,
-        attendance: 92,
-        sessions: 18,
-        remainingSessions: 6,
-      ),
-      TrainerClient(
-        id: 'C2',
-        name: 'Neha Singh',
-        goal: 'Muscle Gain',
-        plan: 'Standard',
-        expiry: today.add(const Duration(days: 60)),
-        age: '24 yrs',
-        height: '5\'5"',
-        weight: '61 kg',
-        progress: 68,
-        attendance: 86,
-        sessions: 14,
-        remainingSessions: 4,
-      ),
-      TrainerClient(
-        id: 'C3',
-        name: 'Rahul Verma',
-        goal: 'Strength',
-        plan: 'Premium',
-        expiry: today.add(const Duration(days: 90)),
-        age: '29 yrs',
-        height: '5\'11"',
-        weight: '84 kg',
-        progress: 91,
-        attendance: 96,
-        sessions: 24,
-        remainingSessions: 8,
-      ),
-      TrainerClient(
-        id: 'C4',
-        name: 'Priya Patel',
-        goal: 'Fat Loss',
-        plan: 'Basic',
-        expiry: today.add(const Duration(days: 4)),
-        age: '27 yrs',
-        height: '5\'4"',
-        weight: '69 kg',
-        progress: 54,
-        attendance: 72,
-        sessions: 9,
-        remainingSessions: 2,
-      ),
-      TrainerClient(
-        id: 'C5',
-        name: 'Rohan Mehta',
-        goal: 'Fitness',
-        plan: 'Premium',
-        expiry: today.add(const Duration(days: 120)),
-        age: '31 yrs',
-        height: '5\'10"',
-        weight: '80 kg',
-        progress: 76,
-        attendance: 89,
-        sessions: 16,
-        remainingSessions: 5,
-      ),
-      TrainerClient(
-        id: 'C6',
-        name: 'Simran Kaur',
-        goal: 'Body Toning',
-        plan: 'Standard',
-        expiry: today.subtract(const Duration(days: 6)),
-        age: '25 yrs',
-        height: '5\'6"',
-        weight: '63 kg',
-        progress: 61,
-        attendance: 81,
-        sessions: 11,
-        remainingSessions: 3,
-      ),
-    ]);
-
-    // Today's plan (sessions already over are marked completed).
-    const todayPlan = [
-      [10, 30, 'C1', 60, 'Personal Training', 'Gym Floor • Zone A'],
-      [12, 0, 'C2', 60, 'Strength Training', 'Weight Area • Zone B'],
-      [14, 30, 'C4', 45, 'HIIT Workout', 'Functional Area'],
-      [16, 30, 'C3', 60, 'Personal Training', 'Gym Floor • Zone A'],
-      [18, 0, 'C5', 60, 'Cardio Training', 'Cardio Zone'],
-    ];
-    for (final p in todayPlan) {
-      final start = today.add(
-        Duration(hours: p[0] as int, minutes: p[1] as int),
-      );
-      final duration = p[3] as int;
-      _sessions.add(
-        TrainingSession(
-          id: _newId(),
-          clientId: p[2] as String,
-          start: start,
-          durationMinutes: duration,
-          type: p[4] as String,
-          location: p[5] as String,
-          status: start.add(Duration(minutes: duration)).isBefore(now)
-              ? SessionStatus.completed
-              : SessionStatus.upcoming,
-        ),
-      );
-    }
-
-    // History (last 12 months, completed) + next 7 days (upcoming).
-    final random = math.Random(7);
-    final activeIds = ['C1', 'C2', 'C3', 'C4', 'C5'];
-    const slots = [7, 9, 11, 15, 17, 19];
-    for (int offset = -365; offset <= 7; offset++) {
-      if (offset == 0) continue;
-      final day = today.add(Duration(days: offset));
-      final isSunday = day.weekday == DateTime.sunday;
-      final count = isSunday ? random.nextInt(2) : 1 + random.nextInt(4);
-      final usedSlots = [...slots]..shuffle(random);
-      for (int i = 0; i < count; i++) {
-        final type = TrainerOptions
-            .sessionTypes[random.nextInt(TrainerOptions.sessionTypes.length)];
-        _sessions.add(
-          TrainingSession(
-            id: _newId(),
-            clientId: activeIds[random.nextInt(activeIds.length)],
-            start: day.add(Duration(hours: usedSlots[i])),
-            durationMinutes: [45, 60, 60, 60, 90][random.nextInt(5)],
-            type: type,
-            location: TrainerOptions
-                .locations[random.nextInt(TrainerOptions.locations.length)],
-            status: offset < 0
-                ? SessionStatus.completed
-                : SessionStatus.upcoming,
-          ),
-        );
-      }
+    try {
+      final updated = await _api.updateProfile(changes);
+      // The update response has no statistics block — keep the old numbers.
+      updated
+        ..totalClients = p.totalClients
+        ..completedSessions = p.completedSessions
+        ..trainingHours = p.trainingHours;
+      profile = updated;
+      return null;
+    } catch (e) {
+      return e.toString();
+    } finally {
+      isSaving = false;
+      notifyListeners();
     }
   }
 }
