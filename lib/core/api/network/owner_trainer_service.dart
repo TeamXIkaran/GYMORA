@@ -7,39 +7,60 @@ class OwnerTrainerService {
   static Future<List<OwnerTrainerModel>> getTrainers() async {
     final response = await ApiService.get('api/trainers');
 
-    final data = response['data'] as Map<String, dynamic>;
-    final trainersList = data['trainers'] as List;
+    final data = response['data'];
 
-    return trainersList
-        .map((json) => OwnerTrainerModel.fromJson(json as Map<String, dynamic>))
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid trainers response');
+    }
+
+    final trainers = data['trainers'];
+
+    if (trainers is! List) {
+      throw Exception('Trainers list not found in response');
+    }
+
+    return trainers
+        .map(
+          (json) => OwnerTrainerModel.fromJson(
+            Map<String, dynamic>.from(json as Map),
+          ),
+        )
         .toList();
   }
 
   /// Add a new trainer.
   /// Endpoint: POST /api/trainers
   static Future<OwnerTrainerModel> addTrainer({
+    required String trainerId,
     required String fullName,
     required String phone,
     required String email,
     required String password,
-    required String gymId,
     required String specialization,
     required int experience,
   }) async {
     final response = await ApiService.post('api/trainers', {
+      'trainerId': trainerId,
       'fullName': fullName,
       'phone': phone,
       'email': email,
       'password': password,
-      'gymId': gymId,
       'specialization': specialization,
       'experience': experience,
     });
 
-    final data = response['data'] as Map<String, dynamic>? ?? response;
+    final data = response['data'];
 
-    final trainerJson = data['trainer'] as Map<String, dynamic>? ?? data;
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid trainer response');
+    }
 
-    return OwnerTrainerModel.fromJson(trainerJson);
+    final trainer = data['trainer'];
+
+    if (trainer is! Map<String, dynamic>) {
+      throw Exception('Trainer data not found in response');
+    }
+
+    return OwnerTrainerModel.fromJson(trainer);
   }
 }

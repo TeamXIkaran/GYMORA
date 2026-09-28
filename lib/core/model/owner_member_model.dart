@@ -1,32 +1,52 @@
-import 'package:gymora_fitness_management/core/model/membership_plan_model.dart';
 import 'package:intl/intl.dart';
+
+import 'package:gymora_fitness_management/core/model/membership_plan_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
 class OwnerMemberModel {
   final String id;
+
+  /// Client's login/registration ID.
+  final String clientId;
+
   final String fullName;
   final String planName;
   final String phone;
   final String email;
+
+  /// Gym ID returned by backend.
   final String gymId;
+
+  /// Assigned trainer ID.
+  final String trainerId;
+
+  /// Assigned trainer name.
+  final String trainerName;
+
   final String membershipPlan;
+
   final double price;
   final int durationMonths;
+
   final DateTime? startDateRaw;
   final DateTime? endDateRaw;
 
-  /// Raw status exactly as sent by the backend (currently always "ACTIVE").
+  /// Raw status from backend.
   final String status;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   OwnerMemberModel({
     required this.id,
+    this.clientId = '',
     required this.fullName,
     this.planName = '',
     required this.phone,
     required this.email,
     this.gymId = '',
+    this.trainerId = '',
+    this.trainerName = '',
     required this.membershipPlan,
     this.price = 0,
     this.durationMonths = 0,
@@ -37,107 +57,182 @@ class OwnerMemberModel {
     this.updatedAt,
   });
 
-  // ── Status (derived from endDate) ───────────────────────────
+  // ── Status ─────────────────────────────────────────────────
 
-  /// ACTIVE / EXPIRING / EXPIRED — use this everywhere in the UI.
+  /// ACTIVE / EXPIRING / EXPIRED
   String get displayStatus => computeMembershipStatus(status, endDateRaw);
 
   bool get isActive => displayStatus == 'ACTIVE';
+
   bool get isExpiring => displayStatus == 'EXPIRING';
+
   bool get isExpired => displayStatus == 'EXPIRED';
 
-  /// Days until the plan ends (negative when already expired).
+  /// Days until membership ends.
   int? get daysLeft {
     if (endDateRaw == null) return null;
+
     return endDateRaw!.difference(DateTime.now()).inDays;
   }
 
-  // ── Plan / price ────────────────────────────────────────────
+  // ── Plan / Price ───────────────────────────────────────────
 
   MembershipPlan? get _catalogPlan => MembershipPlan.byKey(membershipPlan);
 
-  /// Human-readable plan name, e.g. "Premium Membership".
+  /// Human-readable plan name.
   String get planDisplayName {
-    if (planName.trim().isNotEmpty) return planName;
+    if (planName.trim().isNotEmpty) {
+      return planName;
+    }
+
     return planLabelFromKey(membershipPlan);
   }
 
-  /// GET /members doesn't return price — fall back to the plan catalog.
-  double get effectivePrice =>
-      price > 0 ? price : (_catalogPlan?.price.toDouble() ?? 0);
+  /// GET /members may not return price.
+  /// Fall back to membership plan catalog.
+  double get effectivePrice {
+    return price > 0 ? price : (_catalogPlan?.price.toDouble() ?? 0);
+  }
 
-  /// GET /members doesn't return durationMonths — fall back to the catalog,
-  /// then to the difference between start and end date.
+  /// GET /members may not return durationMonths.
+  /// Fall back to membership plan catalog.
   int get effectiveDurationMonths {
-    if (durationMonths > 0) return durationMonths;
-    if (_catalogPlan != null) return _catalogPlan!.durationMonths;
+    if (durationMonths > 0) {
+      return durationMonths;
+    }
+
+    if (_catalogPlan != null) {
+      return _catalogPlan!.durationMonths;
+    }
+
     if (startDateRaw != null && endDateRaw != null) {
       return (endDateRaw!.year - startDateRaw!.year) * 12 +
           endDateRaw!.month -
           startDateRaw!.month;
     }
+
     return 0;
   }
 
   bool get hasPrice => effectivePrice > 0;
+
   bool get hasDuration => effectiveDurationMonths > 0;
 
-  String get formattedPrice => hasPrice ? formatRupees(effectivePrice) : 'N/A';
+  String get formattedPrice {
+    return hasPrice ? formatRupees(effectivePrice) : 'N/A';
+  }
 
   String get durationLabel {
-    final m = effectiveDurationMonths;
-    if (m <= 0) return 'N/A';
-    return '$m month${m == 1 ? '' : 's'}';
+    final months = effectiveDurationMonths;
+
+    if (months <= 0) {
+      return 'N/A';
+    }
+
+    return '$months month${months == 1 ? '' : 's'}';
   }
 
   // ── Display helpers ─────────────────────────────────────────
 
   String get initials => initialsOf(fullName);
 
-  /// Alias used by MemberCard
+  /// Alias used by MemberCard.
   String get name => fullName;
 
-  /// Alias used by MemberCard
+  /// Alias used by MemberCard.
   String get plan => planDisplayName;
 
-  String get startDate => startDateRaw == null
-      ? 'N/A'
-      : DateFormat('dd MMM yyyy').format(startDateRaw!.toLocal());
+  String get startDate {
+    if (startDateRaw == null) {
+      return 'N/A';
+    }
 
-  String get endDate => endDateRaw == null
-      ? 'N/A'
-      : DateFormat('dd MMM yyyy').format(endDateRaw!.toLocal());
+    return DateFormat('dd MMM yyyy').format(startDateRaw!.toLocal());
+  }
 
-  /// Alias used by MemberCard (join date = start date)
+  String get endDate {
+    if (endDateRaw == null) {
+      return 'N/A';
+    }
+
+    return DateFormat('dd MMM yyyy').format(endDateRaw!.toLocal());
+  }
+
+  /// Alias used by MemberCard.
   String get joinDate => startDate;
 
   // ── JSON ────────────────────────────────────────────────────
 
   factory OwnerMemberModel.fromJson(Map<String, dynamic> json) {
+    final trainerJson = json['trainer'];
+
+    String trainerId = '';
+    String trainerName = '';
+
+    if (trainerJson is Map) {
+      trainerId = parseString(trainerJson['trainerId']);
+
+      trainerName = parseString(trainerJson['fullName']);
+    }
+
     return OwnerMemberModel(
-      // POST returns `id`, GET returns `_id`
-      id: parseString(json['_id'] ?? json['id']),
+      // POST returns `id`
+      // GET may return `_id`
+      id: parseString(json['id'] ?? json['_id']),
+
+      clientId: parseString(json['clientId']),
+
       fullName: parseString(json['fullName']),
+
       planName: parseString(json['planName']),
+
       phone: parseString(json['phone']),
+
       email: parseString(json['email']),
+
       gymId: parseString(json['gymId']),
+
+      trainerId: trainerId,
+
+      trainerName: trainerName,
+
       membershipPlan: parseString(json['membershipPlan']),
+
       price: parseDouble(json['price']),
+
       durationMonths: parseInt(json['durationMonths']),
+
       startDateRaw: parseDate(json['startDate']),
+
       endDateRaw: parseDate(json['endDate']),
+
       status: json['status'] == null ? 'ACTIVE' : parseString(json['status']),
+
       createdAt: parseDate(json['createdAt']),
+
       updatedAt: parseDate(json['updatedAt']),
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'fullName': fullName,
-    'planName': planName,
-    'phone': phone,
-    'email': email,
-    'membershipPlan': membershipPlan,
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'clientId': clientId,
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'gymId': gymId,
+      'trainerId': trainerId,
+      'trainerName': trainerName,
+      'membershipPlan': membershipPlan,
+      'experience': durationMonths,
+      'status': status,
+      if (startDateRaw != null) 'startDate': startDateRaw!.toIso8601String(),
+      if (endDateRaw != null) 'endDate': endDateRaw!.toIso8601String(),
+      if (price > 0) 'price': price,
+      if (durationMonths > 0) 'durationMonths': durationMonths,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+    };
+  }
 }

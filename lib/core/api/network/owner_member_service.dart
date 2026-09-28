@@ -7,41 +7,75 @@ class OwnerMemberService {
   static Future<List<OwnerMemberModel>> getMembers() async {
     final response = await ApiService.get('api/members');
 
-    final data = response['data'] as Map<String, dynamic>;
-    final membersList = data['members'] as List;
+    final data = response['data'];
 
-    return membersList
-        .map((json) => OwnerMemberModel.fromJson(json as Map<String, dynamic>))
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid members response');
+    }
+
+    final members = data['members'];
+
+    if (members is! List) {
+      throw Exception('Members list not found in response');
+    }
+
+    return members
+        .map(
+          (json) =>
+              OwnerMemberModel.fromJson(Map<String, dynamic>.from(json as Map)),
+        )
         .toList();
   }
 
   /// Add a new member.
-  /// Endpoint: POST /api/members
+  ///
+  /// Endpoint:
+  /// POST /api/members
+  ///
+  /// Backend expects:
+  /// {
+  ///   "clientId": "0001",
+  ///   "fullName": "Aarav Sharma",
+  ///   "phone": "9876543210",
+  ///   "email": "aarav@gmail.com",
+  ///   "password": "Aarav123",
+  ///   "trainerId": "0003",
+  ///   "membershipPlan": "PREMIUM",
+  ///   "startDate": "2026-09-27"
+  /// }
   static Future<OwnerMemberModel> addMember({
+    required String clientId,
     required String fullName,
-    required String planName,
     required String phone,
     required String email,
     required String password,
-    required String gymId,
+    required String trainerId,
     required String membershipPlan,
     required String startDate,
   }) async {
     final response = await ApiService.post('api/members', {
+      'clientId': clientId,
       'fullName': fullName,
-      'planName': planName,
       'phone': phone,
       'email': email,
       'password': password,
-      'gymId': gymId,
+      'trainerId': trainerId,
       'membershipPlan': membershipPlan,
       'startDate': startDate,
     });
 
-    final data = response['data'] as Map<String, dynamic>? ?? response;
+    final data = response['data'];
 
-    final memberJson = data['member'] as Map<String, dynamic>? ?? data;
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid member response');
+    }
 
-    return OwnerMemberModel.fromJson(memberJson);
+    final member = data['client'];
+
+    if (member is! Map<String, dynamic>) {
+      throw Exception('Member data not found in response');
+    }
+
+    return OwnerMemberModel.fromJson(member);
   }
 }

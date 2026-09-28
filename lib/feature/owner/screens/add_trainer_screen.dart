@@ -18,21 +18,19 @@ class AddTrainerScreen extends StatefulWidget {
 class _AddTrainerScreenState extends State<AddTrainerScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _gymIdController = TextEditingController();
+  final _trainerIdController = TextEditingController();
   final _experienceController = TextEditingController();
 
   final _nameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _passwordFocus = FocusNode();
-  final _gymIdFocus = FocusNode();
+  final _trainerIdFocus = FocusNode();
   final _experienceFocus = FocusNode();
-
   bool _isSubmitting = false;
   bool _obscurePassword = true;
 
@@ -78,7 +76,7 @@ class _AddTrainerScreenState extends State<AddTrainerScreen>
       _phoneFocus,
 
       _passwordFocus,
-      _gymIdFocus,
+      _trainerIdFocus,
       _experienceFocus,
     ]) {
       node.addListener(() => setState(() {}));
@@ -100,7 +98,8 @@ class _AddTrainerScreenState extends State<AddTrainerScreen>
     _glowController.dispose();
     _particleController.dispose();
     _shimmerController.dispose();
-    _gymIdFocus.dispose();
+    _trainerIdController.dispose();
+    _trainerIdFocus.dispose();
     super.dispose();
   }
 
@@ -116,13 +115,12 @@ class _AddTrainerScreenState extends State<AddTrainerScreen>
     final trainerProvider = context.read<TrainerProvider>();
     final dashboardProvider = context.read<DashboardProvider>();
     final name = _nameController.text.trim();
-
     final success = await trainerProvider.addTrainer(
+      trainerId: _trainerIdController.text.trim(),
       fullName: name,
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      gymId: _gymIdController.text.trim(),
       specialization: _selectedSpecialization,
       experience: int.parse(_experienceController.text.trim()),
     );
@@ -292,22 +290,24 @@ class _AddTrainerScreenState extends State<AddTrainerScreen>
                             },
                           ),
                           const SizedBox(height: 12),
-
                           _buildTextField(
-                            controller: _gymIdController,
-                            focusNode: _gymIdFocus,
-                            label: 'Gym ID',
-                            hint: 'Enter gym ID e.g. Astha07',
+                            controller: _trainerIdController,
+                            focusNode: _trainerIdFocus,
+                            label: 'Trainer ID',
+                            hint: 'Enter trainer ID e.g. 0003',
                             icon: Icons.badge_outlined,
                             keyboardType: TextInputType.text,
                             validator: (v) {
                               final t = v?.trim() ?? '';
+
                               if (t.isEmpty) {
-                                return 'Please enter gym ID';
+                                return 'Please enter trainer ID';
                               }
+
                               if (t.length < 3) {
-                                return 'Please enter a valid gym ID';
+                                return 'Please enter a valid trainer ID';
                               }
+
                               return null;
                             },
                           ),

@@ -21,26 +21,42 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
+  // ── Controllers ────────────────────────────────────────────
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _gymIdController = TextEditingController();
+
+  /// Backend expects clientId, not gymId.
+  final _clientIdController = TextEditingController();
+
+  /// Backend expects trainerId.
+  final _trainerIdController = TextEditingController();
+
   final _passwordController = TextEditingController();
+
+  // ── Focus Nodes ────────────────────────────────────────────
 
   final _nameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _phoneFocus = FocusNode();
-  final _gymIdFocus = FocusNode();
+  final _clientIdFocus = FocusNode();
+  final _trainerIdFocus = FocusNode();
   final _passwordFocus = FocusNode();
+
+  // ── State ──────────────────────────────────────────────────
 
   String _selectedPlan = 'BASIC';
   bool _isSubmitting = false;
+
+  // ── Animations ─────────────────────────────────────────────
 
   late final AnimationController _glowController;
   late final AnimationController _particleController;
   late final AnimationController _shimmerController;
 
-  // Plan data — prices/durations come from the shared catalog
+  // ── Membership Plans ───────────────────────────────────────
+
   static final Map<String, _PlanInfo> _plans = {
     for (final p in MembershipPlan.all)
       p.key: _PlanInfo(p.name, p.price, p.durationMonths, _planIcons[p.key]!),
@@ -75,7 +91,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       _nameFocus,
       _emailFocus,
       _phoneFocus,
-      _gymIdFocus,
+      _clientIdFocus,
+      _trainerIdFocus,
       _passwordFocus,
     ]) {
       node.addListener(() => setState(() {}));
@@ -84,32 +101,50 @@ class _AddMemberScreenState extends State<AddMemberScreen>
 
   @override
   void dispose() {
+    // Controllers
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _clientIdController.dispose();
+    _trainerIdController.dispose();
     _passwordController.dispose();
+
+    // Focus nodes
     _nameFocus.dispose();
     _emailFocus.dispose();
     _phoneFocus.dispose();
+    _clientIdFocus.dispose();
+    _trainerIdFocus.dispose();
     _passwordFocus.dispose();
+
+    // Animations
     _glowController.dispose();
     _particleController.dispose();
     _shimmerController.dispose();
-    _gymIdController.dispose();
-    _gymIdFocus.dispose();
+
     super.dispose();
   }
 
+  // ── Submit Form ────────────────────────────────────────────
+
   Future<void> _submitForm() async {
     FocusScope.of(context).unfocus();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    if (_isSubmitting) return;
 
-    setState(() => _isSubmitting = true);
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
 
-    final plan = _plans[_selectedPlan]!;
+    if (_isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
     final now = DateTime.now();
-    // yyyy-MM-dd in the device's local date (what the API expects)
+
+    // Backend expects yyyy-MM-dd.
     final startDate =
         '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
@@ -117,25 +152,28 @@ class _AddMemberScreenState extends State<AddMemberScreen>
 
     final provider = context.read<MemberProvider>();
     final dashboardProvider = context.read<DashboardProvider>();
+
     final name = _nameController.text.trim();
 
     final success = await provider.addMember(
+      clientId: _clientIdController.text.trim(),
       fullName: name,
-      planName: plan.name,
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      gymId: _gymIdController.text.trim(),
+      trainerId: _trainerIdController.text.trim(),
       membershipPlan: _selectedPlan,
       startDate: startDate,
     );
 
     if (!mounted) return;
 
-    setState(() => _isSubmitting = false);
+    setState(() {
+      _isSubmitting = false;
+    });
 
     if (success) {
-      // Keep Home stats + Recent Members in sync
+      // Refresh dashboard stats and recent members.
       dashboardProvider.fetchDashboard();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,6 +201,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
           ),
         ),
       );
+
       context.pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,6 +243,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               decoration: const BoxDecoration(gradient: AppColors.darkGradient),
             ),
           ),
+
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
@@ -214,6 +254,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               },
             ),
           ),
+
           Positioned(
             top: -120,
             right: -80,
@@ -221,6 +262,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               animation: _glowController,
               builder: (_, _) {
                 final size = 280 + (_glowController.value * 40);
+
                 return Container(
                   width: size,
                   height: size,
@@ -238,10 +280,12 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               },
             ),
           ),
+
           SafeArea(
             child: Column(
               children: [
                 _buildHeader(),
+
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -252,26 +296,35 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildHeroCard(),
+
                           const SizedBox(height: 26),
 
                           _buildSectionTitle(
                             'Personal Details',
                             'Fill in the member\'s information',
                           ),
+
                           const SizedBox(height: 14),
 
+                          // ── Full Name ───────────────────────
                           _buildTextField(
                             controller: _nameController,
                             focusNode: _nameFocus,
                             label: 'Full Name',
                             hint: 'Enter member\'s full name',
                             icon: Icons.person_outline_rounded,
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? 'Please enter name'
-                                : null,
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return 'Please enter name';
+                              }
+
+                              return null;
+                            },
                           ),
+
                           const SizedBox(height: 12),
 
+                          // ── Email ──────────────────────────
                           _buildTextField(
                             controller: _emailController,
                             focusNode: _emailFocus,
@@ -280,15 +333,21 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty)
+                              if (v == null || v.trim().isEmpty) {
                                 return 'Please enter email';
-                              if (!v.contains('@'))
+                              }
+
+                              if (!v.contains('@')) {
                                 return 'Please enter a valid email';
+                              }
+
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 12),
 
+                          // ── Phone ──────────────────────────
                           _buildTextField(
                             controller: _phoneController,
                             focusNode: _phoneFocus,
@@ -302,35 +361,72 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                             ],
                             validator: (v) {
                               final t = v?.trim() ?? '';
-                              if (t.isEmpty) return 'Please enter phone number';
+
+                              if (t.isEmpty) {
+                                return 'Please enter phone number';
+                              }
+
                               if (t.length != 10) {
                                 return 'Enter a valid 10-digit number';
                               }
+
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 12),
 
+                          // ── Client ID ───────────────────────
                           _buildTextField(
-                            controller: _gymIdController,
-                            focusNode: _gymIdFocus,
-                            label: 'Gym ID',
-                            hint: 'Enter gym ID e.g. Astha07',
+                            controller: _clientIdController,
+                            focusNode: _clientIdFocus,
+                            label: 'Client ID',
+                            hint: 'Enter client ID e.g. 0001',
                             icon: Icons.badge_outlined,
                             keyboardType: TextInputType.text,
                             validator: (v) {
                               final t = v?.trim() ?? '';
+
                               if (t.isEmpty) {
-                                return 'Please enter gym ID';
+                                return 'Please enter client ID';
                               }
+
                               if (t.length < 3) {
-                                return 'Please enter a valid gym ID';
+                                return 'Please enter a valid client ID';
                               }
+
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 12),
 
+                          // ── Trainer ID ──────────────────────
+                          _buildTextField(
+                            controller: _trainerIdController,
+                            focusNode: _trainerIdFocus,
+                            label: 'Trainer ID',
+                            hint: 'Enter trainer ID e.g. 0003',
+                            icon: Icons.fitness_center_rounded,
+                            keyboardType: TextInputType.text,
+                            validator: (v) {
+                              final t = v?.trim() ?? '';
+
+                              if (t.isEmpty) {
+                                return 'Please enter trainer ID';
+                              }
+
+                              if (t.length < 3) {
+                                return 'Please enter a valid trainer ID';
+                              }
+
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // ── Password ────────────────────────
                           _buildTextField(
                             controller: _passwordController,
                             focusNode: _passwordFocus,
@@ -339,10 +435,14 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                             icon: Icons.lock_outline_rounded,
                             obscureText: true,
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty)
+                              if (v == null || v.trim().isEmpty) {
                                 return 'Please enter password';
-                              if (v.length < 6)
+                              }
+
+                              if (v.length < 6) {
                                 return 'Password must be at least 6 characters';
+                              }
+
                               return null;
                             },
                           ),
@@ -353,6 +453,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                             'Membership Plan',
                             'Choose the appropriate plan',
                           ),
+
                           const SizedBox(height: 14),
 
                           _buildPlanSelector(),
@@ -373,6 +474,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
+  // ── Header ─────────────────────────────────────────────────
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
@@ -382,7 +485,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
             icon: Icons.arrow_back_rounded,
             onTap: () => context.pop(),
           ),
+
           const SizedBox(width: 12),
+
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,6 +509,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               ],
             ),
           ),
+
           Container(
             width: 44,
             height: 44,
@@ -429,6 +535,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       ),
     );
   }
+
+  // ── Hero Card ──────────────────────────────────────────────
 
   Widget _buildHeroCard() {
     return Container(
@@ -469,7 +577,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               size: 26,
             ),
           ),
+
           const SizedBox(width: 14),
+
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,6 +609,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
+  // ── Section Title ──────────────────────────────────────────
+
   Widget _buildSectionTitle(String title, String subtitle) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +629,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+
             const SizedBox(width: 8),
+
             Text(
               title,
               style: const TextStyle(
@@ -528,7 +642,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
             ),
           ],
         ),
+
         const SizedBox(height: 4),
+
         Padding(
           padding: const EdgeInsets.only(left: 11),
           child: Text(
@@ -539,6 +655,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       ],
     );
   }
+
+  // ── Text Field ─────────────────────────────────────────────
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -608,7 +726,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                     size: 14,
                   ),
                 ),
+
                 const SizedBox(width: 8),
+
                 Text(
                   label,
                   style: TextStyle(
@@ -622,6 +742,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               ],
             ),
           ),
+
           TextFormField(
             controller: controller,
             focusNode: focusNode,
@@ -655,6 +776,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
+  // ── Plan Selector ──────────────────────────────────────────
+
   Widget _buildPlanSelector() {
     return Column(
       children: _plans.entries.map((entry) {
@@ -665,7 +788,11 @@ class _AddMemberScreenState extends State<AddMemberScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: GestureDetector(
-            onTap: () => setState(() => _selectedPlan = key),
+            onTap: () {
+              setState(() {
+                _selectedPlan = key;
+              });
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               padding: const EdgeInsets.all(14),
@@ -705,7 +832,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                       size: 20,
                     ),
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -718,7 +847,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+
                         const SizedBox(height: 3),
+
                         Text(
                           '${plan.durationMonths} month${plan.durationMonths > 1 ? 's' : ''}',
                           style: const TextStyle(
@@ -729,6 +860,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                       ],
                     ),
                   ),
+
                   Text(
                     formatRupees(plan.price),
                     style: TextStyle(
@@ -745,6 +877,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       }).toList(),
     );
   }
+
+  // ── Add Button ─────────────────────────────────────────────
 
   Widget _buildAddButton() {
     return SizedBox(
@@ -826,5 +960,6 @@ class _PlanInfo {
   final int price;
   final int durationMonths;
   final IconData icon;
+
   const _PlanInfo(this.name, this.price, this.durationMonths, this.icon);
 }

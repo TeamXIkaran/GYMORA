@@ -6,24 +6,17 @@ import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/core/model/trainer_login_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
-
 // ============================================================
 // TRAINER LOGIN PROVIDER
 // ============================================================
 
-enum TrainerStatus {
-  initial,
-  loading,
-  success,
-  error,
-}
+enum TrainerStatus { initial, loading, success, error }
 
 class TrainerLoginProvider extends ChangeNotifier {
   final TrainerLoginService _trainerService;
 
-  TrainerLoginProvider({
-    TrainerLoginService? trainerService,
-  }) : _trainerService = trainerService ?? TrainerLoginService();
+  TrainerLoginProvider({TrainerLoginService? trainerService})
+    : _trainerService = trainerService ?? TrainerLoginService();
 
   TrainerStatus _status = TrainerStatus.initial;
 
@@ -80,16 +73,14 @@ class TrainerLoginProvider extends ChangeNotifier {
         _loggedInTrainer = response.data;
 
         _status = TrainerStatus.success;
-        _successMessage =
-            response.message ?? 'Trainer login successful';
+        _successMessage = response.message ?? 'Trainer login successful';
 
         notifyListeners();
         return true;
       }
 
       _status = TrainerStatus.error;
-      _errorMessage =
-          response.message ?? 'Invalid Trainer ID or password';
+      _errorMessage = response.message ?? 'Invalid Trainer ID or password';
 
       notifyListeners();
       return false;
@@ -130,7 +121,6 @@ class TrainerLoginProvider extends ChangeNotifier {
   }
 }
 
-
 // ============================================================
 // OWNER TRAINER MANAGEMENT PROVIDER
 // ============================================================
@@ -148,8 +138,7 @@ class OwnerTrainerProvider extends ChangeNotifier {
   // GETTERS
   // ============================================================
 
-  List<OwnerTrainerModel> get trainers =>
-      List.unmodifiable(_trainers);
+  List<OwnerTrainerModel> get trainers => List.unmodifiable(_trainers);
 
   bool get isLoading => _isLoading;
 
@@ -197,13 +186,12 @@ class OwnerTrainerProvider extends ChangeNotifier {
   // ============================================================
   // ADD TRAINER
   // ============================================================
-
   Future<bool> addTrainer({
+    required String trainerId,
     required String fullName,
     required String phone,
     required String email,
     required String password,
-    required String gymId,
     required String specialization,
     required int experience,
   }) async {
@@ -216,19 +204,16 @@ class OwnerTrainerProvider extends ChangeNotifier {
 
     try {
       final newTrainer = await OwnerTrainerService.addTrainer(
+        trainerId: trainerId,
         fullName: fullName,
         phone: phone,
         email: email,
         password: password,
-        gymId: gymId,
         specialization: specialization,
         experience: experience,
       );
 
-      _trainers = [
-        newTrainer,
-        ..._trainers,
-      ];
+      _trainers = [newTrainer, ..._trainers];
 
       return true;
     } catch (e) {
@@ -253,14 +238,10 @@ class OwnerTrainerProvider extends ChangeNotifier {
   List<OwnerTrainerModel> filterByStatus(int filterIndex) {
     switch (filterIndex) {
       case 1:
-        return _trainers
-            .where((trainer) => trainer.isActive)
-            .toList();
+        return _trainers.where((trainer) => trainer.isActive).toList();
 
       case 2:
-        return _trainers
-            .where((trainer) => !trainer.isActive)
-            .toList();
+        return _trainers.where((trainer) => !trainer.isActive).toList();
 
       default:
         return trainers;

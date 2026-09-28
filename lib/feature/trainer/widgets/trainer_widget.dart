@@ -527,13 +527,6 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
           );
     setState(() async => _error = await error);
     return;
-    final name = _store.clientById(_clientId!)?.name ?? 'client';
-    Navigator.pop(context);
-    widget.onSaved(
-      _isEdit
-          ? 'Session updated'
-          : 'Session booked with $name on ${formatFullDate(_start)}, ${formatTime(_start)}',
-    );
   }
 
   @override

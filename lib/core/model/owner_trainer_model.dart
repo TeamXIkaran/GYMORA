@@ -1,4 +1,3 @@
-
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
 class OwnerTrainerModel {
@@ -9,13 +8,8 @@ class OwnerTrainerModel {
   final String gymId;
   final String specialization;
   final int experienceYears;
-
-  /// Not returned by the API yet — null means "unknown", so the UI can hide it.
   final double? _rating;
-
-  /// Not returned by the API yet — null means "unknown", so the UI can hide it.
   final int? _clients;
-
   final String status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -41,12 +35,14 @@ class OwnerTrainerModel {
   /// Alias used by TrainerCard
   String get name => fullName;
 
-  /// Kept non-null so existing widgets (TrainerCard) keep compiling.
+  /// Backend does not currently return rating.
   double get rating => _rating ?? 0;
+
+  /// Backend does not currently return clients.
   int get clients => _clients ?? 0;
 
-  /// Use these to hide rating / clients until the backend sends them.
   bool get hasRating => _rating != null;
+
   bool get hasClients => _clients != null;
 
   String get experience =>
@@ -56,7 +52,7 @@ class OwnerTrainerModel {
 
   factory OwnerTrainerModel.fromJson(Map<String, dynamic> json) {
     return OwnerTrainerModel(
-      id: parseString(json['_id'] ?? json['id']),
+      id: parseString(json['id'] ?? json['_id']),
       fullName: parseString(json['fullName']),
       phone: parseString(json['phone']),
       email: parseString(json['email']),
@@ -71,11 +67,20 @@ class OwnerTrainerModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'fullName': fullName,
-    'phone': phone,
-    'email': email,
-    'specialization': specialization,
-    'experience': experienceYears,
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'gymId': gymId,
+      'specialization': specialization,
+      'experience': experienceYears,
+      'status': status,
+      if (_rating != null) 'rating': _rating,
+      if (_clients != null) 'clients': _clients,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+    };
+  }
 }
