@@ -115,3 +115,95 @@ List<Map<String, dynamic>> asJsonList(dynamic value) => value is List
 /// Strips the "Exception: " prefix so users see a clean message.
 String cleanError(Object error) =>
     error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+
+/// Formatting helpers shared by the member experience.
+abstract final class GymFormat {
+  static const List<String> _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  static const List<String> _weekdaysShort = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
+
+  static String greeting(DateTime now) {
+    if (now.hour < 12) return 'Good morning';
+    if (now.hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  static String timer(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final hours = safe ~/ 3600;
+    final minutes = (safe % 3600) ~/ 60;
+    final seconds = safe % 60;
+    final mm = minutes.toString().padLeft(2, '0');
+    final ss = seconds.toString().padLeft(2, '0');
+    return hours > 0 ? '$hours:$mm:$ss' : '$mm:$ss';
+  }
+
+  static String shortDate(DateTime date) =>
+      '${_months[date.month - 1]} ${date.day}';
+
+  static String longDate(DateTime date) =>
+      '${_months[date.month - 1]} ${date.day}, ${date.year}';
+
+  static String weekdayShort(DateTime date) => _weekdaysShort[date.weekday - 1];
+
+  static String weekdayLetter(DateTime date) =>
+      weekdayShort(date).substring(0, 1);
+
+  static String thousands(num value) {
+    final digits = value.round().abs().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      final fromEnd = digits.length - i;
+      buffer.write(digits[i]);
+      if (fromEnd > 1 && fromEnd % 3 == 1) buffer.write(',');
+    }
+    return value < 0 ? '-$buffer' : buffer.toString();
+  }
+
+  static String water(int millilitres) {
+    if (millilitres < 1000) return '$millilitres ml';
+    final litres = millilitres / 1000;
+    return '${litres.toStringAsFixed(litres % 1 == 0 ? 0 : 1)} L';
+  }
+
+  static String decimal(double value, {int digits = 1}) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(digits);
+  }
+
+  static String signed(double value, {int digits = 1}) {
+    final abs = value.abs().toStringAsFixed(digits);
+    if (value > 0) return '+$abs';
+    if (value < 0) return '−$abs';
+    return abs;
+  }
+
+  static String initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty);
+    return parts.take(2).map((part) => part[0].toUpperCase()).join();
+  }
+}

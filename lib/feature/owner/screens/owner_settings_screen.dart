@@ -256,7 +256,7 @@ class OwnerSettingsScreen extends StatelessWidget {
   // ============================================================
 
   Widget _buildProfileCard() {
-    return Consumer<DashboardProvider>(
+    return Consumer<OwnerDashboardProvider>(
       builder: (context, dash, _) {
         final owner = dash.owner;
         final name = (owner?.name.isNotEmpty ?? false) ? owner!.name : 'Owner';

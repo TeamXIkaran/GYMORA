@@ -3,14 +3,14 @@
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
 /// Wraps the entire `/api/owner/dashboard` response.
-class DashboardModel {
+class OwnerDashboardModel {
   final OwnerInfo owner;
   final DashboardSummary summary;
   final RevenueOverview revenueOverview;
   final List<RecentMember> recentMembers;
   final List<TrainerOverviewItem> trainerOverview;
 
-  DashboardModel({
+  OwnerDashboardModel({
     required this.owner,
     required this.summary,
     required this.revenueOverview,
@@ -18,11 +18,11 @@ class DashboardModel {
     required this.trainerOverview,
   });
 
-  factory DashboardModel.fromJson(Map<String, dynamic> json) {
+  factory OwnerDashboardModel.fromJson(Map<String, dynamic> json) {
     // The API wraps everything under `data`
     final data = json['data'] is Map ? asJsonMap(json['data']) : json;
 
-    return DashboardModel(
+    return OwnerDashboardModel(
       owner: OwnerInfo.fromJson(asJsonMap(data['owner'])),
       summary: DashboardSummary.fromJson(asJsonMap(data['summary'])),
       revenueOverview: RevenueOverview.fromJson(

@@ -41,7 +41,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<TrainerProvider>().ensureLoaded();
+        context.read<OwnerTrainerProvider>().ensureLoaded();
       }
     });
   }
@@ -53,7 +53,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     super.dispose();
   }
 
-  List<OwnerTrainerModel> _getFilteredTrainers(TrainerProvider provider) {
+  List<OwnerTrainerModel> _getFilteredTrainers(OwnerTrainerProvider provider) {
     List<OwnerTrainerModel> result = provider.filterByStatus(_selectedFilter);
 
     if (_searchQuery.trim().isNotEmpty) {
@@ -158,7 +158,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildHeader() {
-    return Consumer<TrainerProvider>(
+    return Consumer<OwnerTrainerProvider>(
       builder: (context, provider, _) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
@@ -268,7 +268,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildOverview() {
-    return Consumer<TrainerProvider>(
+    return Consumer<OwnerTrainerProvider>(
       builder: (context, provider, _) {
         final total = provider.trainers.length;
         final active = provider.trainers
@@ -539,7 +539,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildTrainerList() {
-    return Consumer<TrainerProvider>(
+    return Consumer<OwnerTrainerProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.trainers.isEmpty) {
           return const Center(

@@ -206,8 +206,8 @@ Future<void> showSessionDetailsSheet(
                       filled: completed,
                       onTap: () {
                         Navigator.pop(sheetContext);
+
                         if (completed) {
-                          // Book the same client again.
                           showSessionFormSheet(
                             context,
                             initialClientId: session.clientId,
@@ -246,6 +246,7 @@ Future<void> showSessionDetailsSheet(
                   onTap: () {
                     Navigator.pop(sheetContext);
                     _store.completeSession(session.id);
+
                     messenger
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
@@ -270,6 +271,7 @@ Future<void> showSessionDetailsSheet(
 Widget sessionStatusPill(TrainingSession session) {
   final completed = session.isCompleted;
   final color = completed ? _green : _yellow;
+
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
     decoration: BoxDecoration(
@@ -377,7 +379,9 @@ Future<void> showSessionFormSheet(
     );
     return Future.value();
   }
+
   final messenger = ScaffoldMessenger.of(context);
+
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -424,13 +428,18 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
   late String _location;
   String? _error;
 
+  // FIX: prevents multiple submissions while API request is running.
+  bool _saving = false;
+
   bool get _isEdit => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
+
     final e = widget.existing;
     final now = DateTime.now();
+
     if (e != null) {
       _clientId = e.clientId;
       _date = dateOnly(e.start);
@@ -440,14 +449,19 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
       _location = e.location;
     } else {
       _clientId = widget.initialClientId;
+
       final base = dateOnly(widget.initialDate ?? now);
+
       _date = base.isBefore(dateOnly(now)) ? dateOnly(now) : base;
+
       if (isSameDay(_date, now)) {
         final nextHour = now.hour >= 23 ? 23 : now.hour + 1;
+
         _time = TimeOfDay(hour: nextHour, minute: 0);
       } else {
         _time = const TimeOfDay(hour: 9, minute: 0);
       }
+
       _duration = 60;
       _type = widget.initialType ?? TrainerOptions.sessionTypes.first;
       _location = TrainerOptions.locations.first;
@@ -457,16 +471,21 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
   DateTime get _start =>
       DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
-  String _formatTimeOfDay(TimeOfDay t) =>
-      formatTime(DateTime(2000, 1, 1, t.hour, t.minute));
+  String _formatTimeOfDay(TimeOfDay t) {
+    return formatTime(DateTime(2000, 1, 1, t.hour, t.minute));
+  }
 
   Future<void> _pickClient() async {
     final picked = await showClientPickerSheet(context, selectedId: _clientId);
-    if (picked != null) setState(() => _clientId = picked.id);
+
+    if (picked != null && mounted) {
+      setState(() => _clientId = picked.id);
+    }
   }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
@@ -477,7 +496,10 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
       builder: (context, child) =>
           Theme(data: _pickerTheme(context), child: child!),
     );
-    if (picked != null) setState(() => _date = dateOnly(picked));
+
+    if (picked != null && mounted) {
+      setState(() => _date = dateOnly(picked));
+    }
   }
 
   Future<void> _pickTime() async {
@@ -487,7 +509,10 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
       builder: (context, child) =>
           Theme(data: _pickerTheme(context), child: child!),
     );
-    if (picked != null) setState(() => _time = picked);
+
+    if (picked != null && mounted) {
+      setState(() => _time = picked);
+    }
   }
 
   Future<void> _pickOption(
@@ -497,36 +522,92 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
     ValueChanged<String> onPicked,
   ) async {
     final picked = await showOptionSheet(context, title, options, selected);
-    if (picked != null) setState(() => onPicked(picked));
+
+    if (picked != null && mounted) {
+      setState(() => onPicked(picked));
+    }
   }
 
-  void _save() {
+  // ===========================================================================
+  // FIXED SAVE METHOD
+  // ===========================================================================
+  //
+  // OLD:
+  // setState(() async => _error = await error);
+  //
+  // This is invalid because setState() callback cannot return Future.
+  //
+  // Now we await the API operation first and then update the state normally.
+  // ===========================================================================
+
+  Future<void> _save() async {
+    if (_saving) return;
+
     if (_clientId == null) {
       setState(() => _error = 'Please choose a client.');
       return;
     }
+
     if (!_isEdit && _start.isBefore(DateTime.now())) {
       setState(() => _error = 'Please choose a time in the future.');
       return;
     }
-    final error = _isEdit
-        ? _store.updateSession(
-            widget.existing!.id,
-            clientId: _clientId!,
-            start: _start,
-            durationMinutes: _duration,
-            type: _type,
-            location: _location,
-          )
-        : _store.addSession(
-            clientId: _clientId!,
-            start: _start,
-            durationMinutes: _duration,
-            type: _type,
-            location: _location,
-          );
-    setState(() async => _error = await error);
-    return;
+
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+
+    String? error;
+
+    try {
+      if (_isEdit) {
+        error = await _store.updateSession(
+          widget.existing!.id,
+          clientId: _clientId!,
+          start: _start,
+          durationMinutes: _duration,
+          type: _type,
+          location: _location,
+        );
+      } else {
+        error = await _store.addSession(
+          clientId: _clientId!,
+          start: _start,
+          durationMinutes: _duration,
+          type: _type,
+          location: _location,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _saving = false;
+        _error = e.toString();
+      });
+
+      return;
+    }
+
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() {
+        _saving = false;
+        _error = error;
+      });
+
+      return;
+    }
+
+    Navigator.pop(context);
+
+    widget.onSaved(
+      _isEdit
+          ? 'Training session updated successfully'
+          : 'Training session created successfully',
+    );
   }
 
   @override
@@ -668,17 +749,21 @@ class _SessionFormSheetState extends State<_SessionFormSheet> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _yellow,
                     foregroundColor: Colors.black,
+                    disabledBackgroundColor: _yellow.withValues(alpha: 0.55),
+                    disabledForegroundColor: Colors.black54,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: Text(
-                    _isEdit ? 'Save Changes' : 'Create Session',
+                    _saving
+                        ? 'Saving...'
+                        : (_isEdit ? 'Save Changes' : 'Create Session'),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
@@ -796,6 +881,18 @@ Future<String?> showOptionSheet(
   );
 }
 
+// =============================================================================
+// FIXED OPTION ROW
+// =============================================================================
+//
+// The ListTile was inside a Container with a background color.
+// ListTile's ripple/background is painted on the nearest Material,
+// so the Container could hide it.
+//
+// Material now sits directly above ListTile and clips the ripple
+// correctly.
+// =============================================================================
+
 Widget _optionRow({
   required String title,
   required bool selected,
@@ -803,39 +900,46 @@ Widget _optionRow({
   Widget? leading,
   String? subtitle,
 }) {
+  final backgroundColor = selected
+      ? _yellow.withValues(alpha: 0.09)
+      : Colors.white.withValues(alpha: 0.035);
+
+  final borderColor = selected
+      ? _yellow.withValues(alpha: 0.18)
+      : Colors.white.withValues(alpha: 0.06);
+
   return Container(
     margin: const EdgeInsets.only(bottom: 9),
     decoration: BoxDecoration(
-      color: selected
-          ? _yellow.withValues(alpha: 0.09)
-          : Colors.white.withValues(alpha: 0.035),
+      color: backgroundColor,
       borderRadius: BorderRadius.circular(15),
-      border: Border.all(
-        color: selected
-            ? _yellow.withValues(alpha: 0.18)
-            : Colors.white.withValues(alpha: 0.06),
-      ),
+      border: Border.all(color: borderColor),
     ),
-    child: ListTile(
-      leading: leading,
-      title: Text(
-        title,
-        style: TextStyle(
-          color: selected ? Colors.white : Colors.white70,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(15),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: leading,
+        title: Text(
+          title,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
         ),
+        subtitle: subtitle == null
+            ? null
+            : Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white38, fontSize: 10),
+              ),
+        trailing: selected
+            ? const Icon(Icons.check_circle_rounded, color: _yellow, size: 20)
+            : null,
+        onTap: onTap,
       ),
-      subtitle: subtitle == null
-          ? null
-          : Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white38, fontSize: 10),
-            ),
-      trailing: selected
-          ? const Icon(Icons.check_circle_rounded, color: _yellow, size: 20)
-          : null,
-      onTap: onTap,
     ),
   );
 }
@@ -846,6 +950,7 @@ Future<TrainerClient?> showClientPickerSheet(
   String? selectedId,
 }) {
   final clients = _store.clients;
+
   return showModalBottomSheet<TrainerClient>(
     context: context,
     backgroundColor: _sheetColor,
@@ -924,6 +1029,7 @@ Future<void> showAssignWorkoutSheet(
   TrainerClient client,
 ) {
   final messenger = ScaffoldMessenger.of(context);
+
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -948,7 +1054,9 @@ Future<void> pickClientAndAssignWorkout(BuildContext context) async {
     );
     return;
   }
+
   final client = await showClientPickerSheet(context);
+
   if (client != null && context.mounted) {
     await showAssignWorkoutSheet(context, client);
   }
@@ -971,12 +1079,15 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
   @override
   void initState() {
     super.initState();
+
     final existing = widget.client.workoutPlan;
+
     _template =
         existing != null &&
             TrainerOptions.workoutTemplates.containsKey(existing.title)
         ? existing.title
         : TrainerOptions.workoutTemplates.keys.first;
+
     _notesController = TextEditingController(text: existing?.notes ?? '');
   }
 
@@ -996,7 +1107,9 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
         assignedOn: DateTime.now(),
       ),
     );
+
     Navigator.pop(context);
+
     widget.onSaved('$_template assigned to ${widget.client.name}');
   }
 
@@ -1066,6 +1179,7 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                 runSpacing: 8,
                 children: TrainerOptions.workoutTemplates.keys.map((t) {
                   final selected = t == _template;
+
                   return GestureDetector(
                     onTap: () => setState(() => _template = t),
                     child: AnimatedContainer(

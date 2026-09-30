@@ -4,7 +4,7 @@ import 'package:gymora_fitness_management/core/api/network/owner_member_service.
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
-class MemberProvider extends ChangeNotifier {
+class OwnerMemberProvider extends ChangeNotifier {
   List<OwnerMemberModel> _members = [];
   bool _hasLoaded = false;
 

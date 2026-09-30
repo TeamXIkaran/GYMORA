@@ -4,52 +4,107 @@ class AppColors {
   AppColors._();
 
   // ============================================================
-  // COMMON COLORS
+  // GYMORA MEMBER THEME
+  // Cyan / Blue / Violet
   // ============================================================
 
-  static const Color background = Color(0xFF03070F);
+  static const Color background = Color(0xFF050912);
+  static const Color backgroundSecondary = Color(0xFF091321);
 
-  static const Color backgroundSecondary = Color(0xFF081521);
+  // Main surfaces
+  static const Color card = Color(0xFF0D1726);
+  static const Color cardLight = Color(0xFF142236);
 
-  static const Color card = Color(0xFF1A2C38);
+  static const Color surface = Color(0xFF0D1726);
+  static const Color surfaceHigh = Color(0xFF142236);
+  static const Color surfaceHighest = Color(0xFF1A2B42);
 
-  static const Color cardLight = Color(0xFF263946);
+  // ============================================================
+  // TEXT
+  // ============================================================
 
   static const Color white = Color(0xFFFFFFFF);
-
   static const Color black = Color(0xFF000000);
 
-  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFFF5F9FF);
+  static const Color textSecondary = Color(0xFF9AAAC0);
+  static const Color textMuted = Color(0xFF64748B);
 
-  static const Color textSecondary = Color(0xFFBDB9BA);
-
-  static const Color textMuted = Color(0xFF6F6C6F);
-
-  static const Color divider = Color(0xFF263946);
+  static const Color text = Color(0xFFF5F9FF);
+  static const Color muted = Color(0xFF64748B);
 
   // ============================================================
-  // COMMON ACTION COLORS
+  // BORDERS / DIVIDERS
   // ============================================================
 
-  static const Color primary = Color(0xFFE62B52);
+  static const Color divider = Color(0xFF1B2B40);
 
-  static const Color errorRed = Color(0xFFFF174F);
+  static const Color stroke = Color(0xFF1B2B40);
+  static const Color strokeStrong = Color(0xFF2A405C);
+
+  // ============================================================
+  // MAIN BRAND COLORS
+  // ============================================================
+
+  static const Color primary = Color(0xFF00C8FF);
+
+  static const Color cyan = Color(0xFF00C8FF);
+  static const Color blue = Color(0xFF287BFF);
+  static const Color violet = Color(0xFF8B5CF6);
+  static const Color pink = Color(0xFFFF3D81);
+
+  // ============================================================
+  // STATUS COLORS
+  // ============================================================
 
   static const Color success = Color(0xFF22C55E);
+  static const Color green = Color(0xFF22C55E);
 
   static const Color warning = Color(0xFFFFB31A);
+  static const Color amber = Color(0xFFFFB31A);
 
   static const Color info = Color(0xFF0BAFE7);
 
+  static const Color orange = Color(0xFFFF7A18);
+
+  static const Color lime = Color(0xFFA3E635);
+
+  static const Color errorRed = Color(0xFFFF174F);
+
+  // ============================================================
+  // MEMBER GRADIENTS
+  // ============================================================
+
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [Color(0xFF00C8FF), Color(0xFF287BFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient blueGradient = LinearGradient(
+    colors: [Color(0xFF287BFF), Color(0xFF5B5FEF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient violetGradient = LinearGradient(
+    colors: [Color(0xFF8B5CF6), Color(0xFF287BFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient fireGradient = LinearGradient(
+    colors: [Color(0xFFFFB31A), Color(0xFFFF5A1F)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // ============================================================
   // OWNER THEME
-  // Red / Pink
   // ============================================================
 
   static const Color ownerPrimary = Color(0xFFE62B52);
-
   static const Color ownerBright = Color(0xFFFF174F);
-
   static const Color ownerDark = Color(0xFF7D2E30);
 
   static const LinearGradient ownerGradient = LinearGradient(
@@ -60,13 +115,10 @@ class AppColors {
 
   // ============================================================
   // TRAINER THEME
-  // Orange / Yellow
   // ============================================================
 
   static const Color trainerPrimary = Color(0xFFEE9D2D);
-
   static const Color trainerBright = Color(0xFFFFB31A);
-
   static const Color trainerDark = Color(0xFF43211E);
 
   static const LinearGradient trainerGradient = LinearGradient(
@@ -77,13 +129,10 @@ class AppColors {
 
   // ============================================================
   // CLIENT THEME
-  // Cyan / Blue
   // ============================================================
 
   static const Color clientPrimary = Color(0xFF0BAFE7);
-
   static const Color clientBright = Color(0xFF00C8FF);
-
   static const Color clientDark = Color(0xFF075B78);
 
   static const LinearGradient clientGradient = LinearGradient(
@@ -93,14 +142,27 @@ class AppColors {
   );
 
   // ============================================================
-  // COMMON DARK GRADIENT
+  // DARK BACKGROUND GRADIENT
   // ============================================================
 
   static const LinearGradient darkGradient = LinearGradient(
-    colors: [Color(0xFF03070F), Color(0xFF081521)],
+    colors: [Color(0xFF050912), Color(0xFF091321)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  // ============================================================
+  // GYMORA ALIASES
+  // ============================================================
+
+  static const Color gymBackground = background;
+  static const Color gymSurface = surface;
+  static const Color gymSurfaceHigh = surfaceHigh;
+  static const Color gymSurfaceHighest = surfaceHighest;
+  static const Color gymText = text;
+  static const Color gymMuted = muted;
+  static const Color gymStroke = stroke;
+  static const Color gymStrokeStrong = strokeStrong;
 }
 
 // ============================================================================

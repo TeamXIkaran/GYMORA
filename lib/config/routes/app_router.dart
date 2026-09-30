@@ -31,4 +31,6 @@ class AppRoutes {
   static const String trainerProgressRoute = '/trainer-progress';
 
   // Member Routes
+
+  static const String memberDashboardRoute = '/member-dashboard';
 }

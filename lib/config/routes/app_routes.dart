@@ -10,6 +10,7 @@ import 'package:gymora_fitness_management/feature/auth/screens/purchase_membersh
 import 'package:gymora_fitness_management/feature/auth/screens/role_selection_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_dashboard_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_member_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_trainer_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
@@ -34,7 +35,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.splashRoute,
+    initialLocation: AppRoutes.memberDashboardRoute,
 
     routes: [
       // Splash Screen
@@ -209,6 +210,13 @@ class AppRouter {
         name: 'trainerProgressScreen',
         builder: (context, state) {
           return const TrainerProgressScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.memberDashboardRoute,
+        name: 'memberDashboardScreen',
+        builder: (context, state) {
+          return const MemberDashboardScreen();
         },
       ),
     ],

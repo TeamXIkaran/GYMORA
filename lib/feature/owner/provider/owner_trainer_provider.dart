@@ -4,7 +4,7 @@ import 'package:gymora_fitness_management/core/api/network/owner_trainer_service
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
-class TrainerProvider extends ChangeNotifier {
+class OwnerTrainerProvider extends ChangeNotifier {
   List<OwnerTrainerModel> _trainers = [];
 
   bool _hasLoaded = false;

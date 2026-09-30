@@ -39,7 +39,7 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
     )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<DashboardProvider>().ensureLoaded();
+      if (mounted) context.read<OwnerDashboardProvider>().ensureLoaded();
     });
   }
 
@@ -99,7 +99,7 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
             ),
           ),
           SafeArea(
-            child: Consumer<DashboardProvider>(
+            child: Consumer<OwnerDashboardProvider>(
               builder: (context, dashProvider, _) {
                 final owner = dashProvider.owner;
 

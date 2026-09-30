@@ -3,12 +3,12 @@ import 'package:gymora_fitness_management/core/api/network/owner_dashboard_servi
 import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
-class DashboardProvider extends ChangeNotifier {
-  DashboardModel? _dashboard;
+class OwnerDashboardProvider extends ChangeNotifier {
+  OwnerDashboardModel? _dashboard;
   bool _isLoading = false;
   String? _error;
 
-  DashboardModel? get dashboard => _dashboard;
+  OwnerDashboardModel? get dashboard => _dashboard;
   bool get isLoading => _isLoading;
   String? get error => _error;
 

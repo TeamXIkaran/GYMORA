@@ -41,7 +41,7 @@ class _MembershipScreenState extends State<MembershipScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<MemberProvider>().ensureLoaded();
+        context.read<OwnerMemberProvider>().ensureLoaded();
       }
     });
   }
@@ -57,7 +57,7 @@ class _MembershipScreenState extends State<MembershipScreen>
   // FILTERING
   // ============================================================
 
-  List<OwnerMemberModel> _getFilteredMembers(MemberProvider provider) {
+  List<OwnerMemberModel> _getFilteredMembers(OwnerMemberProvider provider) {
     List<OwnerMemberModel> result;
 
     switch (_selectedFilter) {
@@ -88,7 +88,7 @@ class _MembershipScreenState extends State<MembershipScreen>
     return result;
   }
 
-  Map<String, int> _getMembershipSummary(MemberProvider provider) {
+  Map<String, int> _getMembershipSummary(OwnerMemberProvider provider) {
     final members = provider.members;
 
     return {
@@ -239,7 +239,7 @@ class _MembershipScreenState extends State<MembershipScreen>
   // ============================================================
 
   Widget _buildSummaryCards() {
-    return Consumer<MemberProvider>(
+    return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         final summary = _getMembershipSummary(provider);
 
@@ -466,7 +466,7 @@ class _MembershipScreenState extends State<MembershipScreen>
   // ============================================================
 
   Widget _buildMembershipList() {
-    return Consumer<MemberProvider>(
+    return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.members.isEmpty) {
           return const Center(

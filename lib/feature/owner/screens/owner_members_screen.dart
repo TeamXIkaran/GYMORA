@@ -41,7 +41,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<MemberProvider>().ensureLoaded();
+        context.read<OwnerMemberProvider>().ensureLoaded();
       }
     });
   }
@@ -53,7 +53,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     super.dispose();
   }
 
-  List<OwnerMemberModel> _getFilteredMembers(MemberProvider provider) {
+  List<OwnerMemberModel> _getFilteredMembers(OwnerMemberProvider provider) {
     List<OwnerMemberModel> result;
 
     switch (_selectedFilter) {
@@ -171,7 +171,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // ============================================================
 
   Widget _buildHeader() {
-    return Consumer<MemberProvider>(
+    return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
@@ -275,7 +275,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // ============================================================
 
   Widget _buildOverview() {
-    return Consumer<MemberProvider>(
+    return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         return Padding(
           padding: const EdgeInsets.fromLTRB(18, 4, 18, 13),
@@ -515,7 +515,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // ============================================================
 
   Widget _buildMemberList() {
-    return Consumer<MemberProvider>(
+    return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.members.isEmpty) {
           return const Center(

@@ -2,7 +2,7 @@ import 'package:gymora_fitness_management/core/api/base_api/api_helper.dart';
 import 'package:gymora_fitness_management/core/api/base_api/api_response.dart';
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/core/model/trainer_login_model.dart';
-
+import 'package:gymora_fitness_management/core/service/secure_storage_service.dart';
 
 class TrainerLoginService {
   final ApiHelper _apiHelper;
@@ -13,12 +13,6 @@ class TrainerLoginService {
   // ============================================================
   // TRAINER LOGIN
   // POST /api/trainers/login
-  //
-  // Request:
-  // {
-  //   "trainerId": "0002",
-  //   "password": "Barani00"
-  // }
   // ============================================================
 
   Future<ApiResponse<TrainerLoginModel>> loginTrainer({
@@ -26,7 +20,7 @@ class TrainerLoginService {
     required String password,
   }) async {
     final response = await _apiHelper.post<Map<String, dynamic>>(
-      'api/trainers/login',
+      'trainers/login',
       {'trainerId': trainerId.trim(), 'password': password},
     );
 
@@ -40,11 +34,7 @@ class TrainerLoginService {
 
     final data = response.data!;
 
-    // Backend response:
-    // {
-    //   "success": false,
-    //   "message": "Invalid Trainer ID or password"
-    // }
+    // Backend success check
     if (data['success'] != true) {
       return ApiResponse<TrainerLoginModel>(
         success: false,
@@ -54,10 +44,71 @@ class TrainerLoginService {
     }
 
     try {
+      // Support both:
+      //
+      // 1. Root response:
+      // {
+      //   "success": true,
+      //   "trainerId": "0002",
+      //   "fullName": "...",
+      //   "token": "..."
+      // }
+      //
+      // 2. Nested response:
+      // {
+      //   "success": true,
+      //   "data": {
+      //     "trainerId": "0002",
+      //     "fullName": "...",
+      //     "token": "..."
+      //   }
+      // }
+
+      final trainerData = data['data'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(data['data'])
+          : data;
+
+      // If token is at root but trainer data is nested,
+      // copy token into trainerData.
+      final rootToken =
+          data['token'] ?? data['accessToken'] ?? data['access_token'];
+
+      if (!trainerData.containsKey('token') && rootToken != null) {
+        trainerData['token'] = rootToken;
+      }
+
+      final trainer = TrainerLoginModel.fromJson(trainerData);
+
+      // ==========================================================
+      // TOKEN CHECK
+      // ==========================================================
+
+      final token = trainer.token;
+
+      if (token == null || token.isEmpty) {
+        return ApiResponse<TrainerLoginModel>(
+          success: false,
+          message:
+              'Login successful, but authentication token was not received.',
+        );
+      }
+
+      // ==========================================================
+      // SAVE TOKEN + TRAINER DATA
+      // ==========================================================
+
+      await SecureStorageService().saveUserData(
+        token: token,
+        employeeId: trainer.trainerId,
+        username: trainer.fullName,
+        email: trainer.email,
+        role: trainer.role ?? 'trainer',
+      );
+
       return ApiResponse<TrainerLoginModel>(
         success: true,
         message: data['message']?.toString() ?? 'Trainer login successful',
-        data: TrainerLoginModel.fromJson(data),
+        data: trainer,
       );
     } catch (e) {
       return ApiResponse<TrainerLoginModel>(
@@ -66,7 +117,6 @@ class TrainerLoginService {
       );
     }
   }
-
 
   // ============================================================
   // CREATE TRAINER
@@ -81,15 +131,14 @@ class TrainerLoginService {
     required String specialization,
     required int experience,
   }) async {
-    final response = await _apiHelper
-        .post<Map<String, dynamic>>('api/trainers', {
-          'fullName': fullName,
-          'phone': phone,
-          'email': email,
-          'password': password,
-          'specialization': specialization,
-          'experience': experience,
-        });
+    final response = await _apiHelper.post<Map<String, dynamic>>('trainers', {
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'password': password,
+      'specialization': specialization,
+      'experience': experience,
+    });
 
     if (!response.success || response.data == null) {
       return ApiResponse<OwnerTrainerModel>(

@@ -150,8 +150,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
 
-    final provider = context.read<MemberProvider>();
-    final dashboardProvider = context.read<DashboardProvider>();
+    final provider = context.read<OwnerMemberProvider>();
+    final dashboardProvider = context.read<OwnerDashboardProvider>();
 
     final name = _nameController.text.trim();
 

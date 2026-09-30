@@ -1,86 +1,216 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
+import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
+
+import 'app_text.dart';
 
 class AppTheme {
   AppTheme._();
 
   static ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
 
-    scaffoldBackgroundColor: AppColors.background,
+    scaffoldBackgroundColor: GymColors.background,
 
-    primaryColor: AppColors.ownerPrimary,
+    primaryColor: GymColors.cyan,
 
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.ownerPrimary,
-      secondary: AppColors.ownerBright,
-      surface: AppColors.card,
-      onPrimary: Colors.white,
+      primary: GymColors.cyan,
+      secondary: GymColors.blue,
+      surface: GymColors.surface,
+      onPrimary: GymColors.background,
       onSecondary: Colors.white,
-      onSurface: Colors.white,
+      onSurface: GymColors.text,
+      error: GymColors.pink,
     ),
 
+    // ==========================================================
+    // APP BAR
+    // ==========================================================
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.background,
-      foregroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
+      foregroundColor: GymColors.text,
       elevation: 0,
       centerTitle: false,
+      surfaceTintColor: Colors.transparent,
     ),
 
+    // ==========================================================
+    // CARDS
+    // ==========================================================
     cardTheme: const CardThemeData(
-      color: AppColors.card,
+      color: GymColors.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+        side: BorderSide(color: GymColors.stroke),
       ),
     ),
 
+    // ==========================================================
+    // INPUT FIELDS
+    // ==========================================================
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.card,
+      fillColor: GymColors.surface,
 
-      hintStyle: const TextStyle(color: AppColors.textMuted),
+      hintStyle: const TextStyle(color: GymColors.muted, fontSize: 14),
 
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      labelStyle: const TextStyle(color: GymColors.textSecondary, fontSize: 14),
 
-      prefixIconColor: AppColors.textSecondary,
+      floatingLabelStyle: const TextStyle(
+        color: GymColors.cyan,
+        fontWeight: FontWeight.w600,
+      ),
+
+      prefixIconColor: GymColors.textSecondary,
+
+      suffixIconColor: GymColors.textSecondary,
+
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
 
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: GymColors.stroke),
       ),
 
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.ownerPrimary, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: GymColors.cyan, width: 1.5),
       ),
 
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: GymColors.pink),
+      ),
+
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: GymColors.pink, width: 1.5),
+      ),
+
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
     ),
 
+    // ==========================================================
+    // DIVIDER
+    // ==========================================================
     dividerTheme: const DividerThemeData(
-      color: AppColors.divider,
+      color: GymColors.stroke,
       thickness: 1,
+      space: 1,
     ),
 
-    iconTheme: const IconThemeData(color: AppColors.textSecondary),
+    // ==========================================================
+    // ICONS
+    // ==========================================================
+    iconTheme: const IconThemeData(color: GymColors.textSecondary),
 
+    // ==========================================================
+    // TEXT
+    // ==========================================================
     textTheme: const TextTheme(
-      displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      headlineLarge: TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
+      displayLarge: GymText.h1,
+
+      displayMedium: TextStyle(
+        color: GymColors.text,
+        fontSize: 28,
+        fontWeight: FontWeight.w900,
       ),
-      headlineMedium: TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
+
+      headlineLarge: GymText.h1,
+
+      headlineMedium: GymText.h2,
+
+      headlineSmall: GymText.h3,
+
+      titleLarge: GymText.h2,
+
+      titleMedium: GymText.title,
+
+      titleSmall: TextStyle(
+        color: GymColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
       ),
-      titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-      titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: Colors.white),
-      bodyMedium: TextStyle(color: AppColors.textSecondary),
-      bodySmall: TextStyle(color: AppColors.textMuted),
+
+      bodyLarge: TextStyle(
+        color: GymColors.text,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+
+      bodyMedium: GymText.body,
+
+      bodySmall: GymText.caption,
+
+      labelLarge: GymText.button,
+
+      labelMedium: TextStyle(
+        color: GymColors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+
+      labelSmall: TextStyle(
+        color: GymColors.muted,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
     ),
+
+    // ==========================================================
+    // BUTTON
+    // ==========================================================
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: GymColors.cyan,
+        foregroundColor: GymColors.background,
+        elevation: 0,
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        textStyle: GymText.button,
+      ),
+    ),
+
+    // ==========================================================
+    // TEXT BUTTON
+    // ==========================================================
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: GymColors.cyan,
+        textStyle: GymText.button,
+      ),
+    ),
+
+    // ==========================================================
+    // SNACKBAR
+    // ==========================================================
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: GymColors.surfaceHigh,
+      elevation: 0,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      contentTextStyle: const TextStyle(
+        color: GymColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+
+    // ==========================================================
+    // PROGRESS
+    // ==========================================================
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: GymColors.cyan,
+      linearTrackColor: GymColors.surfaceHigh,
+    ),
+
+    // ==========================================================
+    // RIPPLE
+    // ==========================================================
+    splashFactory: InkRipple.splashFactory,
   );
 }

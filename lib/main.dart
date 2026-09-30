@@ -8,34 +8,71 @@ import 'package:gymora_fitness_management/feature/auth/providers/payment_provide
 import 'package:gymora_fitness_management/feature/auth/providers/trainer_login_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
-import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
+import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Load the correct .env file based on build flavor ──
-
-  // Production:   flutter run --dart-define=ENV=prod
+  // ===========================================================================
+  // ENVIRONMENT
+  // ===========================================================================
+  //
+  // Development:
+  // flutter run
+  //
+  // Production:
+  // flutter run --dart-define=ENV=prod
+  //
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
+
   try {
     await dotenv.load(fileName: 'env/.env.$env');
+
+    debugPrint('✅ Loaded environment: $env');
   } catch (e) {
     debugPrint('⚠️ Could not load env/.env.$env: $e');
-    // Optionally load a fallback or continue with defaults
   }
+
+  // ===========================================================================
+  // APP
+  // ===========================================================================
 
   runApp(
     MultiProvider(
       providers: [
+        // ---------------------------------------------------------------------
+        // AUTH
+        // ---------------------------------------------------------------------
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+
         ChangeNotifierProvider(create: (_) => OwnerLoginProvider()),
-        ChangeNotifierProvider(create: (_) => PaymentProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => TrainerProvider()),
-        ChangeNotifierProvider(create: (_) => MemberProvider()),
+
         ChangeNotifierProvider(create: (_) => TrainerLoginProvider()),
+
+        // ---------------------------------------------------------------------
+        // PAYMENT
+        // ---------------------------------------------------------------------
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+
+        // ---------------------------------------------------------------------
+        // OWNER
+        // ---------------------------------------------------------------------
+        ChangeNotifierProvider(create: (_) => OwnerDashboardProvider()),
+
+        ChangeNotifierProvider(create: (_) => OwnerTrainerProvider()),
+
+        ChangeNotifierProvider(create: (_) => OwnerMemberProvider()),
+
+        // ---------------------------------------------------------------------
+        // TRAINER
+        // ---------------------------------------------------------------------
+        //
+        // TrainerDashboardProvider is a singleton.
+        // Therefore use `.value` instead of creating another instance.
+        //
+        ChangeNotifierProvider.value(value: TrainerDashboardProvider.instance),
       ],
       child: const MyApp(),
     ),

@@ -29,9 +29,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      context.read<DashboardProvider>().fetchDashboard();
-      context.read<MemberProvider>().ensureLoaded();
-      context.read<TrainerProvider>().ensureLoaded();
+      context.read<OwnerDashboardProvider>().fetchDashboard();
+      context.read<OwnerMemberProvider>().ensureLoaded();
+      context.read<OwnerTrainerProvider>().ensureLoaded();
     });
   }
 
@@ -201,7 +201,7 @@ class _HomeTab extends StatelessWidget {
               child: _backgroundGlow(const Color(0xFF154CFF), 250),
             ),
 
-            Consumer<DashboardProvider>(
+            Consumer<OwnerDashboardProvider>(
               builder: (context, dashProvider, _) {
                 if (dashProvider.isLoading && dashProvider.dashboard == null) {
                   return const Center(
@@ -280,7 +280,7 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, DashboardProvider provider) {
+  Widget _buildErrorState(BuildContext context, OwnerDashboardProvider provider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(30),
@@ -367,7 +367,7 @@ class _HomeTab extends StatelessWidget {
   // GREETING
   // ============================================================
 
-  Widget _buildGreeting(BuildContext context, DashboardModel? dashboard) {
+  Widget _buildGreeting(BuildContext context, OwnerDashboardModel? dashboard) {
     final ownerName = dashboard?.owner.name ?? 'Owner';
     final gymName = dashboard?.owner.gymName ?? 'Your Gym';
 
@@ -527,7 +527,7 @@ class _HomeTab extends StatelessWidget {
   // STATS
   // ============================================================
 
-  Widget _buildStatsRow(DashboardModel? dashboard) {
+  Widget _buildStatsRow(OwnerDashboardModel? dashboard) {
     final summary = dashboard?.summary;
 
     return Row(
@@ -664,7 +664,7 @@ class _HomeTab extends StatelessWidget {
   // REVENUE
   // ============================================================
 
-  Widget _buildRevenueCard(DashboardModel? dashboard) {
+  Widget _buildRevenueCard(OwnerDashboardModel? dashboard) {
     final revenue = dashboard?.revenueOverview;
 
     final previous = revenue?.previousMonthRevenue ?? 0;
@@ -1164,7 +1164,7 @@ class _HomeTab extends StatelessWidget {
   // RECENT MEMBERS
   // ============================================================
 
-  Widget _buildRecentMembers(DashboardModel? dashboard) {
+  Widget _buildRecentMembers(OwnerDashboardModel? dashboard) {
     final recentMembers = dashboard?.recentMembers ?? const <RecentMember>[];
 
     return Column(
@@ -1386,7 +1386,7 @@ class _HomeTab extends StatelessWidget {
   // TRAINER OVERVIEW
   // ============================================================
 
-  Widget _buildTrainerOverview(DashboardModel? dashboard) {
+  Widget _buildTrainerOverview(OwnerDashboardModel? dashboard) {
     final trainers =
         dashboard?.trainerOverview ?? const <TrainerOverviewItem>[];
 

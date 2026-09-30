@@ -112,8 +112,8 @@ class _AddTrainerScreenState extends State<AddTrainerScreen>
 
     setState(() => _isSubmitting = true);
 
-    final trainerProvider = context.read<TrainerProvider>();
-    final dashboardProvider = context.read<DashboardProvider>();
+    final trainerProvider = context.read<OwnerTrainerProvider>();
+    final dashboardProvider = context.read<OwnerDashboardProvider>();
     final name = _nameController.text.trim();
     final success = await trainerProvider.addTrainer(
       trainerId: _trainerIdController.text.trim(),
