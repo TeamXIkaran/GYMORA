@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
@@ -23,6 +26,7 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
     with TickerProviderStateMixin {
   late final AnimationController _glowController;
   late final AnimationController _particleController;
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -175,6 +179,8 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
                             const SizedBox(height: 24),
 
                             _buildEditProfileButton(),
+                            const SizedBox(height: 12),
+                            _buildLogoutButton(),
                           ],
                         ),
                       ),
@@ -417,6 +423,97 @@ class _OwnerProfileScreenState extends State<OwnerProfileScreen>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111722),
+        title: const Text(
+          'Log out of GYMORA?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Your owner session will end on this device.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF647C),
+            ),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLoggingOut = true);
+    try {
+      final ownerLoginProvider = context.read<OwnerLoginProvider>();
+      final dashboardProvider = context.read<OwnerDashboardProvider>();
+      final memberProvider = context.read<OwnerMemberProvider>();
+      final trainerProvider = context.read<OwnerTrainerProvider>();
+
+      await ownerLoginProvider.logout();
+      dashboardProvider.reset();
+      memberProvider.reset();
+      trainerProvider.reset();
+
+      if (!mounted) return;
+      context.goNamed('role-selection');
+    } catch (error) {
+      debugPrint('OWNER_LOGOUT_ERROR: ${error.runtimeType}');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Could not log out. Please try again.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoggingOut = false);
+    }
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: _isLoggingOut ? null : _confirmLogout,
+        icon: _isLoggingOut
+            ? const SizedBox(
+                width: 17,
+                height: 17,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.logout_rounded, size: 18),
+        label: Text(_isLoggingOut ? 'Logging out...' : 'Log out'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFFF647C),
+          side: BorderSide(
+            color: const Color(0xFFFF647C).withValues(alpha: 0.3),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
       ),
     );

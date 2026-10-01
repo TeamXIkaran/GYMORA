@@ -126,6 +126,20 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
   String get _growthText =>
       '${_growth >= 0 ? '+' : ''}${_growth.toStringAsFixed(1)}%';
 
+  int get _currentBucketIndex {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 'This Month':
+        return (now.day - 1) ~/ 7;
+      case 'Last 3 Months':
+        return 2;
+      case 'This Year':
+        return now.month - 1;
+      default:
+        return now.weekday - 1;
+    }
+  }
+
   List<_ChartData> get _chartData {
     final start = _periodStart;
     final buckets = <_ChartData>[];
@@ -854,46 +868,89 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
   // ============================================================
 
   Widget _buildWeeklyChart() {
+    final chartData = _chartData;
+    final isCompact = chartData.length > 7;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 17),
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 15),
       decoration: BoxDecoration(
-        color: cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            trainerYellow.withValues(alpha: 0.09),
+            cardColor,
+            const Color(0xFF080C12),
+          ],
+        ),
         borderRadius: BorderRadius.circular(23),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: trainerYellow.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: trainerYellow.withValues(alpha: 0.06),
+            blurRadius: 26,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
+              Container(
+                width: 39,
+                height: 39,
+                decoration: BoxDecoration(
+                  color: trainerYellow.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: trainerYellow.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.show_chart_rounded,
+                  color: trainerYellow,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      _selectedPeriod.toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.44),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
                     const Text(
-                      'Training Sessions',
+                      'Training sessions',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sessions completed $_periodPhrase',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 9,
-                      ),
-                    ),
                   ],
                 ),
               ),
-
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                 decoration: BoxDecoration(
-                  color: trainerYellow.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(9),
+                  color: _growth >= 0
+                      ? trainerYellow.withValues(alpha: 0.10)
+                      : Colors.redAccent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: _growth >= 0
+                        ? trainerYellow.withValues(alpha: 0.22)
+                        : Colors.redAccent.withValues(alpha: 0.22),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -902,14 +959,14 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                       _growth >= 0
                           ? Icons.trending_up_rounded
                           : Icons.trending_down_rounded,
-                      color: trainerYellow,
+                      color: _growth >= 0 ? trainerYellow : Colors.redAccent,
                       size: 14,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _growthText,
-                      style: const TextStyle(
-                        color: trainerYellow,
+                      style: TextStyle(
+                        color: _growth >= 0 ? trainerYellow : Colors.redAccent,
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                       ),
@@ -919,19 +976,61 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$_completedInPeriod',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  'COMPLETED $_periodPhrase'.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.40),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
           SizedBox(
             height: 205,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _buildChartBars(),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  top: 25,
+                  bottom: 29,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(
+                      4,
+                      (_) => Container(
+                        height: 1,
+                        color: Colors.white.withValues(alpha: 0.055),
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _buildChartBars(chartData, isCompact: isCompact),
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 14),
-
+          const SizedBox(height: 8),
           Row(
             children: [
               Container(
@@ -944,11 +1043,29 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
               ),
               const SizedBox(width: 7),
               Text(
-                'Completed sessions',
+                _selectedPeriod == 'This Week'
+                    ? 'Current day highlighted'
+                    : 'Period activity by bucket',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.38),
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.touch_app_outlined,
+                color: Colors.white.withValues(alpha: 0.30),
+                size: 12,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'INSIGHTS',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.30),
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
                 ),
               ),
             ],
@@ -958,16 +1075,19 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
     );
   }
 
-  List<Widget> _buildChartBars() {
-    final data = _chartData;
+  List<Widget> _buildChartBars(
+    List<_ChartData> data, {
+    required bool isCompact,
+  }) {
     final hasData = data.any((d) => d.sessions > 0);
-    final compact = data.length > 7;
     return List.generate(data.length, (index) {
       return Expanded(
         child: _chartBar(
           data: data[index],
           isHighest: hasData && data[index].value == 1,
-          compact: compact,
+          isCurrentPeriod: index == _currentBucketIndex,
+          compact: isCompact,
+          animationOrder: index,
         ),
       );
     });
@@ -976,6 +1096,8 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
   Widget _chartBar({
     required _ChartData data,
     required bool isHighest,
+    required bool isCurrentPeriod,
+    required int animationOrder,
     bool compact = false,
   }) {
     return Padding(
@@ -983,27 +1105,17 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
       child: Column(
         children: [
           SizedBox(
-            height: 25,
-            child: isHighest
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: trainerYellow,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      compact ? '${data.sessions}' : 'TOP',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 7,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  )
-                : null,
+            height: 22,
+            child: Text(
+              '${data.sessions}',
+              style: TextStyle(
+                color: isHighest || isCurrentPeriod
+                    ? trainerYellow
+                    : Colors.white.withValues(alpha: 0.52),
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
 
           Expanded(
@@ -1013,30 +1125,63 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
                   alignment: Alignment.bottomCenter,
                   children: [
                     Container(
-                      width: 1,
+                      width: compact ? 12 : 18,
                       height: constraints.maxHeight,
-                      color: Colors.white.withValues(alpha: 0.04),
+                      decoration: BoxDecoration(
+                        color: isCurrentPeriod
+                            ? trainerYellow.withValues(alpha: 0.07)
+                            : Colors.white.withValues(alpha: 0.025),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: isCurrentPeriod
+                              ? trainerYellow.withValues(alpha: 0.16)
+                              : Colors.white.withValues(alpha: 0.025),
+                        ),
+                      ),
                     ),
-
                     Align(
                       alignment: Alignment.bottomCenter,
-                      child: FractionallySizedBox(
-                        heightFactor: data.value,
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: data.value),
+                        duration: Duration(
+                          milliseconds: 500 + animationOrder * 55,
+                        ),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) =>
+                            FractionallySizedBox(
+                              heightFactor: value,
+                              child: child,
+                            ),
                         child: Container(
-                          width: compact ? 10 : 18,
+                          width: compact ? 10 : 14,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(9),
-                            gradient: const LinearGradient(
-                              colors: [trainerYellowLight, trainerYellowDark],
+                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              colors: isCurrentPeriod
+                                  ? const [
+                                      trainerYellowLight,
+                                      trainerYellow,
+                                      trainerYellowDark,
+                                    ]
+                                  : [
+                                      trainerYellowLight.withValues(
+                                        alpha: 0.74,
+                                      ),
+                                      trainerYellowDark.withValues(alpha: 0.72),
+                                    ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: trainerYellow.withValues(alpha: 0.18),
-                                blurRadius: 13,
-                              ),
-                            ],
+                            boxShadow: isCurrentPeriod || isHighest
+                                ? [
+                                    BoxShadow(
+                                      color: trainerYellow.withValues(
+                                        alpha: 0.24,
+                                      ),
+                                      blurRadius: 12,
+                                    ),
+                                  ]
+                                : null,
                           ),
                         ),
                       ),
@@ -1047,21 +1192,22 @@ class _TrainerProgressScreenState extends State<TrainerProgressScreen> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
 
           Text(
             data.day,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.38),
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
+              color: isCurrentPeriod
+                  ? trainerYellow
+                  : Colors.white.withValues(alpha: 0.38),
+              fontSize: compact ? 7 : 8,
+              fontWeight: isCurrentPeriod ? FontWeight.w900 : FontWeight.w700,
             ),
           ),
         ],
       ),
     );
   }
-
   // ============================================================
   // TRAINING INSIGHTS
   // ============================================================

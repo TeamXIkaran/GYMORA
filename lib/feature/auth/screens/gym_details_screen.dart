@@ -522,6 +522,40 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   // ═══════════════════════════════════════════════════════
                   // HEADER
                   // ═══════════════════════════════════════════════════════
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.ownerPrimary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.ownerPrimary.withValues(alpha: 0.26),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.storefront_rounded,
+                          color: AppColors.ownerPrimary,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'OWNER SETUP',
+                          style: TextStyle(
+                            color: AppColors.ownerPrimary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       Container(

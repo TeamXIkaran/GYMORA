@@ -24,8 +24,11 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     with TickerProviderStateMixin {
   // ── Theme color ──
-  static const Color _accent = AppColors.primary;
-  static const _buttonGradient = [Color(0xFFE62B52), Color(0xFF8B1528)];
+  static const Color _accent = AppColors.ownerPrimary;
+  static const _buttonGradient = [
+    AppColors.ownerBright,
+    AppColors.ownerPrimary,
+  ];
 
   // ── Controllers ──
   final _passwordCtrl = TextEditingController();
@@ -306,6 +309,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -330,13 +335,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                    SizedBox(height: compact ? 4 : 12),
                     _buildLogo(),
-                    const SizedBox(height: 14),
+                    SizedBox(height: compact ? 8 : 12),
                     _buildBrandText(),
-                    const SizedBox(height: 40),
+                    SizedBox(height: compact ? 16 : 22),
                     _buildHeading(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 14),
                     _buildEmailInfo(),
                     const SizedBox(height: 24),
                     _buildPasswordField(),
@@ -346,7 +351,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                     _buildConfirmPasswordField(),
                     const SizedBox(height: 8),
                     _buildPasswordRules(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     _buildCTA(),
                     const SizedBox(height: 16),
                     if (_errorMessage != null) _buildErrorMessage(),
@@ -372,25 +377,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 72,
-        height: 72,
+        'assets/images/gym_logo.png',
+        width: 126,
+        height: 126,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 36,
-          ),
-        ),
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.fitness_center_rounded, color: _accent, size: 48),
       ),
     );
   }
@@ -402,28 +394,28 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
       builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
       child: Column(
         children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withValues(alpha: 0.26)),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_reset_rounded, color: _accent, size: 13),
+                const SizedBox(width: 6),
+                Text(
+                  'SECURE PASSWORD RESET',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -483,11 +475,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.verified_user_outlined,
-              color: Colors.green.shade400,
-              size: 18,
-            ),
+            Icon(Icons.verified_user_outlined, color: _accent, size: 18),
             const SizedBox(width: 10),
             Expanded(
               child: RichText(
@@ -721,13 +709,32 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         opacity: _ctaOpacity.value,
         child: Transform.translate(
           offset: Offset(0, _ctaSlide.value),
-          child: ShimmerButton(
-            shimmerCtrl: _shimmerCtrl,
-            gradientColors: _buttonGradient,
-            accentColor: _accent,
-            label: _isLoading ? 'Resetting...' : 'Reset Password',
-            enabled: !_isLoading,
-            onPressed: _resetPassword,
+          child: AnimatedBuilder(
+            animation: _glowPulseCtrl,
+            builder: (context, child) {
+              final pulse = _glowPulseCtrl.value;
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _accent.withValues(alpha: 0.10 + pulse * 0.14),
+                      blurRadius: 18 + pulse * 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: child,
+              );
+            },
+            child: ShimmerButton(
+              shimmerCtrl: _shimmerCtrl,
+              gradientColors: _buttonGradient,
+              accentColor: _accent,
+              label: _isLoading ? 'Resetting...' : 'Reset Password',
+              enabled: !_isLoading,
+              onPressed: _resetPassword,
+            ),
           ),
         ),
       ),

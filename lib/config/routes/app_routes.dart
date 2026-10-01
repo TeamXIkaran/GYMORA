@@ -35,7 +35,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.memberDashboardRoute,
+    initialLocation: AppRoutes.splashRoute,
 
     routes: [
       // Splash Screen

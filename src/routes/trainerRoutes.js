@@ -2,6 +2,7 @@ import express from "express";
 
 import {
   addTrainer,
+  deleteTrainer,
   getTrainers,
   loginTrainer,
 } from "../controllers/trainerController.js";
@@ -17,5 +18,7 @@ router.post("/login", loginTrainer);
 router.get("/", authMiddleware, getTrainers);
 
 router.post("/", authMiddleware, addTrainer);
+
+router.delete("/:id", authMiddleware, deleteTrainer);
 
 export default router;

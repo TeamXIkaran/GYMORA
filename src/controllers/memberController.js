@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import Member from "../models/Member.js";
 
 const MEMBER_PLANS = {
@@ -85,7 +86,7 @@ const addMember = async (req, res) => {
     const membershipEndDate = new Date(membershipStartDate);
 
     membershipEndDate.setMonth(
-      membershipEndDate.getMonth() + selectedPlan.durationMonths
+      membershipEndDate.getMonth() + selectedPlan.durationMonths,
     );
 
     // Check whether email already exists in this gym
@@ -189,4 +190,48 @@ const getMembers = async (req, res) => {
   }
 };
 
-export { addMember, getMembers };
+const deleteMember = async (req, res) => {
+  try {
+    if (req.user.role !== "OWNER") {
+      return res.status(403).json({
+        success: false,
+        message: "Only gym owners can delete members",
+      });
+    }
+
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid member ID",
+      });
+    }
+
+    const member = await Member.findOneAndDelete({
+      _id: id,
+      gymId: req.user.gymId,
+    });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "Member not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Member deleted successfully",
+      data: { id: member._id },
+    });
+  } catch (error) {
+    console.error("Delete member error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { addMember, deleteMember, getMembers };

@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
@@ -603,181 +606,187 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
     return GestureDetector(
       onTap: () => _showMemberDetails(member),
-      child: Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: 0.055),
-              Colors.white.withValues(alpha: 0.018),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.075)),
-          boxShadow: [
-            BoxShadow(
-              color: statusColor.withValues(alpha: 0.035),
-              blurRadius: 18,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Avatar
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFE62B52), Color(0xFF761326)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.18),
-                    blurRadius: 12,
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  statusColor.withValues(alpha: 0.045),
+                  Colors.white.withValues(alpha: 0.018),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  member.initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Main info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member.fullName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.card_membership_rounded,
-                        color: AppColors.primary.withValues(alpha: 0.8),
-                        size: 12,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          member.planDisplayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.phone_outlined,
-                        color: Colors.white24,
-                        size: 11,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          member.phone,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white30,
-                            fontSize: 8,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            // Status + arrow
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: statusColor.withValues(alpha: 0.20),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: statusColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 7,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white24,
-                  size: 12,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: statusColor.withValues(alpha: 0.14)),
+              boxShadow: [
+                BoxShadow(
+                  color: statusColor.withValues(alpha: 0.045),
+                  blurRadius: 18,
                 ),
               ],
             ),
-          ],
+            child: Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      member.initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Main info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        member.fullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+
+                      const SizedBox(height: 5),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.card_membership_rounded,
+                            color: AppColors.primary.withValues(alpha: 0.8),
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              member.planDisplayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.phone_outlined,
+                            color: Colors.white24,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              member.phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white30,
+                                fontSize: 8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Status + arrow
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.20),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 7,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white24,
+                      size: 12,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -871,7 +880,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
         return SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -1029,6 +1038,25 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     title: 'Phone',
                     value: member.phone,
                   ),
+
+                  const SizedBox(height: 18),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          _confirmDeleteMember(sheetContext, member),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Delete member'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFF647C),
+                        side: BorderSide(
+                          color: const Color(0xFFFF647C).withValues(alpha: 0.4),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1036,6 +1064,65 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteMember(
+    BuildContext sheetContext,
+    OwnerMemberModel member,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111722),
+        title: const Text(
+          'Delete member?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'This permanently removes ${member.fullName} and their membership.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF647C),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<OwnerMemberProvider>();
+    final deleted = await provider.deleteMember(member.id);
+    if (!mounted) return;
+
+    if (deleted) {
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      context.read<OwnerDashboardProvider>().fetchDashboard();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${member.fullName} was deleted.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Could not delete member.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    }
   }
 
   Widget _detailSectionTitle(String title) {

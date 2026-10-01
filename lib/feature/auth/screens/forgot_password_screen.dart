@@ -18,8 +18,11 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     with TickerProviderStateMixin {
   // ── Theme color ──
-  static const Color _accent = AppColors.primary;
-  static const _buttonGradient = [Color(0xFFE62B52), Color(0xFF8B1528)];
+  static const Color _accent = AppColors.ownerPrimary;
+  static const _buttonGradient = [
+    AppColors.ownerBright,
+    AppColors.ownerPrimary,
+  ];
 
   // ── Controllers ──
   final _emailCtrl = TextEditingController();
@@ -339,6 +342,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -363,13 +368,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                    SizedBox(height: compact ? 4 : 12),
                     _buildLogo(),
-                    const SizedBox(height: 14),
+                    SizedBox(height: compact ? 8 : 12),
                     _buildBrandText(),
-                    const SizedBox(height: 40),
+                    SizedBox(height: compact ? 16 : 22),
                     _buildHeading(),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     _buildPurchaseNotice(),
                     const SizedBox(height: 24),
                     if (!_otpSent) _buildEmailField(),
@@ -401,25 +406,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 72,
-        height: 72,
+        'assets/images/gym_logo.png',
+        width: 126,
+        height: 126,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 36,
-          ),
-        ),
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.fitness_center_rounded, color: _accent, size: 48),
       ),
     );
   }
@@ -431,28 +423,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
       child: Column(
         children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withValues(alpha: 0.26)),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.shield_outlined, color: _accent, size: 13),
+                const SizedBox(width: 6),
+                Text(
+                  'OWNER ACCOUNT RECOVERY',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -669,17 +661,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         opacity: _ctaOpacity.value,
         child: Transform.translate(
           offset: Offset(0, _ctaSlide.value),
-          child: ShimmerButton(
-            shimmerCtrl: _shimmerCtrl,
-            gradientColors: _buttonGradient,
-            accentColor: _accent,
-            label: _isLoading
-                ? 'Please Wait...'
-                : _otpSent
-                ? 'Verify OTP'
-                : 'Send OTP',
-            enabled: !_isLoading,
-            onPressed: _otpSent ? _verifyOtp : _sendOtp,
+          child: AnimatedBuilder(
+            animation: _glowPulseCtrl,
+            builder: (context, child) {
+              final pulse = _glowPulseCtrl.value;
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _accent.withValues(alpha: 0.10 + pulse * 0.14),
+                      blurRadius: 18 + pulse * 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: child,
+              );
+            },
+            child: ShimmerButton(
+              shimmerCtrl: _shimmerCtrl,
+              gradientColors: _buttonGradient,
+              accentColor: _accent,
+              label: _isLoading
+                  ? 'Please Wait...'
+                  : _otpSent
+                  ? 'Verify OTP'
+                  : 'Send OTP',
+              enabled: !_isLoading,
+              onPressed: _otpSent ? _verifyOtp : _sendOtp,
+            ),
           ),
         ),
       ),

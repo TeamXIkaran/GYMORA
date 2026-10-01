@@ -33,11 +33,11 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
   // THEME
   // ───────────────────────────────────────────────────────────────────────
 
-  static const Color _accent = Color(0xFF2196F3);
+  static const Color _accent = AppColors.trainerBright;
 
   static const List<Color> _buttonGradient = [
-    Color(0xFF2196F3),
-    Color(0xFF1565C0),
+    AppColors.trainerBright,
+    AppColors.trainerPrimary,
   ];
 
   // ───────────────────────────────────────────────────────────────────────
@@ -100,29 +100,17 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       duration: const Duration(milliseconds: 700),
     );
 
-    _logoOpacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(
+    _logoOpacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _logoCtrl,
-        curve: const Interval(
-          0,
-          0.5,
-          curve: Curves.easeOut,
-        ),
+        curve: const Interval(0, 0.5, curve: Curves.easeOut),
       ),
     );
 
     _logoScale = Tween<double>(
       begin: 0.6,
       end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _logoCtrl,
-        curve: Curves.easeOutBack,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
 
     // Heading
     _headingCtrl = AnimationController(
@@ -133,21 +121,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     _headingOpacity = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _headingCtrl,
-        curve: Curves.easeOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOut));
 
-    _headingSlide = Tween<double>(
-      begin: 20,
-      end: 0,
-    ).animate(
-      CurvedAnimation(
-        parent: _headingCtrl,
-        curve: Curves.easeOutCubic,
-      ),
+    _headingSlide = Tween<double>(begin: 20, end: 0).animate(
+      CurvedAnimation(parent: _headingCtrl, curve: Curves.easeOutCubic),
     );
 
     // Fields
@@ -156,31 +133,17 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
-    _field1Opacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(
+    _field1Opacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
-        curve: const Interval(
-          0,
-          0.4,
-          curve: Curves.easeOut,
-        ),
+        curve: const Interval(0, 0.4, curve: Curves.easeOut),
       ),
     );
 
-    _field2Opacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(
+    _field2Opacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
         parent: _fieldsCtrl,
-        curve: const Interval(
-          0.25,
-          0.65,
-          curve: Curves.easeOut,
-        ),
+        curve: const Interval(0.25, 0.65, curve: Curves.easeOut),
       ),
     );
 
@@ -193,22 +156,12 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
     _ctaOpacity = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _ctaCtrl,
-        curve: Curves.easeOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOut));
 
     _ctaSlide = Tween<double>(
       begin: 30,
       end: 0,
-    ).animate(
-      CurvedAnimation(
-        parent: _ctaCtrl,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _ctaCtrl, curve: Curves.easeOutCubic));
 
     // Particles
     _particleCtrl = AnimationController(
@@ -230,33 +183,25 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
   }
 
   Future<void> _startSequence() async {
-    await Future.delayed(
-      const Duration(milliseconds: 200),
-    );
+    await Future.delayed(const Duration(milliseconds: 200));
 
     if (!mounted) return;
 
     _logoCtrl.forward();
 
-    await Future.delayed(
-      const Duration(milliseconds: 400),
-    );
+    await Future.delayed(const Duration(milliseconds: 400));
 
     if (!mounted) return;
 
     _headingCtrl.forward();
 
-    await Future.delayed(
-      const Duration(milliseconds: 300),
-    );
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
     _fieldsCtrl.forward();
 
-    await Future.delayed(
-      const Duration(milliseconds: 600),
-    );
+    await Future.delayed(const Duration(milliseconds: 600));
 
     if (!mounted) return;
 
@@ -333,29 +278,18 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       if (success) {
         final trainer = trainerProvider.loggedInTrainer;
 
-        debugPrint(
-          'TRAINER_LOGIN_SUCCESS',
-        );
+        debugPrint('TRAINER_LOGIN_SUCCESS');
 
-        debugPrint(
-          'Trainer ID: ${trainer?.trainerId}',
-        );
+        debugPrint('Trainer ID: ${trainer?.trainerId}');
 
-        debugPrint(
-          'Trainer Name: ${trainer?.fullName}',
-        );
+        debugPrint('Trainer Name: ${trainer?.fullName}');
 
-        debugPrint(
-          'Trainer Email: ${trainer?.email}',
-        );
+        debugPrint('Trainer Email: ${trainer?.email}');
 
-        context.goNamed(
-          'trainerDashboardScreen',
-        );
+        context.goNamed('trainerDashboardScreen');
       } else {
         _showMessage(
-          trainerProvider.errorMessage ??
-              'Invalid Trainer ID or password',
+          trainerProvider.errorMessage ?? 'Invalid Trainer ID or password',
         );
       }
     } catch (e) {
@@ -365,13 +299,9 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         _isSubmitting = false;
       });
 
-      debugPrint(
-        'TRAINER_LOGIN_SCREEN_ERROR: $e',
-      );
+      debugPrint('TRAINER_LOGIN_SCREEN_ERROR: ${e.runtimeType}');
 
-      _showMessage(
-        'Unable to login. Please try again.',
-      );
+      _showMessage('Unable to sign in. Check your connection and try again.');
     }
   }
 
@@ -398,9 +328,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         backgroundColor: AppColors.card,
         duration: const Duration(seconds: 3),
         margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -411,14 +339,14 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: AppColors.darkGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.darkGradient),
         child: AuthBackground(
           accentColor: _accent,
           particleAnimation: _particleCtrl,
@@ -426,12 +354,8 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
           glowTopFraction: 0.08,
           child: SafeArea(
             child: SingleChildScrollView(
-              keyboardDismissBehavior:
-                  ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 16,
-              ),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
@@ -442,15 +366,11 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(
-                      height:
-                          MediaQuery.of(context).size.height * 0.04,
-                    ),
+                    SizedBox(height: compact ? 6 : 16),
 
                     // ─────────────────────────────────────────────
                     // BACK BUTTON
                     // ─────────────────────────────────────────────
-
                     Align(
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
@@ -460,15 +380,10 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(
-                              alpha: 0.06,
-                            ),
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withValues(
-                                alpha: 0.08,
-                              ),
+                              color: Colors.white.withValues(alpha: 0.08),
                             ),
                           ),
                           child: const Icon(
@@ -480,39 +395,25 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                       ),
                     ),
 
-                    SizedBox(
-                      height:
-                          MediaQuery.of(context).size.height * 0.04,
-                    ),
+                    SizedBox(height: compact ? 12 : 20),
 
                     // ─────────────────────────────────────────────
                     // LOGO
                     // ─────────────────────────────────────────────
-
                     _buildLogo(),
 
-                    const SizedBox(height: 14),
-
-                    // ─────────────────────────────────────────────
-                    // BRAND
-                    // ─────────────────────────────────────────────
-
-                    _buildBrandText(),
-
-                    const SizedBox(height: 40),
+                    SizedBox(height: compact ? 18 : 26),
 
                     // ─────────────────────────────────────────────
                     // HEADING
                     // ─────────────────────────────────────────────
-
                     _buildHeading(),
 
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 32),
 
                     // ─────────────────────────────────────────────
                     // TRAINER ID
                     // ─────────────────────────────────────────────
-
                     _buildTrainerIdField(),
 
                     const SizedBox(height: 16),
@@ -520,15 +421,13 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                     // ─────────────────────────────────────────────
                     // PASSWORD
                     // ─────────────────────────────────────────────
-
                     _buildPasswordField(),
 
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 30),
 
                     // ─────────────────────────────────────────────
                     // LOGIN BUTTON
                     // ─────────────────────────────────────────────
-
                     _buildCTA(),
 
                     const SizedBox(height: 20),
@@ -552,88 +451,17 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
       builder: (_, child) {
         return Opacity(
           opacity: _logoOpacity.value,
-          child: Transform.scale(
-            scale: _logoScale.value,
-            child: child,
-          ),
+          child: Transform.scale(scale: _logoScale.value, child: child),
         );
       },
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 90,
-        height: 90,
+        'assets/images/gym_logo.png',
+        width: 126,
+        height: 126,
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) {
-          return Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  _accent,
-                  _accent.withValues(alpha: 0.6),
-                ],
-              ),
-            ),
-            child: const Icon(
-              Icons.fitness_center,
-              color: Colors.white,
-              size: 40,
-            ),
-          );
+          return Icon(Icons.fitness_center_rounded, color: _accent, size: 48);
         },
-      ),
-    );
-  }
-
-  // ───────────────────────────────────────────────────────────────────────
-  // BRAND TEXT
-  // ───────────────────────────────────────────────────────────────────────
-
-  Widget _buildBrandText() {
-    return AnimatedBuilder(
-      animation: _logoCtrl,
-      builder: (_, child) {
-        return Opacity(
-          opacity: _logoOpacity.value,
-          child: child,
-        );
-      },
-      child: Column(
-        children: [
-          ShaderMask(
-            shaderCallback: (bounds) {
-              return LinearGradient(
-                colors: [
-                  _accent,
-                  _accent.withValues(alpha: 0.7),
-                ],
-              ).createShader(bounds);
-            },
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -649,26 +477,50 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         return Opacity(
           opacity: _headingOpacity.value,
           child: Transform.translate(
-            offset: Offset(
-              0,
-              _headingSlide.value,
-            ),
+            offset: Offset(0, _headingSlide.value),
             child: Column(
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _accent.withValues(alpha: 0.26)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bolt_rounded, color: _accent, size: 13),
+                      const SizedBox(width: 5),
+                      Text(
+                        'TRAINER PORTAL',
+                        style: TextStyle(
+                          color: _accent,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 13),
                 const Text(
                   'Trainer Login',
                   style: TextStyle(
                     color: AppColors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
                 Text(
-                  'Sign in to coach your clients',
+                  'Sign in to lead your clients forward.',
                   style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 13,
@@ -696,10 +548,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         return Opacity(
           opacity: opacity,
           child: Transform.translate(
-            offset: Offset(
-              0,
-              25 * (1 - opacity),
-            ),
+            offset: Offset(0, 25 * (1 - opacity)),
             child: GlassTextField(
               controller: _trainerIdCtrl,
               focusNode: _trainerIdFocus,
@@ -709,9 +558,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
               keyboardType: TextInputType.text,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) {
-                FocusScope.of(context).requestFocus(
-                  _passwordFocus,
-                );
+                FocusScope.of(context).requestFocus(_passwordFocus);
               },
             ),
           ),
@@ -733,10 +580,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
         return Opacity(
           opacity: opacity,
           child: Transform.translate(
-            offset: Offset(
-              0,
-              25 * (1 - opacity),
-            ),
+            offset: Offset(0, 25 * (1 - opacity)),
             child: GlassTextField(
               controller: _passwordCtrl,
               focusNode: _passwordFocus,
@@ -756,9 +600,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
                   _obscurePassword
                       ? Icons.visibility_off_rounded
                       : Icons.visibility_rounded,
-                  color: Colors.white.withValues(
-                    alpha: 0.35,
-                  ),
+                  color: Colors.white.withValues(alpha: 0.35),
                   size: 20,
                 ),
               ),
@@ -776,8 +618,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
   Widget _buildCTA() {
     return Consumer<TrainerLoginProvider>(
       builder: (context, trainerProvider, _) {
-        final loading =
-            trainerProvider.isLoading || _isSubmitting;
+        final loading = trainerProvider.isLoading || _isSubmitting;
 
         return AnimatedBuilder(
           animation: _ctaCtrl,
@@ -785,19 +626,35 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
             return Opacity(
               opacity: _ctaOpacity.value,
               child: Transform.translate(
-                offset: Offset(
-                  0,
-                  _ctaSlide.value,
-                ),
-                child: ShimmerButton(
-                  shimmerCtrl: _shimmerCtrl,
-                  gradientColors: _buttonGradient,
-                  accentColor: _accent,
-                  label: loading
-                      ? 'Signing In...'
-                      : 'Sign In',
-                  enabled: !loading,
-                  onPressed: _handleLogin,
+                offset: Offset(0, _ctaSlide.value),
+                child: AnimatedBuilder(
+                  animation: _glowPulseCtrl,
+                  builder: (context, child) {
+                    final pulse = _glowPulseCtrl.value;
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _accent.withValues(
+                              alpha: 0.10 + pulse * 0.14,
+                            ),
+                            blurRadius: 18 + pulse * 10,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: child,
+                    );
+                  },
+                  child: ShimmerButton(
+                    shimmerCtrl: _shimmerCtrl,
+                    gradientColors: _buttonGradient,
+                    accentColor: _accent,
+                    label: loading ? 'Signing In...' : 'Sign In',
+                    enabled: !loading,
+                    onPressed: _handleLogin,
+                  ),
                 ),
               ),
             );

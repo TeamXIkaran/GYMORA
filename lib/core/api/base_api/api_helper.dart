@@ -73,11 +73,15 @@ class ApiHelper {
     dynamic body,
     Map<String, String>? headers,
   }) async {
-    // Ensure exactly one '/' between base URL and endpoint
+    // Preserve a configured API prefix without duplicating it in endpoints.
     final base = _currentBaseUrl.endsWith('/')
         ? _currentBaseUrl
         : '$_currentBaseUrl/';
-    final path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    var path = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    final basePath = Uri.parse(base).path.replaceFirst(RegExp(r'/$'), '');
+    if (basePath.endsWith('/api') && path.startsWith('api/')) {
+      path = path.substring(4);
+    }
     final url = Uri.parse('$base$path');
     http.Response response;
     final sanitizedBody = body != null
@@ -205,14 +209,31 @@ class ApiHelper {
   String _sanitizeResponseBody(String body) {
     try {
       final data = jsonDecode(body);
-      if (data is Map<String, dynamic>) {
-        final sanitized = Map<String, dynamic>.from(data);
-        const sensitiveFields = ['token', 'secret', 'key', 'password'];
-        for (final field in sensitiveFields) {
-          if (sanitized.containsKey(field)) sanitized[field] = '***REDACTED***';
+      const sensitiveFields = {
+        'token',
+        'accesstoken',
+        'refreshtoken',
+        'secret',
+        'key',
+        'password',
+      };
+
+      dynamic sanitize(dynamic value) {
+        if (value is Map<String, dynamic>) {
+          return value.map((key, nestedValue) {
+            if (sensitiveFields.contains(key.toLowerCase())) {
+              return MapEntry(key, '***REDACTED***');
+            }
+            return MapEntry(key, sanitize(nestedValue));
+          });
         }
-        return jsonEncode(sanitized);
+        if (value is List) {
+          return value.map(sanitize).toList();
+        }
+        return value;
       }
+
+      return jsonEncode(sanitize(data));
     } catch (_) {}
     return body.length > 1000
         ? '${body.substring(0, 1000)}...[TRUNCATED]'

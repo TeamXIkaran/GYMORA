@@ -84,11 +84,11 @@ class TrainerLoginProvider extends ChangeNotifier {
 
       notifyListeners();
       return false;
-    } catch (e) {
+    } catch (error) {
       _status = TrainerStatus.error;
-      _errorMessage = 'Unable to login. Please try again.';
+      _errorMessage = 'Unable to sign in. Check your connection and try again.';
 
-      debugPrint('TRAINER_LOGIN_ERROR: $e');
+      debugPrint('TRAINER_LOGIN_ERROR: ${error.runtimeType}');
 
       notifyListeners();
       return false;

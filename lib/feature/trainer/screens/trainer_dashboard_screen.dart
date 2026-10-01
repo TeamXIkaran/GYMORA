@@ -914,53 +914,227 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
           .length;
     }
     final growth = lastWeek == 0 ? 0.0 : (thisWeek - lastWeek) / lastWeek * 100;
-    final growthText = '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}%';
+    final growthText = lastWeek == 0
+        ? 'NEW WEEK'
+        : '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}%';
+    final todayIndex = DateTime.now().weekday - 1;
+    final peakCount = counts.reduce(math.max);
 
     return GestureDetector(
       onTap: _openProgress,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+        padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
         decoration: BoxDecoration(
-          color: cardColor,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              trainerYellow.withValues(alpha: 0.09),
+              cardColor,
+              const Color(0xFF080C12),
+            ],
+          ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: borderColor),
+          border: Border.all(color: trainerYellow.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: trainerYellow.withValues(alpha: 0.07),
+              blurRadius: 28,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    'Training Sessions',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: trainerYellow.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: trainerYellow.withValues(alpha: 0.22),
                     ),
                   ),
+                  child: const Icon(
+                    Icons.show_chart_rounded,
+                    color: trainerYellow,
+                    size: 21,
+                  ),
                 ),
-                Text(
-                  growthText,
-                  style: TextStyle(
-                    color: growth >= 0 ? trainerYellow : Colors.redAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'WEEKLY PERFORMANCE',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.46),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Training sessions',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: growth >= 0
+                        ? trainerYellow.withValues(alpha: 0.10)
+                        : Colors.redAccent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: growth >= 0
+                          ? trainerYellow.withValues(alpha: 0.22)
+                          : Colors.redAccent.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        lastWeek == 0
+                            ? Icons.bolt_rounded
+                            : growth >= 0
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
+                        color: growth >= 0 ? trainerYellow : Colors.redAccent,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        growthText,
+                        style: TextStyle(
+                          color: growth >= 0 ? trainerYellow : Colors.redAccent,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            SizedBox(
-              height: 150,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(
-                  7,
-                  (i) => _chartBar(labels[i], counts[i] / maxCount),
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$thisWeek',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
                 ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    'SESSIONS THIS WEEK',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 166,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    top: 22,
+                    bottom: 31,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(
+                        4,
+                        (_) => Container(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.055),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: List.generate(
+                      7,
+                      (index) => _chartBar(
+                        labels[index],
+                        counts[index],
+                        maxCount,
+                        isToday: index == todayIndex,
+                        isPeak: counts[index] == peakCount && peakCount > 0,
+                        animationOrder: index,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 3),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    color: trainerYellow,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'TODAY',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.34),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.touch_app_outlined,
+                  color: Colors.white.withValues(alpha: 0.32),
+                  size: 12,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'VIEW ANALYTICS',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.32),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -968,43 +1142,110 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
     );
   }
 
-  Widget _chartBar(String day, double value) {
+  Widget _chartBar(
+    String day,
+    int count,
+    int maxCount, {
+    required bool isToday,
+    required bool isPeak,
+    required int animationOrder,
+  }) {
+    final heightFactor = (count / maxCount).clamp(0.0, 1.0);
+
     return Expanded(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          SizedBox(
+            height: 19,
+            child: AnimatedOpacity(
+              duration: Duration(milliseconds: 400 + animationOrder * 90),
+              opacity: count == 0 ? 0.22 : 1,
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: isPeak ? trainerYellow : Colors.white54,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
           Expanded(
             child: Align(
               alignment: Alignment.bottomCenter,
-              child: FractionallySizedBox(
-                heightFactor: value,
-                child: Container(
-                  width: 14,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    gradient: const LinearGradient(
-                      colors: [trainerYellowLight, trainerYellowDark],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: trainerYellow.withValues(alpha: 0.15),
-                        blurRadius: 10,
+              child: Container(
+                width: 27,
+                decoration: BoxDecoration(
+                  color: isToday
+                      ? trainerYellow.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.035),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isToday
+                        ? trainerYellow.withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.035),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: heightFactor),
+                      duration: Duration(
+                        milliseconds: 650 + animationOrder * 90,
                       ),
-                    ],
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, child) => FractionallySizedBox(
+                        heightFactor: value,
+                        widthFactor: 1,
+                        alignment: Alignment.bottomCenter,
+                        child: child,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isToday
+                                ? const [
+                                    trainerYellowLight,
+                                    trainerYellow,
+                                    trainerYellowDark,
+                                  ]
+                                : [
+                                    trainerYellowLight.withValues(alpha: 0.72),
+                                    trainerYellowDark.withValues(alpha: 0.68),
+                                  ],
+                          ),
+                          boxShadow: isToday || isPeak
+                              ? [
+                                  BoxShadow(
+                                    color: trainerYellow.withValues(
+                                      alpha: 0.28,
+                                    ),
+                                    blurRadius: 12,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 7),
           Text(
             day,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: isToday
+                  ? trainerYellow
+                  : Colors.white.withValues(alpha: 0.4),
               fontSize: 9,
-              fontWeight: FontWeight.w600,
+              fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
             ),
           ),
         ],

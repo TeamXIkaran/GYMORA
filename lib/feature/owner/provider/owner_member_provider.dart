@@ -136,6 +136,27 @@ class OwnerMemberProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteMember(String id) async {
+    if (_isSubmitting) return false;
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await OwnerMemberService.deleteMember(id);
+      _members.removeWhere((member) => member.id == id);
+      _hasLoaded = true;
+      return true;
+    } catch (error) {
+      _error = cleanError(error);
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   // ── Search Members ──────────────────────────────────────────
 
   List<OwnerMemberModel> searchMembers(String query) {
@@ -172,6 +193,8 @@ class OwnerMemberProvider extends ChangeNotifier {
   void reset() {
     _members = [];
     _hasLoaded = false;
+    _isLoading = false;
+    _isSubmitting = false;
     _error = null;
 
     notifyListeners();

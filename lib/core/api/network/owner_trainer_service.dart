@@ -63,4 +63,10 @@ class OwnerTrainerService {
 
     return OwnerTrainerModel.fromJson(trainer);
   }
+
+  /// Delete a trainer owned by the authenticated gym.
+  /// Endpoint: DELETE /api/trainers/:id
+  static Future<void> deleteTrainer(String id) async {
+    await ApiService.delete('api/trainers/${Uri.encodeComponent(id)}');
+  }
 }

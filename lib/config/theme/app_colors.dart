@@ -4,8 +4,8 @@ class AppColors {
   AppColors._();
 
   // ============================================================
-  // GYMORA MEMBER THEME
-  // Cyan / Blue / Violet
+  // GYMORA APP THEME
+  // Owner red, trainer yellow, member blue
   // ============================================================
 
   static const Color background = Color(0xFF050912);
@@ -46,7 +46,7 @@ class AppColors {
   // MAIN BRAND COLORS
   // ============================================================
 
-  static const Color primary = Color(0xFF00C8FF);
+  static const Color primary = Color(0xFFE62B52);
 
   static const Color cyan = Color(0xFF00C8FF);
   static const Color blue = Color(0xFF287BFF);
@@ -76,7 +76,7 @@ class AppColors {
   // ============================================================
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF00C8FF), Color(0xFF287BFF)],
+    colors: [Color(0xFFFF174F), Color(0xFFE62B52)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -131,12 +131,12 @@ class AppColors {
   // CLIENT THEME
   // ============================================================
 
-  static const Color clientPrimary = Color(0xFF0BAFE7);
-  static const Color clientBright = Color(0xFF00C8FF);
-  static const Color clientDark = Color(0xFF075B78);
+  static const Color clientPrimary = Color(0xFF287BFF);
+  static const Color clientBright = Color(0xFF5B9BFF);
+  static const Color clientDark = Color(0xFF164A9E);
 
   static const LinearGradient clientGradient = LinearGradient(
-    colors: [Color(0xFF00C8FF), Color(0xFF0BAFE7)],
+    colors: [Color(0xFF287BFF), Color(0xFF5B9BFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

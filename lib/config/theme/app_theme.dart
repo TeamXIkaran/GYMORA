@@ -12,16 +12,16 @@ class AppTheme {
 
     scaffoldBackgroundColor: GymColors.background,
 
-    primaryColor: GymColors.cyan,
+    primaryColor: GymColors.primary,
 
     colorScheme: const ColorScheme.dark(
-      primary: GymColors.cyan,
-      secondary: GymColors.blue,
+      primary: GymColors.ownerPrimary,
+      secondary: GymColors.ownerBright,
       surface: GymColors.surface,
       onPrimary: GymColors.background,
       onSecondary: Colors.white,
       onSurface: GymColors.text,
-      error: GymColors.pink,
+      error: GymColors.error,
     ),
 
     // ==========================================================
@@ -61,7 +61,7 @@ class AppTheme {
       labelStyle: const TextStyle(color: GymColors.textSecondary, fontSize: 14),
 
       floatingLabelStyle: const TextStyle(
-        color: GymColors.cyan,
+        color: GymColors.ownerPrimary,
         fontWeight: FontWeight.w600,
       ),
 
@@ -78,17 +78,17 @@ class AppTheme {
 
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: GymColors.cyan, width: 1.5),
+        borderSide: const BorderSide(color: GymColors.ownerPrimary, width: 1.5),
       ),
 
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: GymColors.pink),
+        borderSide: const BorderSide(color: GymColors.error),
       ),
 
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: GymColors.pink, width: 1.5),
+        borderSide: const BorderSide(color: GymColors.error, width: 1.5),
       ),
 
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
@@ -166,7 +166,7 @@ class AppTheme {
     // ==========================================================
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: GymColors.cyan,
+        backgroundColor: GymColors.ownerPrimary,
         foregroundColor: GymColors.background,
         elevation: 0,
         minimumSize: const Size(double.infinity, 54),
@@ -180,7 +180,7 @@ class AppTheme {
     // ==========================================================
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: GymColors.cyan,
+        foregroundColor: GymColors.ownerPrimary,
         textStyle: GymText.button,
       ),
     ),
@@ -204,7 +204,7 @@ class AppTheme {
     // PROGRESS
     // ==========================================================
     progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: GymColors.cyan,
+      color: GymColors.ownerPrimary,
       linearTrackColor: GymColors.surfaceHigh,
     ),
 

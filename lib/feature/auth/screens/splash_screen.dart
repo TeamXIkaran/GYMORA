@@ -23,9 +23,9 @@ class _SplashScreenState extends State<SplashScreen>
   // ================================================================
 
   late final AnimationController _logoCtrl;
-  late final AnimationController _brandCtrl;
   late final AnimationController _subtitleCtrl;
   late final AnimationController _buttonCtrl;
+  late final AnimationController _buttonPulseCtrl;
   late final AnimationController _particleCtrl;
   late final AnimationController _glowCtrl;
   late final AnimationController _pulseCtrl;
@@ -37,9 +37,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
-
-  late final Animation<double> _brandOpacity;
-  late final Animation<double> _brandSlide;
 
   late final Animation<double> _subtitleOpacity;
 
@@ -80,25 +77,6 @@ class _SplashScreenState extends State<SplashScreen>
     ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
 
     // ---------------------------------------------------------------
-    // BRAND
-    // ---------------------------------------------------------------
-
-    _brandCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _brandOpacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _brandCtrl, curve: Curves.easeOut));
-
-    _brandSlide = Tween<double>(
-      begin: 25,
-      end: 0,
-    ).animate(CurvedAnimation(parent: _brandCtrl, curve: Curves.easeOutCubic));
-
-    // ---------------------------------------------------------------
     // SUBTITLE
     // ---------------------------------------------------------------
 
@@ -130,6 +108,11 @@ class _SplashScreenState extends State<SplashScreen>
       begin: 35,
       end: 0,
     ).animate(CurvedAnimation(parent: _buttonCtrl, curve: Curves.easeOutBack));
+
+    _buttonPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
 
     // ---------------------------------------------------------------
     // PARTICLES
@@ -179,13 +162,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logoCtrl.forward();
 
-    await Future.delayed(const Duration(milliseconds: 450));
-
-    if (!mounted) return;
-
-    _brandCtrl.forward();
-
-    await Future.delayed(const Duration(milliseconds: 350));
+    await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
 
@@ -195,7 +172,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    _buttonCtrl.forward();
+    await _buttonCtrl.forward();
+
+    if (mounted) {
+      _buttonPulseCtrl.repeat(reverse: true);
+    }
   }
 
   // ================================================================
@@ -215,9 +196,9 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _logoCtrl.dispose();
-    _brandCtrl.dispose();
     _subtitleCtrl.dispose();
     _buttonCtrl.dispose();
+    _buttonPulseCtrl.dispose();
     _particleCtrl.dispose();
     _glowCtrl.dispose();
     _pulseCtrl.dispose();
@@ -233,8 +214,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final bottom = MediaQuery.paddingOf(context).bottom;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -354,7 +333,7 @@ class _SplashScreenState extends State<SplashScreen>
           // ============================================================
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(24, 30, 24, bottom + 24),
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
               child: Column(
                 children: [
                   const Spacer(flex: 2),
@@ -378,25 +357,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: _buildLogo(),
                   ),
 
-                  const SizedBox(height: 30),
-
-                  // ======================================================
-                  // BRAND
-                  // ======================================================
-                  AnimatedBuilder(
-                    animation: _brandCtrl,
-                    builder: (_, _) {
-                      return Opacity(
-                        opacity: _brandOpacity.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _brandSlide.value),
-                          child: _buildBrand(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 12),
 
                   // ======================================================
                   // SUBTITLE
@@ -448,134 +409,40 @@ class _SplashScreenState extends State<SplashScreen>
   // ================================================================
 
   Widget _buildLogo() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Large glow
-        Container(
-          width: 170,
-          height: 170,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: _accent.withValues(alpha: 0.13),
-                blurRadius: 70,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-        ),
+    final logoSize = (MediaQuery.sizeOf(context).width - 48)
+        .clamp(220.0, 330.0)
+        .toDouble();
 
-        // Outer ring
-        Container(
-          width: 138,
-          height: 138,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                _accent.withValues(alpha: 0.85),
-                Colors.white.withValues(alpha: 0.08),
-                _accent.withValues(alpha: 0.22),
-              ],
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
+    return SizedBox(
+      width: logoSize,
+      height: logoSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: logoSize * 0.76,
+            height: logoSize * 0.76,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF07101A),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/gymora_logo.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [_accent, _accent.withValues(alpha: 0.55)],
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.fitness_center_rounded,
-                      color: Colors.white,
-                      size: 48,
-                    ),
-                  );
-                },
+              gradient: RadialGradient(
+                colors: [
+                  _accent.withValues(alpha: 0.16),
+                  _accent.withValues(alpha: 0.035),
+                  Colors.transparent,
+                ],
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  // ================================================================
-  // BRAND
-  // ================================================================
-
-  Widget _buildBrand() {
-    return Column(
-      children: [
-        ShaderMask(
-          shaderCallback: (bounds) {
-            return const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Colors.white, Color(0xFFE6EAF0), Color(0xFF9BA7B5)],
-            ).createShader(bounds);
-          },
-          child: const Text(
-            'GYMORA',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 43,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 8,
-              height: 1,
-            ),
+          Image.asset(
+            'assets/images/gym_logo.png',
+            width: logoSize,
+            height: logoSize,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) =>
+                Icon(Icons.fitness_center_rounded, color: _accent, size: 72),
           ),
-        ),
-
-        const SizedBox(height: 9),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 25,
-              height: 1,
-              color: _accent.withValues(alpha: 0.65),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'FITNESS MANAGEMENT',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 3.4,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              width: 25,
-              height: 1,
-              color: _accent.withValues(alpha: 0.65),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -617,16 +484,39 @@ class _SplashScreenState extends State<SplashScreen>
   // ================================================================
 
   Widget _buildGetStartedButton() {
-    return ShimmerButton(
-      shimmerCtrl: _shimmerCtrl,
-      gradientColors: [
-        _accent,
-        Color.lerp(_accent, Colors.black, 0.25) ?? _accent,
-      ],
-      accentColor: _accent,
-      textColor: Colors.white,
-      label: 'Get Started',
-      onPressed: _getStarted,
+    return AnimatedBuilder(
+      animation: _buttonPulseCtrl,
+      builder: (context, child) {
+        final pulse = _buttonPulseCtrl.value;
+        return Transform.scale(
+          scale: 1 + pulse * 0.012,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withValues(alpha: 0.20 + pulse * 0.16),
+                  blurRadius: 22 + pulse * 8,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: ShimmerButton(
+        shimmerCtrl: _shimmerCtrl,
+        gradientColors: [
+          AppColors.ownerBright,
+          AppColors.ownerPrimary,
+          Color.lerp(_accent, Colors.black, 0.25) ?? _accent,
+        ],
+        accentColor: _accent,
+        textColor: Colors.white,
+        label: 'Get Started',
+        onPressed: _getStarted,
+      ),
     );
   }
 

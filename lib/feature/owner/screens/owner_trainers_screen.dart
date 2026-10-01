@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
@@ -107,7 +110,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFFFF3158).withValues(alpha: 0.16),
+                        AppColors.ownerBright.withValues(alpha: 0.16),
                         AppColors.primary.withValues(alpha: 0.05),
                         Colors.transparent,
                       ],
@@ -129,7 +132,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF7C3AED).withValues(alpha: 0.10),
+                    AppColors.trainerBright.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -160,6 +163,10 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   Widget _buildHeader() {
     return Consumer<OwnerTrainerProvider>(
       builder: (context, provider, _) {
+        final activeCount = provider.trainers
+            .where((trainer) => trainer.isActive)
+            .length;
+
         return Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
           child: Row(
@@ -176,38 +183,30 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Trainers',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 25,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF42DB82),
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'GYM TEAM',
+                      style: TextStyle(
+                        color: AppColors.ownerBright,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Trainers',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
 
                     Text(
-                      '${provider.trainers.length} trainers managing your gym',
+                      '${provider.trainers.length} trainers  /  $activeCount active',
                       style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 10,
-                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
@@ -220,9 +219,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 13),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF3158), Color(0xFFB91438)],
-                    ),
+                    gradient: AppColors.ownerGradient,
                     borderRadius: BorderRadius.circular(13),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.10),
@@ -437,7 +434,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                       size: 18,
                     ),
                   )
-                : const Icon(Icons.tune_rounded, color: Colors.white, size: 18),
+                : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               vertical: 16,
@@ -625,15 +622,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildTrainerCard(OwnerTrainerModel trainer, int index) {
-    final gradients = [
-      [const Color(0xFFE62B52), const Color(0xFF761326)],
-      [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
-      [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
-      [const Color(0xFFFF8A00), const Color(0xFFCC6E00)],
-      [const Color(0xFF10B981), const Color(0xFF059669)],
-    ];
-
-    final colors = gradients[index % gradients.length];
+    final colors = [AppColors.trainerBright, AppColors.trainerPrimary];
 
     final statusColor = trainer.isActive
         ? const Color(0xFF42DB82)
@@ -663,208 +652,211 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // Left accent
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 3,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: colors,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Stack(
+              children: [
+                // Left accent
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: colors,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        // Avatar
-                        Container(
-                          width: 53,
-                          height: 53,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(colors: colors),
-                            boxShadow: [
-                              BoxShadow(
-                                color: colors.first.withValues(alpha: 0.25),
-                                blurRadius: 15,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              trainer.initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      trainer.fullName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 5),
-
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.fitness_center_rounded,
-                                    color: colors.first,
-                                    size: 12,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Expanded(
-                                    child: Text(
-                                      trainer.specialization,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white38,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.09),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(
-                              color: statusColor.withValues(alpha: 0.20),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                trainer.status,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Information strip
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.045),
-                        ),
-                      ),
-                      child: Row(
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      Row(
                         children: [
-                          Expanded(
-                            child: _miniInfo(
-                              Icons.workspace_premium_rounded,
-                              'Experience',
-                              trainer.experience,
-                              colors.first,
+                          // Avatar
+                          Container(
+                            width: 53,
+                            height: 53,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(colors: colors),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colors.first.withValues(alpha: 0.25),
+                                  blurRadius: 15,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                trainer.initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ),
                           ),
 
-                          Container(
-                            width: 1,
-                            height: 28,
-                            color: Colors.white.withValues(alpha: 0.07),
-                          ),
+                          const SizedBox(width: 12),
 
                           Expanded(
-                            child: _miniInfo(
-                              Icons.mail_outline_rounded,
-                              'Contact',
-                              'Available',
-                              const Color(0xFF60A5FA),
-                            ),
-                          ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        trainer.fullName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
 
-                          Container(
-                            width: 1,
-                            height: 28,
-                            color: Colors.white.withValues(alpha: 0.07),
+                                const SizedBox(height: 5),
+
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.fitness_center_rounded,
+                                      color: colors.first,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        trainer.specialization,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
 
                           const SizedBox(width: 8),
 
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white24,
-                            size: 13,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.09),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: statusColor.withValues(alpha: 0.20),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: statusColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  trainer.status,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 14),
+
+                      // Information strip
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.045),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _miniInfo(
+                                Icons.workspace_premium_rounded,
+                                'Experience',
+                                trainer.experience,
+                                colors.first,
+                              ),
+                            ),
+
+                            Container(
+                              width: 1,
+                              height: 28,
+                              color: Colors.white.withValues(alpha: 0.07),
+                            ),
+
+                            Expanded(
+                              child: _miniInfo(
+                                Icons.mail_outline_rounded,
+                                'Email',
+                                trainer.email,
+                                AppColors.trainerPrimary,
+                              ),
+                            ),
+
+                            Container(
+                              width: 1,
+                              height: 28,
+                              color: Colors.white.withValues(alpha: 0.07),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.white24,
+                              size: 13,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -978,15 +970,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   void _showTrainerDetails(OwnerTrainerModel trainer, int index) {
-    final gradients = [
-      [const Color(0xFFE62B52), const Color(0xFF761326)],
-      [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
-      [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
-      [const Color(0xFFFF8A00), const Color(0xFFCC6E00)],
-      [const Color(0xFF10B981), const Color(0xFF059669)],
-    ];
-
-    final colors = gradients[index % gradients.length];
+    final colors = [AppColors.trainerBright, AppColors.trainerPrimary];
 
     showModalBottomSheet(
       context: context,
@@ -995,7 +979,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
         return Container(
           decoration: BoxDecoration(
             color: const Color(0xFF0A0D15),
@@ -1144,7 +1128,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                             icon: Icons.fitness_center_rounded,
                             value: 'Trainer',
                             label: 'Role',
-                            color: const Color(0xFF60A5FA),
+                            color: AppColors.trainerPrimary,
                           ),
                         ),
                       ],
@@ -1224,6 +1208,30 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                         ],
                       ),
                     ),
+
+                    const SizedBox(height: 18),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            _confirmDeleteTrainer(sheetContext, trainer),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Delete trainer'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFFF647C),
+                          side: BorderSide(
+                            color: const Color(
+                              0xFFFF647C,
+                            ).withValues(alpha: 0.4),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1232,6 +1240,65 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteTrainer(
+    BuildContext sheetContext,
+    OwnerTrainerModel trainer,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111722),
+        title: const Text(
+          'Delete trainer?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'This permanently removes ${trainer.fullName} from your gym.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF647C),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<OwnerTrainerProvider>();
+    final deleted = await provider.deleteTrainer(trainer.id);
+    if (!mounted) return;
+
+    if (deleted) {
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      context.read<OwnerDashboardProvider>().fetchDashboard();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${trainer.fullName} was deleted.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Could not delete trainer.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    }
   }
 
   Widget _detailStatCard({

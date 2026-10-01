@@ -6,7 +6,6 @@ import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_w
 import 'package:gymora_fitness_management/core/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 
-
 import 'package:provider/provider.dart';
 
 class OwnerLoginScreen extends StatefulWidget {
@@ -19,8 +18,11 @@ class OwnerLoginScreen extends StatefulWidget {
 class _OwnerLoginScreenState extends State<OwnerLoginScreen>
     with TickerProviderStateMixin {
   // ── Theme color ──
-  static const Color _accent = AppColors.primary;
-  static const _buttonGradient = [Color(0xFFE62B52), Color(0xFF8B1528)];
+  static const Color _accent = AppColors.ownerPrimary;
+  static const _buttonGradient = [
+    AppColors.ownerBright,
+    AppColors.ownerPrimary,
+  ];
 
   // ── State ──
   bool _obscurePassword = true;
@@ -186,20 +188,30 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
 
     setState(() => _isSubmitting = true);
 
-    final ownerProvider = context.read<OwnerLoginProvider>();
-    final success = await ownerProvider.login(gymId: gymId, password: password);
-
-    if (!mounted) return;
-
-    setState(() => _isSubmitting = false);
-
-    if (success) {
-      _showMessage('Login successful! Welcome back.');
-      context.goNamed('ownerDashboard');
-    } else {
-      _showMessage(
-        ownerProvider.errorMessage ?? 'Login failed. Please try again.',
+    try {
+      final ownerProvider = context.read<OwnerLoginProvider>();
+      final success = await ownerProvider.login(
+        gymId: gymId,
+        password: password,
       );
+
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+
+      if (success) {
+        debugPrint('OWNER_LOGIN: navigating to owner dashboard');
+        _showMessage('Login successful! Welcome back.');
+        context.goNamed('ownerDashboard');
+      } else {
+        _showMessage(
+          ownerProvider.errorMessage ?? 'Gym ID or password is incorrect.',
+        );
+      }
+    } catch (error) {
+      debugPrint('OWNER_LOGIN_ERROR: ${error.runtimeType}');
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _showMessage('Unable to sign in. Check your connection and try again.');
     }
   }
 
@@ -220,6 +232,8 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -247,21 +261,19 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                    SizedBox(height: compact ? 4 : 12),
                     _buildLogo(),
-                    const SizedBox(height: 14),
-                    _buildBrandText(),
-                    const SizedBox(height: 40),
+                    SizedBox(height: compact ? 14 : 20),
                     _buildHeading(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 30),
                     _buildGymIdField(),
                     const SizedBox(height: 16),
                     _buildPasswordField(),
                     const SizedBox(height: 12),
                     _buildForgotPassword(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 30),
                     _buildCTA(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 22 : 28),
                     _buildPurchaseMembership(),
                     const SizedBox(height: 20),
                   ],
@@ -283,61 +295,12 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 90,
-        height: 90,
+        'assets/images/gym_logo.png',
+        width: 126,
+        height: 126,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 40,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── GYMORA BRAND TEXT ──
-  Widget _buildBrandText() {
-    return AnimatedBuilder(
-      animation: _logoCtrl,
-      builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
-      child: Column(
-        children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
-            ),
-          ),
-        ],
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.fitness_center_rounded, color: _accent, size: 48),
       ),
     );
   }
@@ -352,8 +315,36 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _accent.withValues(alpha: 0.26)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.storefront_rounded, color: _accent, size: 13),
+                    const SizedBox(width: 5),
+                    Text(
+                      'OWNER PORTAL',
+                      style: TextStyle(
+                        color: _accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 13),
               const Text(
-                "Welcome Back",
+                'Welcome back',
                 style: TextStyle(
                   color: AppColors.white,
                   fontSize: 24,
@@ -363,7 +354,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                "Sign in to manage your gym",
+                'Sign in to manage your gym',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -474,13 +465,32 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
             opacity: _ctaOpacity.value,
             child: Transform.translate(
               offset: Offset(0, _ctaSlide.value),
-              child: ShimmerButton(
-                shimmerCtrl: _shimmerCtrl,
-                gradientColors: _buttonGradient,
-                accentColor: _accent,
-                label: loading ? "Signing In..." : "Sign In",
-                enabled: !loading,
-                onPressed: _handleLogin,
+              child: AnimatedBuilder(
+                animation: _glowPulseCtrl,
+                builder: (context, child) {
+                  final pulse = _glowPulseCtrl.value;
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _accent.withValues(alpha: 0.10 + pulse * 0.14),
+                          blurRadius: 18 + pulse * 10,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  );
+                },
+                child: ShimmerButton(
+                  shimmerCtrl: _shimmerCtrl,
+                  gradientColors: _buttonGradient,
+                  accentColor: _accent,
+                  label: loading ? 'Signing In...' : 'Sign In',
+                  enabled: !loading,
+                  onPressed: _handleLogin,
+                ),
               ),
             ),
           ),

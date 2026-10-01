@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/trainer_login_provider.dart';
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
+import 'package:provider/provider.dart';
 
 class TrainerProfileScreen extends StatefulWidget {
   const TrainerProfileScreen({super.key});
@@ -460,9 +464,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
   }
 
   void _showLogoutDialog() {
-    showDialog(
+    showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: const Color(0xFF121923),
           shape: RoundedRectangleBorder(
@@ -478,9 +482,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text(
                 'Cancel',
                 style: TextStyle(color: Colors.white54),
@@ -491,20 +493,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
               ),
-              onPressed: () {
-                Navigator.pop(context);
-
-                // Drop cached trainer data so the next login starts clean.
-                _store.clear();
-                // Also clear the token here, e.g.
-                // context.read<AuthProvider>().logout();
-
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text(
                 'Logout',
                 style: TextStyle(fontWeight: FontWeight.w700),
@@ -513,7 +502,26 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
           ],
         );
       },
-    );
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        _logout();
+      }
+    });
+  }
+
+  Future<void> _logout() async {
+    try {
+      await SecureStorageExtension().deleteToken();
+      if (!mounted) return;
+
+      context.read<TrainerLoginProvider>().clearState();
+      _store.clear();
+      context.goNamed('role-selection');
+    } catch (error) {
+      debugPrint('TRAINER_LOGOUT_ERROR: ${error.runtimeType}');
+      if (!mounted) return;
+      showTrainerErrorSnack(context, 'Unable to log out. Please try again.');
+    }
   }
   // ---------------------------------------------------------------------------
   // EDIT PROFILE

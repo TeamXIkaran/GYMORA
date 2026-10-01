@@ -3,7 +3,6 @@ import 'package:gymora_fitness_management/core/api/network/auth_service.dart';
 import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
 
-
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
@@ -38,36 +37,41 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final request = LoginRequest(email: email, password: password);
-    final response = await _authService.login(request);
+    try {
+      final request = LoginRequest(email: email, password: password);
+      final response = await _authService.login(request);
 
-    if (!response.success || response.data == null) {
+      if (!response.success || response.data == null) {
+        _status = AuthStatus.error;
+        _errorMessage = response.message ?? 'Login failed';
+        notifyListeners();
+        return false;
+      }
+
+      final loginData = response.data!;
+
+      if (loginData.user.role != expectedRole) {
+        _status = AuthStatus.error;
+        _errorMessage =
+            'This account is registered as "${loginData.user.role}". '
+            'Please use the correct login.';
+        notifyListeners();
+        return false;
+      }
+
+      await _storage.saveToken(loginData.token);
+
+      _user = loginData.user;
+      _status = AuthStatus.authenticated;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (error) {
       _status = AuthStatus.error;
-      _errorMessage = response.message ?? 'Login failed';
+      _errorMessage = 'Unable to sign in. Check your connection and try again.';
       notifyListeners();
       return false;
     }
-
-    final loginData = response.data!;
-
-    // Validate role matches the screen they logged in from
-    if (loginData.user.role != expectedRole) {
-      _status = AuthStatus.error;
-      _errorMessage =
-          'This account is registered as "${loginData.user.role}". '
-          'Please use the correct login.';
-      notifyListeners();
-      return false;
-    }
-
-    // Persist token
-    await _storage.saveToken(loginData.token);
-
-    _user = loginData.user;
-    _status = AuthStatus.authenticated;
-    _errorMessage = null;
-    notifyListeners();
-    return true;
   }
 
   // ── Create Trainer (owner only) ──

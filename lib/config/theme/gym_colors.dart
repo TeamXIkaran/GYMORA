@@ -13,7 +13,7 @@ import 'app_colors.dart';
 ///   GymColors.blue
 ///   GymColors.violet
 ///   GymColors.surface
-///   GymColors.primaryGradient
+///   GymColors.primaryGradient (member blue gradient)
 ///
 /// ===============================================================
 
@@ -68,7 +68,15 @@ class GymColors {
 
   static const Color primary = AppColors.primary;
 
-  static const Color cyan = AppColors.cyan;
+  static const Color ownerPrimary = AppColors.ownerPrimary;
+
+  static const Color ownerBright = AppColors.ownerBright;
+
+  static const Color trainerPrimary = AppColors.trainerPrimary;
+
+  static const Color memberPrimary = AppColors.clientPrimary;
+
+  static const Color cyan = AppColors.clientPrimary;
 
   static const Color blue = AppColors.blue;
 
@@ -98,8 +106,14 @@ class GymColors {
   // GRADIENTS
   // ---------------------------------------------------------------
 
-  /// Main Cyan → Blue gradient
-  static const LinearGradient primaryGradient = AppColors.primaryGradient;
+  /// Member blue gradient used by member-facing widgets.
+  static const LinearGradient primaryGradient = AppColors.clientGradient;
+
+  static const LinearGradient ownerGradient = AppColors.ownerGradient;
+
+  static const LinearGradient trainerGradient = AppColors.trainerGradient;
+
+  static const LinearGradient memberGradient = AppColors.clientGradient;
 
   /// Blue → Violet gradient
   static const LinearGradient blueGradient = AppColors.blueGradient;

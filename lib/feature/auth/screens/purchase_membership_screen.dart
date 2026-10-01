@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
@@ -17,9 +19,10 @@ class PurchaseMembershipScreen extends StatefulWidget {
 
 class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
     with TickerProviderStateMixin {
-  static const Color _accent = AppColors.primary;
+  static const Color _accent = AppColors.ownerPrimary;
 
   int _selectedPlanIndex = -1;
+  int? _pressedPlanIndex;
 
   // Plan data
   final List<Map<String, dynamic>> _plans = [
@@ -179,7 +182,10 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
   }
 
   void _selectPlan(int index) {
-    setState(() => _selectedPlanIndex = index);
+    setState(() {
+      _selectedPlanIndex = index;
+      _pressedPlanIndex = null;
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -217,6 +223,8 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -232,7 +240,7 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
               child: Column(
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  SizedBox(height: compact ? 2 : 8),
 
                   // ── Back ──
                   Align(
@@ -256,25 +264,25 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: compact ? 12 : 18),
 
                   // ── Logo ──
                   _buildLogo(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 8),
                   _buildBrandText(),
-                  const SizedBox(height: 30),
+                  SizedBox(height: compact ? 18 : 24),
 
                   // ── Heading ──
                   _buildHeading(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
                   // ── Plan Cards ──
                   _buildPlanCard(0, _card1Opacity),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 11),
                   _buildPlanCard(1, _card2Opacity),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 11),
                   _buildPlanCard(2, _card3Opacity),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // ── Continue Button ──
                   _buildContinueButton(),
@@ -296,25 +304,12 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 70,
-        height: 70,
+        'assets/images/gym_logo.png',
+        width: 130,
+        height: 130,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 32,
-          ),
-        ),
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.fitness_center_rounded, color: _accent, size: 48),
       ),
     );
   }
@@ -325,28 +320,28 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
       builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
       child: Column(
         children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withValues(alpha: 0.26)),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 9,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.workspace_premium_rounded, color: _accent, size: 13),
+                const SizedBox(width: 6),
+                Text(
+                  'OWNER MEMBERSHIP',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -367,9 +362,8 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
                 'Choose Your Plan',
                 style: TextStyle(
                   color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 8),
@@ -403,121 +397,230 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
           child: Transform.translate(
             offset: Offset(0, 30 * (1 - o)),
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) => setState(() => _pressedPlanIndex = index),
+              onTapCancel: () => setState(() => _pressedPlanIndex = null),
               onTap: () => _selectPlan(index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? gradient[0].withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isSelected
-                        ? gradient[0].withValues(alpha: 0.6)
-                        : Colors.white.withValues(alpha: 0.08),
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: gradient[0].withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            spreadRadius: -4,
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: LinearGradient(colors: gradient),
-                          ),
-                          child: Icon(
-                            plan['icon'] as IconData,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                plan['name'] as String,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? gradient[0]
-                                      : Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1,
-                                ),
+              child: AnimatedScale(
+                scale: _pressedPlanIndex == index ? 0.985 : 1,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: Semantics(
+                  button: true,
+                  selected: isSelected,
+                  label:
+                      '${plan['name']} plan, ${plan['duration']}, rupees ${plan['price']}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withValues(
+                                alpha: isSelected ? 0.12 : 0.055,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                plan['duration'] as String,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                  fontSize: 11,
-                                ),
+                              gradient[0].withValues(
+                                alpha: isSelected ? 0.16 : 0.075,
                               ),
+                              AppColors.surface.withValues(alpha: 0.62),
                             ],
+                            stops: const [0, 0.42, 1],
                           ),
-                        ),
-                        Text(
-                          '₹${plan['price']}',
-                          style: TextStyle(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                             color: isSelected
-                                ? gradient[0]
-                                : Colors.white.withValues(alpha: 0.8),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
+                                ? gradient[0].withValues(alpha: 0.62)
+                                : Colors.white.withValues(alpha: 0.15),
+                            width: isSelected ? 1.5 : 1,
                           ),
-                        ),
-                      ],
-                    ),
-                    if (isSelected) ...[
-                      const SizedBox(height: 14),
-                      Divider(
-                        color: gradient[0].withValues(alpha: 0.2),
-                        height: 1,
-                      ),
-                      const SizedBox(height: 12),
-                      ...features.map(
-                        (f) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: gradient[0],
-                                size: 16,
+                          boxShadow: [
+                            BoxShadow(
+                              color: gradient[0].withValues(
+                                alpha: isSelected ? 0.17 : 0.045,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                f,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
+                              blurRadius: isSelected ? 24 : 14,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 3,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: gradient[0],
+                                    borderRadius: BorderRadius.circular(3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: gradient[0].withValues(
+                                          alpha: 0.45,
+                                        ),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  width: 46,
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    gradient: LinearGradient(colors: gradient),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: gradient[0].withValues(
+                                          alpha: 0.22,
+                                        ),
+                                        blurRadius: 16,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    plan['icon'] as IconData,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        plan['name'] as String,
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? gradient[0]
+                                              : Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        plan['duration'] as String,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.52,
+                                          ),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '₹${plan['price']}',
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? gradient[0]
+                                            : Colors.white.withValues(
+                                                alpha: 0.88,
+                                              ),
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      'PLAN ${(index + 1).toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.34,
+                                        ),
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  width: 27,
+                                  height: 27,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected
+                                        ? gradient[0].withValues(alpha: 0.20)
+                                        : Colors.white.withValues(alpha: 0.045),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? gradient[0].withValues(alpha: 0.58)
+                                          : Colors.white.withValues(
+                                              alpha: 0.18,
+                                            ),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    isSelected
+                                        ? Icons.check_rounded
+                                        : Icons.arrow_forward_rounded,
+                                    color: isSelected
+                                        ? gradient[0]
+                                        : Colors.white.withValues(alpha: 0.55),
+                                    size: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(height: 14),
+                              Divider(
+                                color: gradient[0].withValues(alpha: 0.25),
+                                height: 1,
+                              ),
+                              const SizedBox(height: 12),
+                              ...features.map(
+                                (feature) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 7),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        color: gradient[0],
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          feature,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.72,
+                                            ),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
                       ),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -529,7 +632,7 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
 
   Widget _buildContinueButton() {
     return AnimatedBuilder(
-      animation: _ctaCtrl,
+      animation: Listenable.merge([_ctaCtrl, _glowPulseCtrl]),
       builder: (_, _) => Opacity(
         opacity: _ctaOpacity.value,
         child: GestureDetector(
@@ -541,7 +644,7 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
               borderRadius: BorderRadius.circular(14),
               gradient: LinearGradient(
                 colors: _selectedPlanIndex >= 0
-                    ? [const Color(0xFFE62B52), const Color(0xFF8B1528)]
+                    ? [AppColors.ownerBright, AppColors.ownerPrimary]
                     : [
                         Colors.white.withValues(alpha: 0.1),
                         Colors.white.withValues(alpha: 0.05),
@@ -550,8 +653,10 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
               boxShadow: _selectedPlanIndex >= 0
                   ? [
                       BoxShadow(
-                        color: _accent.withValues(alpha: 0.35),
-                        blurRadius: 20,
+                        color: _accent.withValues(
+                          alpha: 0.22 + _glowPulseCtrl.value * 0.16,
+                        ),
+                        blurRadius: 18 + _glowPulseCtrl.value * 10,
                         spreadRadius: -4,
                         offset: const Offset(0, 6),
                       ),

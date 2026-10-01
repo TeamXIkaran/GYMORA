@@ -25,10 +25,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('OWNER_DASHBOARD: screen initialized');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
+      debugPrint('OWNER_DASHBOARD: loading dashboard data');
       context.read<OwnerDashboardProvider>().fetchDashboard();
       context.read<OwnerMemberProvider>().ensureLoaded();
       context.read<OwnerTrainerProvider>().ensureLoaded();
@@ -280,7 +282,10 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, OwnerDashboardProvider provider) {
+  Widget _buildErrorState(
+    BuildContext context,
+    OwnerDashboardProvider provider,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(30),

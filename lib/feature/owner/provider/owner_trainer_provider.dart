@@ -91,6 +91,27 @@ class OwnerTrainerProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteTrainer(String id) async {
+    if (_isSubmitting) return false;
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await OwnerTrainerService.deleteTrainer(id);
+      _trainers.removeWhere((trainer) => trainer.id == id);
+      _hasLoaded = true;
+      return true;
+    } catch (error) {
+      _error = cleanError(error);
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   /// 0 = All
   /// 1 = Active
   /// 2 = Inactive

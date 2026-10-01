@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 import Trainer from "../models/Trainer.js";
 
@@ -51,10 +52,7 @@ const addTrainer = async (req, res) => {
     // Validate experience
     const trainerExperience = Number(experience);
 
-    if (
-      Number.isNaN(trainerExperience) ||
-      trainerExperience < 0
-    ) {
+    if (Number.isNaN(trainerExperience) || trainerExperience < 0) {
       return res.status(400).json({
         success: false,
         message: "Experience must be a valid non-negative number",
@@ -149,6 +147,50 @@ const getTrainers = async (req, res) => {
   }
 };
 
+const deleteTrainer = async (req, res) => {
+  try {
+    if (req.user.role !== "OWNER") {
+      return res.status(403).json({
+        success: false,
+        message: "Only gym owners can delete trainers",
+      });
+    }
+
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid trainer ID",
+      });
+    }
+
+    const trainer = await Trainer.findOneAndDelete({
+      _id: id,
+      gymId: req.user.gymId,
+    });
+
+    if (!trainer) {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainer deleted successfully",
+      data: { id: trainer._id },
+    });
+  } catch (error) {
+    console.error("Delete trainer error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 const loginTrainer = async (req, res) => {
   try {
     const { trainerId, password } = req.body;
@@ -182,10 +224,7 @@ const loginTrainer = async (req, res) => {
     }
 
     // Check password
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      trainer.password
-    );
+    const isPasswordValid = await bcrypt.compare(password, trainer.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -204,7 +243,7 @@ const loginTrainer = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "1d",
-      }
+      },
     );
 
     return res.status(200).json({
@@ -235,4 +274,4 @@ const loginTrainer = async (req, res) => {
   }
 };
 
-export { addTrainer, getTrainers, loginTrainer };
+export { addTrainer, deleteTrainer, getTrainers, loginTrainer };

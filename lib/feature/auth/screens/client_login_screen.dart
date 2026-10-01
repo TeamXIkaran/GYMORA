@@ -21,8 +21,11 @@ class ClientLoginScreen extends StatefulWidget {
 class _ClientLoginScreenState extends State<ClientLoginScreen>
     with TickerProviderStateMixin {
   // ── Theme ──
-  static const Color _accent = Color(0xFF4CAF50);
-  static const _buttonGradient = [Color(0xFF4CAF50), Color(0xFF2E7D32)];
+  static const Color _accent = AppColors.clientPrimary;
+  static const _buttonGradient = [
+    AppColors.clientPrimary,
+    AppColors.clientBright,
+  ];
 
   // ── State ──
   bool _obscurePassword = true;
@@ -178,23 +181,30 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
 
     setState(() => _isSubmitting = true);
 
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(
-      email: email,
-      password: password,
-      expectedRole: 'client',
-    );
-
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    if (success) {
-      _showMessage('Login successful! Welcome.');
-      context.goNamed('clientDashboard');
-    } else {
-      _showMessage(
-        authProvider.errorMessage ?? 'Login failed. Please try again.',
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.login(
+        email: email,
+        password: password,
+        expectedRole: 'client',
       );
+
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+
+      if (success) {
+        _showMessage('Login successful! Welcome.');
+        context.goNamed('clientDashboard');
+      } else {
+        _showMessage(
+          authProvider.errorMessage ?? 'Email or password is incorrect.',
+        );
+      }
+    } catch (error) {
+      debugPrint('CLIENT_LOGIN_ERROR: ${error.runtimeType}');
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _showMessage('Unable to sign in. Check your connection and try again.');
     }
   }
 
@@ -213,6 +223,8 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).height < 740;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -237,7 +249,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                    SizedBox(height: compact ? 4 : 12),
 
                     // ── Back Button ──
                     Align(
@@ -262,18 +274,16 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
                       ),
                     ),
 
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                    SizedBox(height: compact ? 10 : 16),
 
                     _buildLogo(),
-                    const SizedBox(height: 14),
-                    _buildBrandText(),
-                    const SizedBox(height: 40),
+                    SizedBox(height: compact ? 18 : 24),
                     _buildHeading(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 30),
                     _buildEmailField(),
                     const SizedBox(height: 16),
                     _buildPasswordField(),
-                    const SizedBox(height: 32),
+                    SizedBox(height: compact ? 24 : 30),
                     _buildCTA(),
                     const SizedBox(height: 20),
                   ],
@@ -295,61 +305,12 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
         child: Transform.scale(scale: _logoScale.value, child: child),
       ),
       child: Image.asset(
-        'assets/images/gymora_logo.png',
-        width: 90,
-        height: 90,
+        'assets/images/gym_logo.png',
+        width: 126,
+        height: 126,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.6)],
-            ),
-          ),
-          child: const Icon(
-            Icons.fitness_center,
-            color: Colors.white,
-            size: 40,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── GYMORA BRAND TEXT ──
-  Widget _buildBrandText() {
-    return AnimatedBuilder(
-      animation: _logoCtrl,
-      builder: (_, child) => Opacity(opacity: _logoOpacity.value, child: child),
-      child: Column(
-        children: [
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [_accent, _accent.withValues(alpha: 0.7)],
-            ).createShader(bounds),
-            child: const Text(
-              'GYMORA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'F I T N E S S   M A N A G E M E N T',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
-            ),
-          ),
-        ],
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.fitness_center_rounded, color: _accent, size: 48),
       ),
     );
   }
@@ -363,18 +324,49 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
           offset: Offset(0, _headingSlide.value),
           child: Column(
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _accent.withValues(alpha: 0.26)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.directions_run_rounded,
+                      color: _accent,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'CLIENT PORTAL',
+                      style: TextStyle(
+                        color: _accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 13),
               const Text(
-                'Client Login',
+                'Welcome back',
                 style: TextStyle(
                   color: AppColors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Sign in to track your fitness journey',
+                'Sign in to pick up where you left off.',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -461,13 +453,32 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
             opacity: _ctaOpacity.value,
             child: Transform.translate(
               offset: Offset(0, _ctaSlide.value),
-              child: ShimmerButton(
-                shimmerCtrl: _shimmerCtrl,
-                gradientColors: _buttonGradient,
-                accentColor: _accent,
-                label: loading ? 'Signing In...' : 'Sign In',
-                enabled: !loading,
-                onPressed: _handleLogin,
+              child: AnimatedBuilder(
+                animation: _glowPulseCtrl,
+                builder: (context, child) {
+                  final pulse = _glowPulseCtrl.value;
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _accent.withValues(alpha: 0.10 + pulse * 0.14),
+                          blurRadius: 18 + pulse * 10,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  );
+                },
+                child: ShimmerButton(
+                  shimmerCtrl: _shimmerCtrl,
+                  gradientColors: _buttonGradient,
+                  accentColor: _accent,
+                  label: loading ? 'Signing In...' : 'Sign In',
+                  enabled: !loading,
+                  onPressed: _handleLogin,
+                ),
               ),
             ),
           ),

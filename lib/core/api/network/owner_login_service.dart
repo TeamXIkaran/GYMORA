@@ -22,7 +22,7 @@ class OwnerLoginService {
   ) async {
     debugPrint('═══════════════════════════════════════════');
     debugPrint('🔐 [OwnerService] LOGIN');
-    debugPrint('📤 Request: ${request.toJson()}');
+    debugPrint('📤 Login request submitted');
     debugPrint('═══════════════════════════════════════════');
 
     final response = await _api.post<Map<String, dynamic>>(
@@ -34,7 +34,6 @@ class OwnerLoginService {
     debugPrint('📥 [OwnerService] LOGIN RESPONSE');
     debugPrint('📦 Success: ${response.success}');
     debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 Data: ${response.data}');
     debugPrint('═══════════════════════════════════════════');
 
     if (!response.success || response.data == null) {
@@ -48,7 +47,6 @@ class OwnerLoginService {
       final loginData = OwnerLoginResponse.fromJson(
         response.data!['data'] as Map<String, dynamic>,
       );
-      debugPrint('✅ [OwnerService] Parsed: $loginData');
       return ApiResponse.success(
         loginData,
         message: response.data!['message']?.toString(),

@@ -45,36 +45,45 @@ class OwnerLoginProvider extends ChangeNotifier {
     _statusCode = null;
     notifyListeners();
 
-    final request = OwnerLoginRequest(gymId: gymId, password: password);
-    final response = await _service.login(request);
+    try {
+      final request = OwnerLoginRequest(gymId: gymId, password: password);
+      final response = await _service.login(request);
 
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('🎯 [OwnerProvider] LOGIN RESULT');
-    debugPrint('📦 Success: ${response.success}');
-    debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 StatusCode: ${response.statusCode}');
-    debugPrint('📦 Data: ${response.data}');
-    debugPrint('═══════════════════════════════════════════');
+      debugPrint('═══════════════════════════════════════════');
+      debugPrint('🎯 [OwnerProvider] LOGIN RESULT');
+      debugPrint('📦 Success: ${response.success}');
+      debugPrint('📦 Message: ${response.message}');
+      debugPrint('📦 StatusCode: ${response.statusCode}');
+      debugPrint('═══════════════════════════════════════════');
 
-    if (!response.success || response.data == null) {
-      _status = OwnerStatus.error;
-      _errorMessage = response.message ?? 'Login failed';
+      if (!response.success || response.data == null) {
+        _status = OwnerStatus.error;
+        _errorMessage = response.message ?? 'Login failed';
+        _statusCode = response.statusCode;
+        notifyListeners();
+        return false;
+      }
+
+      final loginData = response.data!;
+
+      debugPrint('OWNER_LOGIN: saving session token');
+      await _storage.saveToken(loginData.token);
+      debugPrint('OWNER_LOGIN: session token saved');
+
+      _owner = loginData.owner;
+      _status = OwnerStatus.authenticated;
+      _errorMessage = null;
       _statusCode = response.statusCode;
+      notifyListeners();
+      debugPrint('OWNER_LOGIN: provider authenticated');
+      return true;
+    } catch (error) {
+      _status = OwnerStatus.error;
+      _errorMessage = 'Unable to sign in. Check your connection and try again.';
+      _statusCode = null;
       notifyListeners();
       return false;
     }
-
-    final loginData = response.data!;
-
-    // Persist token
-    await _storage.saveToken(loginData.token);
-
-    _owner = loginData.owner;
-    _status = OwnerStatus.authenticated;
-    _errorMessage = null;
-    _statusCode = response.statusCode;
-    notifyListeners();
-    return true;
   }
 
   // ─────────────────────────────────────────────────────────────────────
