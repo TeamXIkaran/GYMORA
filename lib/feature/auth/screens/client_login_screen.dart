@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
@@ -167,11 +168,11 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
   Future<void> _handleLogin() async {
     if (_isSubmitting) return;
 
-    final email = _emailCtrl.text.trim();
+    final clientId = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
 
-    if (email.isEmpty) {
-      _showMessage('Please enter your email');
+    if (clientId.isEmpty) {
+      _showMessage('Please enter your client ID');
       return;
     }
     if (password.isEmpty) {
@@ -183,10 +184,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
 
     try {
       final authProvider = context.read<AuthProvider>();
-      final success = await authProvider.login(
-        email: email,
+      final success = await authProvider.loginClient(
+        clientId: clientId,
         password: password,
-        expectedRole: 'client',
       );
 
       if (!mounted) return;
@@ -194,10 +194,10 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
 
       if (success) {
         _showMessage('Login successful! Welcome.');
-        context.goNamed('clientDashboard');
+        context.goNamed(AppRoutes.memberHomeName);
       } else {
         _showMessage(
-          authProvider.errorMessage ?? 'Email or password is incorrect.',
+          authProvider.errorMessage ?? 'Client ID or password is incorrect.',
         );
       }
     } catch (error) {
@@ -392,10 +392,10 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
             child: GlassTextField(
               controller: _emailCtrl,
               focusNode: _emailFocus,
-              hint: 'Email',
-              prefixIcon: Icons.email_outlined,
+              hint: 'Client ID',
+              prefixIcon: Icons.badge_outlined,
               accentColor: _accent,
-              keyboardType: TextInputType.emailAddress,
+              keyboardType: TextInputType.text,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) =>
                   FocusScope.of(context).requestFocus(_passwordFocus),

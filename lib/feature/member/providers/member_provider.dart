@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
-import 'package:gymora_fitness_management/feature/member/repository/member_repository.dart';
+import 'package:gymora_fitness_management/core/api/network/member_service.dart';
 
 enum SessionStatus { idle, running, paused }
 
@@ -21,10 +22,10 @@ abstract final class MemberTabs {
 /// (session clock, rest countdown) live in [ValueNotifier]s so only the small
 /// widgets that show them rebuild every second.
 class MemberController extends ChangeNotifier {
-  MemberController({MemberRepository? repository})
-    : _repository = repository ?? const MockMemberRepository();
+  MemberController({MemberService? service})
+    : _service = service ?? const MemberService();
 
-  final MemberRepository _repository;
+  final MemberService _service;
 
   MemberDashboardData? _data;
   bool _loading = false;
@@ -41,6 +42,8 @@ class MemberController extends ChangeNotifier {
   final ValueNotifier<int> restSecondsLeft = ValueNotifier<int>(0);
   SessionStatus _sessionStatus = SessionStatus.idle;
   int _restTotalSeconds = 0;
+  bool _workoutStartedOnServer = false;
+  Future<void>? _startRequest;
   Timer? _sessionTimer;
   Timer? _restTimer;
 
@@ -121,20 +124,37 @@ class MemberController extends ChangeNotifier {
       : (consumedCalories / profile.dailyCalorieTarget).clamp(0.0, 1.0);
 
   // Body ----------------------------------------------------------------------
-  BodyMeasurement get latestMeasurement => measurements.last;
-  BodyMeasurement get firstMeasurement => measurements.first;
+  bool get hasMeasurements => measurements.isNotEmpty;
+
+  // These never throw: a member with no check-ins yet gets a zeroed
+  // placeholder instead of a StateError.
+  BodyMeasurement get latestMeasurement =>
+      hasMeasurements ? measurements.last : _emptyMeasurement();
+  BodyMeasurement get firstMeasurement =>
+      hasMeasurements ? measurements.first : _emptyMeasurement();
+
+  static BodyMeasurement _emptyMeasurement() =>
+      BodyMeasurement(date: DateTime.now(), weightKg: 0, bodyFatPercent: 0);
+
   double get currentWeight => latestMeasurement.weightKg;
   double get currentBodyFat => latestMeasurement.bodyFatPercent;
-  double get weightChange => currentWeight - firstMeasurement.weightKg;
-  double get bodyFatChange => currentBodyFat - firstMeasurement.bodyFatPercent;
+  double get weightChange =>
+      measurements.length < 2 ? 0 : currentWeight - firstMeasurement.weightKg;
+  double get bodyFatChange => measurements.length < 2
+      ? 0
+      : currentBodyFat - firstMeasurement.bodyFatPercent;
 
   double get bmi {
     final metres = profile.heightCm / 100;
     return metres <= 0 ? 0 : currentWeight / (metres * metres);
   }
 
+  /// True when the member has a target weight and at least one check-in.
+  bool get hasGoal => profile.targetWeightKg > 0 && hasMeasurements;
+
   /// How far the member is from their first measurement to the target weight.
   double get weightGoalProgress {
+    if (!hasGoal) return 0;
     final start = firstMeasurement.weightKg;
     final target = profile.targetWeightKg;
     final total = start - target;
@@ -160,7 +180,7 @@ class MemberController extends ChangeNotifier {
     _error = null;
     _notify();
     try {
-      _data = await _repository.fetchDashboard();
+      _data = await _service.getDashboard();
     } catch (error, stack) {
       debugPrint('MemberController.load failed: $error\n$stack');
       _error =
@@ -171,9 +191,9 @@ class MemberController extends ChangeNotifier {
     }
   }
 
-  /// Pull-to-refresh. Server-owned data (profile, notifications, achievements,
-  /// coach tip) is replaced; in-progress local state (today's sets, meals,
-  /// water) is kept so a refresh never wipes what the member just logged.
+  /// Replaces local view state with the latest server-owned member data.
+  /// Sets logged during an active session are kept (the server only knows
+  /// about fully completed exercises).
   Future<void> refresh() async {
     if (_refreshing) return;
     if (_data == null) return load();
@@ -181,19 +201,29 @@ class MemberController extends ChangeNotifier {
     _refreshing = true;
     _notify();
     try {
-      final fresh = await _repository.fetchDashboard();
-      _data = data.copyWith(
-        profile: fresh.profile,
-        notifications: fresh.notifications,
-        achievements: fresh.achievements,
-        coachTip: fresh.coachTip,
-      );
+      final fresh = await _service.getDashboard();
+      _data = _mergeLocalProgress(fresh);
     } catch (error) {
       debugPrint('MemberController.refresh failed: $error');
     } finally {
       _refreshing = false;
       _notify();
     }
+  }
+
+  MemberDashboardData _mergeLocalProgress(MemberDashboardData fresh) {
+    if (!isSessionActive || fresh.plan.id != plan.id) return fresh;
+    final local = {for (final e in exercises) e.id: e.completedSets};
+    return fresh.copyWith(
+      plan: fresh.plan.copyWith(
+        exercises: [
+          for (final e in fresh.plan.exercises)
+            e.copyWith(
+              completedSets: math.max(e.completedSets, local[e.id] ?? 0),
+            ),
+        ],
+      ),
+    );
   }
 
   void selectTab(int index) {
@@ -208,6 +238,12 @@ class MemberController extends ChangeNotifier {
 
   void startSession() {
     if (_sessionStatus == SessionStatus.running) return;
+    if (!_workoutStartedOnServer && plan.id.isNotEmpty) {
+      final start = _service.startWorkout(plan.id);
+      _startRequest = start;
+      _persist(start);
+      _workoutStartedOnServer = true;
+    }
     _sessionStatus = SessionStatus.running;
     _sessionTimer?.cancel();
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -252,22 +288,9 @@ class MemberController extends ChangeNotifier {
     sessionSeconds.value = 0;
     _sessionStatus = SessionStatus.idle;
 
-    final minutes = (seconds / 60).ceil();
-    // Only a session that actually ran counts as a workout.
-    if (seconds > 0) {
-      final week = [...weeklyMinutes];
-      final trainedTodayBefore = week.isNotEmpty && week.last > 0;
-      if (week.isNotEmpty) week[week.length - 1] = week.last + minutes;
-      _data = data.copyWith(
-        weeklyMinutes: week,
-        totalWorkouts: totalWorkouts + 1,
-        streakDays: trainedTodayBefore ? streakDays : streakDays + 1,
-        activity: activity.copyWith(
-          activeMinutes: activity.activeMinutes + minutes,
-        ),
-      );
-      unawaited(_repository.saveWorkout(summary));
-    }
+    _workoutStartedOnServer = false;
+    _startRequest = null;
+    if (seconds > 0 && isWorkoutComplete) unawaited(refresh());
 
     _notify();
     return summary;
@@ -291,7 +314,11 @@ class MemberController extends ChangeNotifier {
 
   void undoSet(String exerciseId) {
     final exercise = _findExercise(exerciseId);
-    if (exercise == null || exercise.completedSets == 0) return;
+    if (exercise == null ||
+        exercise.completedSets == 0 ||
+        exercise.isCompleted) {
+      return;
+    }
     _replaceExercise(
       exercise.copyWith(completedSets: exercise.completedSets - 1),
     );
@@ -300,12 +327,8 @@ class MemberController extends ChangeNotifier {
   /// Marks every set done, or resets the exercise if it was already complete.
   void toggleExerciseComplete(String exerciseId) {
     final exercise = _findExercise(exerciseId);
-    if (exercise == null) return;
-    _replaceExercise(
-      exercise.copyWith(
-        completedSets: exercise.isCompleted ? 0 : exercise.sets,
-      ),
-    );
+    if (exercise == null || exercise.isCompleted) return;
+    _replaceExercise(exercise.copyWith(completedSets: exercise.sets));
   }
 
   void startRest(int seconds) {
@@ -352,41 +375,67 @@ class MemberController extends ChangeNotifier {
   }
 
   void _replaceExercise(Exercise updated) {
+    final previous = _findExercise(updated.id);
     final list = [
       for (final exercise in exercises)
         exercise.id == updated.id ? updated : exercise,
     ];
     _data = data.copyWith(plan: plan.copyWith(exercises: list));
     _notify();
-    unawaited(
-      _repository.setExerciseProgress(
-        updated.id,
-        completedSets: updated.completedSets,
-      ),
-    );
+    if (previous != null &&
+        !previous.isCompleted &&
+        updated.isCompleted &&
+        plan.id.isNotEmpty) {
+      final workoutId = plan.id;
+      final startRequest = _startRequest;
+      _persist(() async {
+        // Make sure the server has seen "start" before "complete".
+        if (startRequest != null) {
+          try {
+            await startRequest;
+          } catch (_) {
+            // Already reported by the start request's own handler.
+          }
+        }
+        await _service.completeExercise(
+          workoutId: workoutId,
+          exerciseId: updated.id,
+        );
+      }());
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Nutrition & activity
   // ---------------------------------------------------------------------------
 
-  void toggleMeal(String mealId) {
-    final index = meals.indexWhere((meal) => meal.id == mealId);
-    if (index < 0) return;
-    final updated = meals[index].copyWith(logged: !meals[index].logged);
-    final list = [...meals]..[index] = updated;
-    _data = data.copyWith(meals: list);
+  Future<void> logMeal({
+    required MealType type,
+    required String name,
+    required int calories,
+    required int protein,
+    required int carbs,
+    required int fat,
+  }) async {
+    final saved = await _service.logMeal(
+      type: type,
+      name: name,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+    );
+    _data = data.copyWith(meals: [...meals, saved]);
     _notify();
-    unawaited(_repository.setMealLogged(mealId, logged: updated.logged));
   }
 
   void addWater(int millilitres) {
-    final next = (activity.waterMl + millilitres).clamp(
-      0,
-      activity.waterGoalMl * 2,
-    );
+    if (millilitres == 0) return;
+    final max = activity.waterGoalMl > 0 ? activity.waterGoalMl * 2 : 10000;
+    final next = (activity.waterMl + millilitres).clamp(0, max);
     _data = data.copyWith(activity: activity.copyWith(waterMl: next));
     _notify();
+    _persist(_service.addHydration(millilitres.abs(), add: millilitres > 0));
   }
 
   // ---------------------------------------------------------------------------
@@ -394,11 +443,22 @@ class MemberController extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> addMeasurement(BodyMeasurement measurement) async {
-    final list = [...measurements, measurement]
+    final saved = await _service.saveMeasurement(measurement);
+    final list = [...measurements, saved]
       ..sort((a, b) => a.date.compareTo(b.date));
     _data = data.copyWith(measurements: list);
     _notify();
-    await _repository.saveMeasurement(measurement);
+  }
+
+  void _persist(Future<void> request) {
+    unawaited(
+      request.catchError((Object error) {
+        debugPrint('Member API action failed: $error');
+        _error = 'Could not save that change. Refresh and try again.';
+        _notify();
+        unawaited(refresh());
+      }),
+    );
   }
 
   // ---------------------------------------------------------------------------

@@ -33,4 +33,15 @@ class AppRoutes {
   // Member Routes
 
   static const String memberDashboardRoute = '/member-dashboard';
+  static const String memberHomeRoute = memberDashboardRoute;
+  static const String memberWorkoutRoute = '/member-dashboard/workout';
+  static const String memberProgressRoute = '/member-dashboard/progress';
+  static const String memberNutritionRoute = '/member-dashboard/nutrition';
+  static const String memberProfileRoute = '/member-dashboard/profile';
+
+  static const String memberHomeName = 'memberHome';
+  static const String memberWorkoutName = 'memberWorkout';
+  static const String memberProgressName = 'memberProgress';
+  static const String memberNutritionName = 'memberNutrition';
+  static const String memberProfileName = 'memberProfile';
 }

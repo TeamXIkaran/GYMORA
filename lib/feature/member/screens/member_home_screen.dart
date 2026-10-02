@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_text.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 import 'package:gymora_fitness_management/feature/member/screens/member_workout_screen.dart';
 import 'package:gymora_fitness_management/feature/member/sheets/member_sheets.dart';
-import 'package:gymora_fitness_management/feature/member/state/member_state.dart';
+import 'package:gymora_fitness_management/feature/member/providers/member_provider.dart';
 import 'package:gymora_fitness_management/feature/member/widgets/member_widgets.dart';
 
 class MemberHomeScreen extends StatelessWidget {
@@ -22,7 +24,7 @@ class MemberHomeScreen extends StatelessWidget {
           fullName: profile.fullName,
           unreadCount: controller.unreadNotifications,
           onNotifications: () => showNotificationsSheet(context),
-          onAvatar: () => controller.selectTab(MemberTabs.profile),
+          onAvatar: () => context.goNamed(AppRoutes.memberProfileName),
         ),
         TodayWorkoutCard(
           plan: controller.plan,
@@ -30,7 +32,7 @@ class MemberHomeScreen extends StatelessWidget {
           completedExercises: controller.completedExercises,
           sessionActive: controller.isSessionActive,
           onStart: () => openWorkoutSession(context),
-          onViewPlan: () => controller.selectTab(MemberTabs.workout),
+          onViewPlan: () => context.goNamed(AppRoutes.memberWorkoutName),
         ),
         WeekStreakCard(
           streakDays: controller.streakDays,
@@ -59,7 +61,7 @@ class MemberHomeScreen extends StatelessWidget {
                   subtitle:
                       '${controller.loggedMealCount}/${controller.meals.length} meals logged',
                   color: GymColors.green,
-                  onTap: () => controller.selectTab(MemberTabs.nutrition),
+                  onTap: () => context.goNamed(AppRoutes.memberNutritionName),
                 ),
                 QuickAction(
                   icon: Icons.monitor_weight_outlined,
@@ -86,11 +88,11 @@ class MemberHomeScreen extends StatelessWidget {
               title: 'Your progress',
               subtitle: 'Last ${controller.measurements.length} check-ins',
               actionLabel: 'View all',
-              onAction: () => controller.selectTab(MemberTabs.progress),
+              onAction: () => context.goNamed(AppRoutes.memberProgressName),
             ),
             const SizedBox(height: 12),
             ProgressSnapshotCard(
-              onTap: () => controller.selectTab(MemberTabs.progress),
+              onTap: () => context.goNamed(AppRoutes.memberProgressName),
             ),
           ],
         ),

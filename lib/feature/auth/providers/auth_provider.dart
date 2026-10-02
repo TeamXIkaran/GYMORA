@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/core/api/network/auth_service.dart';
 import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
+import 'package:gymora_fitness_management/core/api/network/member_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
+  final MemberService _memberService;
   final SecureStorageExtension _storage;
 
-  AuthProvider({AuthService? authService, SecureStorageExtension? storage})
-    : _authService = authService ?? AuthService(),
-      _storage = storage ?? SecureStorageExtension();
+  AuthProvider({
+    AuthService? authService,
+    MemberService? memberService,
+    SecureStorageExtension? storage,
+  }) : _authService = authService ?? AuthService(),
+       _memberService = memberService ?? const MemberService(),
+       _storage = storage ?? SecureStorageExtension();
 
   // ── State ──
   AuthStatus _status = AuthStatus.initial;
@@ -69,6 +75,32 @@ class AuthProvider extends ChangeNotifier {
     } catch (error) {
       _status = AuthStatus.error;
       _errorMessage = 'Unable to sign in. Check your connection and try again.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> loginClient({
+    required String clientId,
+    required String password,
+  }) async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _memberService.login(
+        clientId: clientId,
+        password: password,
+      );
+      await _storage.saveToken(response.token);
+      _user = response.client;
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _status = AuthStatus.error;
+      _errorMessage = error.toString().replaceFirst('Exception: ', '');
       notifyListeners();
       return false;
     }

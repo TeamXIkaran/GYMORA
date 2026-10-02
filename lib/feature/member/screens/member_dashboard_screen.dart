@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
-import 'package:gymora_fitness_management/feature/member/repository/member_repository.dart';
-import 'package:gymora_fitness_management/feature/member/screens/member_home_screen.dart';
-import 'package:gymora_fitness_management/feature/member/screens/member_nutrition_screen.dart';
-import 'package:gymora_fitness_management/feature/member/screens/member_profile_screen.dart';
-import 'package:gymora_fitness_management/feature/member/screens/member_progress_screen.dart';
-import 'package:gymora_fitness_management/feature/member/screens/member_workout_screen.dart';
-import 'package:gymora_fitness_management/feature/member/state/member_state.dart';
+import 'package:gymora_fitness_management/core/api/network/member_service.dart';
+
+import 'package:gymora_fitness_management/feature/member/providers/member_provider.dart';
 import 'package:gymora_fitness_management/feature/member/widgets/member_widgets.dart';
+import 'package:provider/provider.dart';
 
 /// Entry point for the GYMORA member experience.
 ///
@@ -17,48 +16,38 @@ import 'package:gymora_fitness_management/feature/member/widgets/member_widgets.
 /// MaterialApp(home: const MemberDashboardScreen());
 /// ```
 ///
-/// Pass your own [repository] once the member API exists, and [onLogout] to
-/// return to your auth flow.
-class MemberDashboardScreen extends StatefulWidget {
-  const MemberDashboardScreen({super.key, this.repository, this.onLogout});
+/// [onLogout] returns the member to the authentication flow.
+class MemberDashboardScreen extends StatelessWidget {
+  const MemberDashboardScreen({
+    super.key,
+    required this.child,
+    required this.location,
+    this.service,
+  });
 
-  final MemberRepository? repository;
-  final VoidCallback? onLogout;
-
-  @override
-  State<MemberDashboardScreen> createState() => _MemberDashboardScreenState();
-}
-
-class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
-  late final MemberController _controller = MemberController(
-    repository: widget.repository,
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.load();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final Widget child;
+  final String location;
+  final MemberService? service;
 
   @override
   Widget build(BuildContext context) {
-    return MemberScope(
-      controller: _controller,
-      child: _MemberShell(onLogout: widget.onLogout),
+    return ChangeNotifierProvider<MemberController>(
+      create: (_) => MemberController(service: service)..load(),
+      child: Builder(
+        builder: (context) => MemberScope(
+          controller: context.read<MemberController>(),
+          child: _MemberShell(child: child, location: location),
+        ),
+      ),
     );
   }
 }
 
 class _MemberShell extends StatelessWidget {
-  const _MemberShell({this.onLogout});
+  const _MemberShell({required this.child, required this.location});
 
-  final VoidCallback? onLogout;
+  final Widget child;
+  final String location;
 
   @override
   Widget build(BuildContext context) {
@@ -74,16 +63,7 @@ class _MemberShell extends StatelessWidget {
         onRetry: controller.load,
       );
     } else {
-      body = IndexedStack(
-        index: controller.selectedTab,
-        children: [
-          const MemberHomeScreen(),
-          const MemberWorkoutScreen(),
-          const MemberProgressScreen(),
-          const MemberNutritionScreen(),
-          MemberProfileScreen(onLogout: onLogout),
-        ],
-      );
+      body = child;
     }
 
     return Scaffold(
@@ -108,8 +88,8 @@ class _MemberShell extends StatelessWidget {
               right: 16,
               bottom: 12 + bottomInset,
               child: MemberBottomNav(
-                selectedIndex: controller.selectedTab,
-                onChanged: controller.selectTab,
+                selectedIndex: _memberTabForLocation(location),
+                onChanged: (index) => context.goNamed(_memberRouteName(index)),
               ),
             ),
           if (controller.isRefreshing)
@@ -128,5 +108,28 @@ class _MemberShell extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+int _memberTabForLocation(String location) {
+  if (location == AppRoutes.memberWorkoutRoute) return MemberTabs.workout;
+  if (location == AppRoutes.memberProgressRoute) return MemberTabs.progress;
+  if (location == AppRoutes.memberNutritionRoute) return MemberTabs.nutrition;
+  if (location == AppRoutes.memberProfileRoute) return MemberTabs.profile;
+  return MemberTabs.home;
+}
+
+String _memberRouteName(int index) {
+  switch (index) {
+    case MemberTabs.workout:
+      return AppRoutes.memberWorkoutName;
+    case MemberTabs.progress:
+      return AppRoutes.memberProgressName;
+    case MemberTabs.nutrition:
+      return AppRoutes.memberNutritionName;
+    case MemberTabs.profile:
+      return AppRoutes.memberProfileName;
+    default:
+      return AppRoutes.memberHomeName;
   }
 }

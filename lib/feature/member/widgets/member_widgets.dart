@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/theme/app_text.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
-import 'package:gymora_fitness_management/feature/member/state/member_state.dart';
+import 'package:gymora_fitness_management/feature/member/providers/member_provider.dart';
 
 ///
 /// Uses cheap radial gradients (no blur filters) so it costs nothing while

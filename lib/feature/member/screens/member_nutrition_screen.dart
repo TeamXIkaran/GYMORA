@@ -3,7 +3,7 @@ import 'package:gymora_fitness_management/config/theme/app_text.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
-import 'package:gymora_fitness_management/feature/member/state/member_state.dart';
+import 'package:gymora_fitness_management/feature/member/providers/member_provider.dart';
 import 'package:gymora_fitness_management/feature/member/widgets/member_widgets.dart';
 
 class MemberNutritionScreen extends StatelessWidget {
@@ -28,32 +28,49 @@ class MemberNutritionScreen extends StatelessWidget {
           children: [
             SectionHeader(
               title: "Today's meals",
-              subtitle: 'Tap a meal to log it',
-              trailing: Text(
-                '${controller.loggedMealCount}/${meals.length} logged',
-                style: const TextStyle(
-                  color: GymColors.cyan,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                ),
+              subtitle: 'Your entries for today',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${controller.loggedMealCount} logged',
+                    style: const TextStyle(
+                      color: GymColors.cyan,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GymIconButton(
+                    icon: Icons.add_rounded,
+                    tooltip: 'Log a meal',
+                    size: 42,
+                    onPressed: () => _showLogMealDialog(context, controller),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
+            if (meals.isEmpty)
+              const EmptyState(
+                icon: Icons.restaurant_menu_rounded,
+                title: 'No meals logged today',
+                message: 'Add a meal to track today’s nutrition.',
+              ),
             for (final meal in meals) ...[
               MealCard(
                 key: ValueKey(meal.id),
                 meal: meal,
-                onToggle: () {
-                  controller.toggleMeal(meal.id);
-                  if (!meal.logged) {
-                    showGymSnack(
-                      context,
-                      '${meal.type.label} logged · ${meal.calories} kcal',
-                      icon: Icons.restaurant_rounded,
-                      color: GymColors.green,
-                    );
-                  }
-                },
+                onToggle: meal.logged
+                    ? null
+                    : () => controller.logMeal(
+                        type: meal.type,
+                        name: meal.name,
+                        calories: meal.calories,
+                        protein: meal.proteinG,
+                        carbs: meal.carbsG,
+                        fat: meal.fatG,
+                      ),
               ),
               const SizedBox(height: 10),
             ],
@@ -90,6 +107,123 @@ class MemberNutritionScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> _showLogMealDialog(
+  BuildContext context,
+  MemberController controller,
+) async {
+  final name = TextEditingController();
+  final calories = TextEditingController();
+  final protein = TextEditingController();
+  final carbs = TextEditingController();
+  final fat = TextEditingController();
+  var type = MealType.breakfast;
+
+  final submitted = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        backgroundColor: GymColors.surfaceHigh,
+        title: const Text('Log a meal', style: GymText.h2),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<MealType>(
+                initialValue: type,
+                decoration: const InputDecoration(labelText: 'Meal type'),
+                items: MealType.values
+                    .map(
+                      (mealType) => DropdownMenuItem(
+                        value: mealType,
+                        child: Text(mealType.label),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => type = value);
+                },
+              ),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Meal name'),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              Row(
+                children: [
+                  Expanded(child: _numberField(calories, 'Calories')),
+                  const SizedBox(width: 10),
+                  Expanded(child: _numberField(protein, 'Protein (g)')),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(child: _numberField(carbs, 'Carbs (g)')),
+                  const SizedBox(width: 10),
+                  Expanded(child: _numberField(fat, 'Fat (g)')),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (submitted == true && context.mounted) {
+    final parsedCalories = int.tryParse(calories.text);
+    final parsedProtein = int.tryParse(protein.text);
+    final parsedCarbs = int.tryParse(carbs.text);
+    final parsedFat = int.tryParse(fat.text);
+    if (name.text.trim().isEmpty ||
+        parsedCalories == null ||
+        parsedProtein == null ||
+        parsedCarbs == null ||
+        parsedFat == null) {
+      showGymSnack(context, 'Enter a meal name and valid nutrition values.');
+    } else {
+      try {
+        await controller.logMeal(
+          type: type,
+          name: name.text.trim(),
+          calories: parsedCalories,
+          protein: parsedProtein,
+          carbs: parsedCarbs,
+          fat: parsedFat,
+        );
+        if (context.mounted) {
+          showGymSnack(context, 'Meal saved', icon: Icons.restaurant_rounded);
+        }
+      } catch (error) {
+        if (context.mounted) showGymSnack(context, error.toString());
+      }
+    }
+  }
+
+  name.dispose();
+  calories.dispose();
+  protein.dispose();
+  carbs.dispose();
+  fat.dispose();
+}
+
+Widget _numberField(TextEditingController controller, String label) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(labelText: label),
+    keyboardType: TextInputType.number,
+  );
 }
 
 /// Calorie ring + remaining calories + macro breakdown.
@@ -288,7 +422,7 @@ class MealCard extends StatelessWidget {
   const MealCard({super.key, required this.meal, required this.onToggle});
 
   final Meal meal;
-  final VoidCallback onToggle;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +452,7 @@ class MealCard extends StatelessWidget {
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onToggle,
+          onTap: meal.logged ? null : onToggle,
           splashColor: visual.color.withValues(alpha: .08),
           child: Padding(
             padding: const EdgeInsets.all(16),

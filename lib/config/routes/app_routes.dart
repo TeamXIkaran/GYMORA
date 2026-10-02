@@ -11,6 +11,11 @@ import 'package:gymora_fitness_management/feature/auth/screens/role_selection_sc
 import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
 import 'package:gymora_fitness_management/feature/member/screens/member_dashboard_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_home_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_nutrition_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_profile_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_progress_screen.dart';
+import 'package:gymora_fitness_management/feature/member/screens/member_workout_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_member_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/add_trainer_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/member_ship_screen.dart';
@@ -212,12 +217,36 @@ class AppRouter {
           return const TrainerProgressScreen();
         },
       ),
-      GoRoute(
-        path: AppRoutes.memberDashboardRoute,
-        name: 'memberDashboardScreen',
-        builder: (context, state) {
-          return const MemberDashboardScreen();
-        },
+      ShellRoute(
+        builder: (context, state, child) =>
+            MemberDashboardScreen(location: state.uri.path, child: child),
+        routes: [
+          GoRoute(
+            path: AppRoutes.memberHomeRoute,
+            name: AppRoutes.memberHomeName,
+            builder: (context, state) => const MemberHomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.memberWorkoutRoute,
+            name: AppRoutes.memberWorkoutName,
+            builder: (context, state) => const MemberWorkoutScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.memberProgressRoute,
+            name: AppRoutes.memberProgressName,
+            builder: (context, state) => const MemberProgressScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.memberNutritionRoute,
+            name: AppRoutes.memberNutritionName,
+            builder: (context, state) => const MemberNutritionScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.memberProfileRoute,
+            name: AppRoutes.memberProfileName,
+            builder: (context, state) => const MemberProfileScreen(),
+          ),
+        ],
       ),
     ],
 
