@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_feedback.dart';
 import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
@@ -193,7 +194,7 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
       setState(() => _isSubmitting = false);
 
       if (success) {
-        _showMessage('Login successful! Welcome.');
+        _showMessage('Login successful! Welcome.', success: true);
         context.goNamed(AppRoutes.memberHomeName);
       } else {
         _showMessage(
@@ -208,17 +209,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen>
     }
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    AuthFeedback.show(context, message, success: success);
   }
 
   @override

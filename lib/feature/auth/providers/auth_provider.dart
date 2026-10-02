@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:gymora_fitness_management/core/api/network/auth_service.dart';
 import 'package:gymora_fitness_management/core/extension/secure_storage_extension.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
 import 'package:gymora_fitness_management/core/api/network/member_service.dart';
+import 'package:gymora_fitness_management/core/service/auth_session_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -65,7 +67,7 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      await _storage.saveToken(loginData.token);
+      await _storage.saveToken(loginData.token, role: loginData.user.role);
 
       _user = loginData.user;
       _status = AuthStatus.authenticated;
@@ -93,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
         clientId: clientId,
         password: password,
       );
-      await _storage.saveToken(response.token);
+      await _storage.saveToken(response.token, role: 'client');
       _user = response.client;
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -173,16 +175,33 @@ class AuthProvider extends ChangeNotifier {
 
   // ── Try auto-login from stored token ──
   Future<void> tryAutoLogin() async {
-    final token = await _storage.getToken();
-    if (token == null) {
+    _status = AuthStatus.loading;
+    notifyListeners();
+
+    try {
+      final destination = await AuthSessionService(
+        storage: _storage,
+      ).restoreDashboardRoute();
+      final role = switch (destination) {
+        AppRoutes.ownerDashboardRoute => 'OWNER',
+        AppRoutes.trainerDashboardRoute => 'TRAINER',
+        AppRoutes.memberHomeRoute => 'CLIENT',
+        _ => null,
+      };
+
+      if (role == null) {
+        _user = null;
+        _status = AuthStatus.unauthenticated;
+      } else {
+        _user = UserModel(id: '', name: '', email: '', role: role);
+        _status = AuthStatus.authenticated;
+      }
+      _errorMessage = null;
+    } catch (_) {
+      _user = null;
       _status = AuthStatus.unauthenticated;
-      notifyListeners();
-      return;
     }
-    // Token exists but we don't have user info cached —
-    // you could add a /me endpoint later. For now, remain unauthenticated
-    // so the user picks a role and logs in fresh.
-    _status = AuthStatus.unauthenticated;
+
     notifyListeners();
   }
 }

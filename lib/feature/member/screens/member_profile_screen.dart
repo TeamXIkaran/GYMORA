@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/feature/auth/providers/auth_provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_text.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
@@ -8,10 +12,7 @@ import 'package:gymora_fitness_management/feature/member/sheets/member_sheets.da
 import 'package:gymora_fitness_management/feature/member/widgets/member_widgets.dart';
 
 class MemberProfileScreen extends StatelessWidget {
-  const MemberProfileScreen({super.key, this.onLogout});
-
-  /// Called after the member confirms sign-out. Hook this to your auth flow.
-  final VoidCallback? onLogout;
+  const MemberProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +267,18 @@ class MemberProfileScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) onLogout?.call();
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await context.read<AuthProvider>().logout();
+    } catch (_) {
+      if (context.mounted) {
+        showGymSnack(context, 'Could not sign out. Please try again.');
+      }
+      return;
+    }
+
+    if (context.mounted) context.go(AppRoutes.roleSelectionRoute);
   }
 }
 

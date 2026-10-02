@@ -67,7 +67,7 @@ class OwnerLoginProvider extends ChangeNotifier {
       final loginData = response.data!;
 
       debugPrint('OWNER_LOGIN: saving session token');
-      await _storage.saveToken(loginData.token);
+      await _storage.saveToken(loginData.token, role: 'owner');
       debugPrint('OWNER_LOGIN: session token saved');
 
       _owner = loginData.owner;

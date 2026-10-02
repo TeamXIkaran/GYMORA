@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_feedback.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/trainer_login_provider.dart';
@@ -286,6 +287,7 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
 
         debugPrint('Trainer Email: ${trainer?.email}');
 
+        _showMessage('Login successful! Welcome back.', success: true);
         context.goNamed('trainerDashboardScreen');
       } else {
         _showMessage(
@@ -309,28 +311,9 @@ class _TrainerLoginScreenState extends State<TrainerLoginScreen>
   // SNACKBAR
   // ───────────────────────────────────────────────────────────────────────
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.card,
-        duration: const Duration(seconds: 3),
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    AuthFeedback.show(context, message, success: success);
   }
 
   // ───────────────────────────────────────────────────────────────────────

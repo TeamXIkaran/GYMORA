@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gymora_fitness_management/feature/auth/widgets/auth_feedback.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
@@ -200,7 +201,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
 
       if (success) {
         debugPrint('OWNER_LOGIN: navigating to owner dashboard');
-        _showMessage('Login successful! Welcome back.');
+        _showMessage('Login successful! Welcome back.', success: true);
         context.goNamed('ownerDashboard');
       } else {
         _showMessage(
@@ -215,17 +216,9 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
     }
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    AuthFeedback.show(context, message, success: success);
   }
 
   // ── Build ──

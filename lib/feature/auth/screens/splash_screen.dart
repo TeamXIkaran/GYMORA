@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/core/service/auth_session_service.dart';
 
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 
@@ -48,6 +49,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _initAnimations();
     _startSequence();
+    _restoreSavedSession();
   }
 
   // ================================================================
@@ -151,6 +153,15 @@ class _SplashScreenState extends State<SplashScreen>
     )..repeat();
   }
 
+  Future<void> _restoreSavedSession() async {
+    try {
+      final destination = await AuthSessionService().restoreDashboardRoute();
+      if (!mounted || destination == null) return;
+      context.go(destination);
+    } catch (_) {
+      debugPrint('AUTH_SESSION_RESTORE_ERROR');
+    }
+  }
   // ================================================================
   // START ANIMATION SEQUENCE
   // ================================================================
