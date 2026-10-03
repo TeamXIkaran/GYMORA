@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
@@ -161,6 +164,7 @@ class _MembershipScreenState extends State<MembershipScreen>
                 _buildSummaryCards(),
                 _buildSearchBar(),
                 _buildFilters(),
+                _buildResultsHeader(),
                 Expanded(child: _buildMembershipList()),
               ],
             ),
@@ -192,20 +196,30 @@ class _MembershipScreenState extends State<MembershipScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Member Plans',
+                  'MEMBERSHIP MANAGEMENT',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Memberships',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Track every member membership',
+                  'Plans, renewal dates and member coverage',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.36),
-                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.48),
+                    fontSize: 10.5,
                   ),
                 ),
               ],
@@ -243,36 +257,45 @@ class _MembershipScreenState extends State<MembershipScreen>
       builder: (context, provider, _) {
         final summary = _getMembershipSummary(provider);
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-          child: Row(
+        final total = summary['total'] ?? 0;
+        return SizedBox(
+          // Leave enough room for the card content at common Android text scales.
+          height: 120,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
             children: [
               _buildSummaryCard(
-                'All',
-                '${summary['total']}',
+                'All plans',
+                '$total',
                 const Color(0xFF6C8EFF),
-                Icons.people_alt_rounded,
+                Icons.card_membership_rounded,
+                1,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               _buildSummaryCard(
                 'Active',
                 '${summary['active']}',
                 const Color(0xFF42DB82),
                 Icons.check_circle_rounded,
+                total == 0 ? 0 : (summary['active'] ?? 0) / total,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               _buildSummaryCard(
                 'Expiring',
                 '${summary['expiring']}',
                 const Color(0xFFFFB84D),
                 Icons.schedule_rounded,
+                total == 0 ? 0 : (summary['expiring'] ?? 0) / total,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               _buildSummaryCard(
                 'Expired',
                 '${summary['expired']}',
                 const Color(0xFFFF536F),
-                Icons.cancel_rounded,
+                Icons.history_rounded,
+                total == 0 ? 0 : (summary['expired'] ?? 0) / total,
               ),
             ],
           ),
@@ -286,50 +309,128 @@ class _MembershipScreenState extends State<MembershipScreen>
     String count,
     Color color,
     IconData icon,
+    double share,
   ) {
-    return Expanded(
+    return SizedBox(
+      width: 112,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF0A0F17),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color.withValues(alpha: 0.13)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(
+                color.withValues(alpha: .13),
+                const Color(0xFF151A2A),
+              ),
+              const Color(0xFF0A0F18),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(color: color.withValues(alpha: 0.27)),
           boxShadow: [
-            BoxShadow(color: color.withValues(alpha: 0.025), blurRadius: 15),
+            BoxShadow(
+              color: color.withValues(alpha: 0.08),
+              blurRadius: 17,
+              offset: const Offset(0, 6),
+            ),
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.09),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(icon, color: color, size: 15),
+            Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 16),
+                ),
+                const Spacer(),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 7),
+            const Spacer(),
             Text(
               count,
-              style: TextStyle(
-                color: color,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 23,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -.4,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
-              label,
-              style: TextStyle(
-                color: color.withValues(alpha: 0.65),
+              label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white60,
                 fontSize: 8,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .5,
+              ),
+            ),
+            const SizedBox(height: 7),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: share.clamp(0.0, 1.0),
+                minHeight: 3,
+                color: color,
+                backgroundColor: Colors.white.withValues(alpha: .08),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildResultsHeader() {
+    return Consumer<OwnerMemberProvider>(
+      builder: (context, provider, _) {
+        final visible = _getFilteredMembers(provider).length;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 1, 20, 5),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Memberships',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$visible shown',
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -397,67 +498,104 @@ class _MembershipScreenState extends State<MembershipScreen>
   // ============================================================
 
   Widget _buildFilters() {
-    final filters = ['All', 'Active', 'Expiring', 'Expired'];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 11),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: List.generate(filters.length, (index) {
-            final selected = _selectedFilter == index;
-
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == filters.length - 1 ? 0 : 8,
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedFilter = index;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 17,
-                    vertical: 9,
+    return Consumer<OwnerMemberProvider>(
+      builder: (context, provider, _) {
+        final filters = <(String, int)>[
+          ('All', provider.members.length),
+          ('Active', provider.activeMembers.length),
+          ('Expiring', provider.expiringMembers.length),
+          ('Expired', provider.expiredMembers.length),
+        ];
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 11),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: List.generate(filters.length, (index) {
+                final selected = _selectedFilter == index;
+                final filter = filters[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index == filters.length - 1 ? 0 : 8,
                   ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.primary
-                        : const Color(0xFF0A0F17),
-                    borderRadius: BorderRadius.circular(11),
-                    border: Border.all(
-                      color: selected
-                          ? AppColors.primary
-                          : Colors.white.withValues(alpha: 0.065),
-                    ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.22),
-                              blurRadius: 16,
-                              offset: const Offset(0, 5),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedFilter = index),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: selected
+                            ? const LinearGradient(
+                                colors: [Color(0xFFE62B52), Color(0xFFB91438)],
+                              )
+                            : null,
+                        color: selected ? null : const Color(0xFF0A0F17),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary.withValues(alpha: .7)
+                              : Colors.white.withValues(alpha: .075),
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: .20,
+                                  ),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            filter.$1,
+                            style: TextStyle(
+                              color: selected ? Colors.white : Colors.white60,
+                              fontSize: 10,
+                              fontWeight: selected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                             ),
-                          ]
-                        : null,
-                  ),
-                  child: Text(
-                    filters[index],
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white54,
-                      fontSize: 10,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                          const SizedBox(width: 7),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? Colors.white.withValues(alpha: .18)
+                                  : Colors.white.withValues(alpha: .07),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: Text(
+                              '${filter.$2}',
+                              style: TextStyle(
+                                color: selected ? Colors.white : Colors.white54,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
+                );
+              }),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -469,9 +607,7 @@ class _MembershipScreenState extends State<MembershipScreen>
     return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.members.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
+          return const DashboardShimmer(message: 'Loading membership data...');
         }
 
         if (provider.error != null && provider.members.isEmpty) {
@@ -505,6 +641,11 @@ class _MembershipScreenState extends State<MembershipScreen>
                     'Retry',
                     style: TextStyle(color: AppColors.primary),
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+                  icon: const Icon(Icons.switch_account_rounded),
+                  label: const Text('Back to role selection'),
                 ),
               ],
             ),
@@ -555,9 +696,19 @@ class _MembershipScreenState extends State<MembershipScreen>
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF0A0F17),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.alphaBlend(
+                statusColor.withValues(alpha: .045),
+                const Color(0xFF131A27),
+              ),
+              const Color(0xFF090E17),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: statusColor.withValues(alpha: .18)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.22),
@@ -670,7 +821,61 @@ class _MembershipScreenState extends State<MembershipScreen>
               ],
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .035),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: .055)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.fitness_center_rounded,
+                    color: AppColors.trainerBright,
+                    size: 15,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'TRAINER',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      member.trainerName.isNotEmpty
+                          ? member.trainerName
+                          : member.trainerId.isNotEmpty
+                          ? 'ID ${member.trainerId}'
+                          : 'Self training',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (member.trainerId.isEmpty)
+                    const Icon(
+                      Icons.self_improvement_rounded,
+                      color: Colors.white38,
+                      size: 16,
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
 
             // ------------------------------------------------
             // PLAN HIGHLIGHT
@@ -975,7 +1180,7 @@ class _MembershipScreenState extends State<MembershipScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) {
+      builder: (sheetContext) {
         return Container(
           decoration: const BoxDecoration(
             color: Color(0xFF0A0E16),
@@ -1163,6 +1368,13 @@ class _MembershipScreenState extends State<MembershipScreen>
                     const SizedBox(height: 15),
 
                     // Membership details
+                    if (member.clientId.isNotEmpty)
+                      DetailRow(
+                        icon: Icons.badge_outlined,
+                        title: 'Member ID',
+                        value: member.clientId,
+                      ),
+
                     DetailRow(
                       icon: Icons.card_membership_rounded,
                       title: 'Plan',
@@ -1215,6 +1427,43 @@ class _MembershipScreenState extends State<MembershipScreen>
                       title: 'Phone',
                       value: member.phone,
                     ),
+
+                    DetailRow(
+                      icon: Icons.fitness_center_rounded,
+                      title: 'Trainer',
+                      value: member.trainerName.isNotEmpty
+                          ? member.trainerName
+                          : member.trainerId.isNotEmpty
+                          ? 'ID ${member.trainerId}'
+                          : 'Self training',
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            _confirmDeleteMembership(sheetContext, member),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Delete membership'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFFF647C),
+                          side: BorderSide(
+                            color: const Color(
+                              0xFFFF647C,
+                            ).withValues(alpha: .4),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1223,5 +1472,66 @@ class _MembershipScreenState extends State<MembershipScreen>
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteMembership(
+    BuildContext sheetContext,
+    OwnerMemberModel member,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111722),
+        title: const Text(
+          'Delete membership?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'This removes ${member.fullName} and their membership record from your gym.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFF647C),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<OwnerMemberProvider>();
+    final deleted = await provider.deleteMember(member.id);
+    if (!mounted) return;
+
+    if (deleted) {
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      context.read<OwnerDashboardProvider>().fetchDashboard();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${member.fullName} and their membership were deleted.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Could not delete membership.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.surfaceHigh,
+        ),
+      );
+    }
   }
 }

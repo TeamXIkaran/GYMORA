@@ -223,6 +223,77 @@ const getOwnerProfile = async (req, res) => {
     }
 };
 
+const updateOwnerProfile = async (req, res) => {
+    try {
+        const allowedFields = ["ownerName", "email", "phone", "gymName"];
+        const updates = {};
+
+        for (const field of allowedFields) {
+            if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+                if (typeof req.body[field] !== "string" || !req.body[field].trim()) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `${field} cannot be empty`,
+                    });
+                }
+                updates[field] = req.body[field].trim();
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No profile changes were provided",
+            });
+        }
+
+        if (updates.email) {
+            updates.email = updates.email.toLowerCase();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please provide a valid email address",
+                });
+            }
+            const emailOwner = await Owner.findOne({
+                email: updates.email,
+                _id: { $ne: req.user.ownerId },
+            });
+            if (emailOwner) {
+                return res.status(409).json({
+                    success: false,
+                    message: "That email address is already in use",
+                });
+            }
+        }
+
+        const owner = await Owner.findByIdAndUpdate(
+            req.user.ownerId,
+            { $set: updates },
+            { new: true, runValidators: true, select: "-password" }
+        );
+
+        if (!owner) {
+            return res.status(404).json({
+                success: false,
+                message: "Owner not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Owner profile updated successfully",
+            data: { owner },
+        });
+    } catch (error) {
+        console.error("Update owner profile error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Could not update owner profile",
+        });
+    }
+};
+
 const sendForgotPasswordOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -429,6 +500,7 @@ export {
     createOwnerPurchase,
     loginOwner,
     getOwnerProfile,
+    updateOwnerProfile,
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
     resetOwnerPassword,

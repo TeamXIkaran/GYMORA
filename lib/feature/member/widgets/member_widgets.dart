@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_text.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
 import 'package:gymora_fitness_management/feature/member/providers/member_provider.dart';
 
@@ -1552,29 +1555,8 @@ class MemberLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const IconBadge(
-            icon: Icons.fitness_center_rounded,
-            size: 64,
-            gradient: GymColors.primaryGradient,
-          ),
-          const SizedBox(height: 22),
-          Text('GYMORA', style: GymText.h2.copyWith(letterSpacing: 4)),
-          const SizedBox(height: 18),
-          const SizedBox(
-            width: 120,
-            child: LinearProgressIndicator(
-              minHeight: 3,
-              color: GymColors.cyan,
-              backgroundColor: GymColors.surfaceHigh,
-              borderRadius: BorderRadius.all(Radius.circular(4)),
-            ),
-          ),
-        ],
-      ),
+    return const DashboardShimmer(
+      message: 'Preparing your training dashboard...',
     );
   }
 }
@@ -1616,6 +1598,15 @@ class MemberErrorView extends StatelessWidget {
               icon: Icons.refresh_rounded,
               onPressed: onRetry,
               expand: false,
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+              icon: const Icon(Icons.switch_account_rounded),
+              label: const Text('Back to role selection'),
+              style: TextButton.styleFrom(
+                foregroundColor: GymColors.textSecondary,
+              ),
             ),
           ],
         ),

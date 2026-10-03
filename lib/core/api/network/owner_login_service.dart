@@ -146,6 +146,31 @@ class OwnerLoginService {
     }
   }
 
+  Future<ApiResponse<OwnerLoginModel>> updateProfile(
+    Map<String, dynamic> changes,
+  ) async {
+    final response = await _api.put<Map<String, dynamic>>(
+      'api/owner/profile',
+      changes,
+    );
+    if (!response.success || response.data == null) {
+      return ApiResponse.error(
+        response.message ?? 'Failed to update profile',
+        statusCode: response.statusCode,
+      );
+    }
+    try {
+      final data = response.data!['data'] as Map<String, dynamic>;
+      final ownerJson = data['owner'] as Map<String, dynamic>? ?? data;
+      return ApiResponse.success(
+        OwnerLoginModel.fromJson(ownerJson),
+        message: response.data!['message']?.toString(),
+      );
+    } catch (_) {
+      return ApiResponse.error('Failed to parse updated profile');
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // FORGOT PASSWORD
   // POST /api/owner/forgot-password

@@ -170,10 +170,19 @@ class OwnerMemberModel {
     String trainerName = '';
 
     if (trainerJson is Map) {
-      trainerId = parseString(trainerJson['trainerId']);
-
-      trainerName = parseString(trainerJson['fullName']);
+      trainerId = parseString(
+        trainerJson['trainerId'] ?? trainerJson['id'] ?? trainerJson['_id'],
+      );
+      trainerName = parseString(trainerJson['fullName'] ?? trainerJson['name']);
+    } else if (trainerJson is String) {
+      trainerId = trainerJson;
     }
+    trainerId = trainerId.isNotEmpty
+        ? trainerId
+        : parseString(json['trainerId']);
+    trainerName = trainerName.isNotEmpty
+        ? trainerName
+        : parseString(json['trainerName']);
 
     return OwnerMemberModel(
       // POST returns `id`

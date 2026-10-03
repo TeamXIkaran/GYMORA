@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
 
 /// Loading / error / snack helpers shared by the trainer screens.
 
@@ -11,23 +14,7 @@ class TrainerLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 34,
-            height: 34,
-            child: CircularProgressIndicator(strokeWidth: 3, color: _yellow),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            message,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-        ],
-      ),
-    );
+    return DashboardShimmer(message: message);
   }
 }
 
@@ -81,6 +68,13 @@ class TrainerErrorView extends StatelessWidget {
                 'Retry',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              icon: const Icon(Icons.switch_account_rounded),
+              label: const Text('Back to role selection'),
             ),
           ],
         ),

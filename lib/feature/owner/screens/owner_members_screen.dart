@@ -2,9 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
@@ -27,6 +32,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
   late final AnimationController _glowController;
   late final AnimationController _particleController;
+  late final AnimationController _buttonShimmerController;
 
   @override
   void initState() {
@@ -41,10 +47,15 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+    _buttonShimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<OwnerMemberProvider>().ensureLoaded();
+        context.read<OwnerTrainerProvider>().ensureLoaded();
       }
     });
   }
@@ -53,6 +64,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   void dispose() {
     _glowController.dispose();
     _particleController.dispose();
+    _buttonShimmerController.dispose();
     super.dispose();
   }
 
@@ -64,6 +76,9 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
         result = provider.activeMembers;
         break;
       case 2:
+        result = provider.expiringMembers;
+        break;
+      case 3:
         result = provider.expiredMembers;
         break;
       default:
@@ -145,7 +160,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF4C6FFF).withValues(alpha: 0.08),
+                    AppColors.ownerBright.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -177,105 +192,130 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     return Consumer<OwnerMemberProvider>(
       builder: (context, provider, _) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
-          child: Row(
-            children: [
-              if (widget.onBack != null || context.canPop()) ...[
-                CircleButton(
-                  icon: Icons.arrow_back_rounded,
-                  onTap: widget.onBack ?? () => context.pop(),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.ownerPrimary.withValues(alpha: .18),
+                  const Color(0xFF0D1726),
+                  const Color(0xFF080D17),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: const Color(0xFF632338)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ownerBright.withValues(alpha: .08),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
                 ),
-                const SizedBox(width: 12),
               ],
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -14,
+                  top: -25,
+                  child: Transform.rotate(
+                    angle: -.35,
+                    child: Icon(
+                      Icons.fitness_center_rounded,
+                      size: 118,
+                      color: AppColors.ownerBright.withValues(alpha: .08),
+                    ),
+                  ),
+                ),
+                Row(
                   children: [
-                    const Text(
-                      'Members',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
+                    if (widget.onBack != null || context.canPop()) ...[
+                      CircleButton(
+                        icon: Icons.arrow_back_rounded,
+                        onTap: widget.onBack ?? () => context.pop(),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'GYM MANAGEMENT',
+                            style: TextStyle(
+                              color: AppColors.ownerBright,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          const Text(
+                            'Members',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 27,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${provider.members.length} members · Manage profiles and plans',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF42DB82),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${provider.members.length} members registered',
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                    const SizedBox(width: 10),
+                    ShimmerButton(
+                      shimmerCtrl: _buttonShimmerController,
+                      gradientColors: const [
+                        Color(0xFFFF3158),
+                        Color(0xFFB91438),
                       ],
+                      accentColor: AppColors.ownerBright,
+                      width: 82,
+                      height: 46,
+                      borderRadius: 16,
+                      onPressed: () => context.pushNamed('addMember'),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: Colors.white,
+                            size: 17,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Add',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              GestureDetector(
-                onTap: () => context.pushNamed('addMember'),
-                child: Container(
-                  height: 42,
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF3158), Color(0xFFB91438)],
-                    ),
-                    borderRadius: BorderRadius.circular(13),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        blurRadius: 18,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: Colors.white,
-                        size: 17,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Add',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
-
-  // ============================================================
-  // OVERVIEW
-  // ============================================================
 
   Widget _buildOverview() {
     return Consumer<OwnerMemberProvider>(
@@ -289,7 +329,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   icon: Icons.groups_rounded,
                   value: '${provider.members.length}',
                   label: 'TOTAL',
-                  color: const Color(0xFF5C8DFF),
+                  color: const Color(0xFFFF3158),
                 ),
               ),
               const SizedBox(width: 8),
@@ -298,16 +338,16 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   icon: Icons.verified_rounded,
                   value: '${provider.activeMembers.length}',
                   label: 'ACTIVE',
-                  color: const Color(0xFF42DB82),
+                  color: const Color(0xFFE62B52),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _overviewCard(
                   icon: Icons.event_busy_rounded,
-                  value: '${provider.expiredMembers.length}',
-                  label: 'EXPIRED',
-                  color: const Color(0xFFFF536F),
+                  value: '${provider.expiringMembers.length}',
+                  label: 'EXPIRING SOON',
+                  color: const Color(0xFFB91438),
                 ),
               ),
             ],
@@ -324,63 +364,91 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     required Color color,
   }) {
     return Container(
-      height: 82,
-      padding: const EdgeInsets.all(10),
+      height: 118,
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 11),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.065),
-            Colors.white.withValues(alpha: 0.018),
+            Color.alphaBlend(
+              color.withValues(alpha: .13),
+              const Color(0xFF21121B),
+            ),
+            const Color(0xFF160D14),
           ],
         ),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 18),
+          BoxShadow(
+            color: color.withValues(alpha: 0.09),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
+          ),
         ],
       ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [color.withValues(alpha: .045), Colors.transparent],
+        ),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 24,
-                height: 24,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.11),
-                  borderRadius: BorderRadius.circular(7),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: .24),
+                      color.withValues(alpha: .08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: .18)),
                 ),
-                child: Icon(icon, color: color, size: 13),
+                child: Icon(icon, color: color, size: 17),
               ),
               const Spacer(),
               Container(
-                width: 5,
-                height: 5,
+                width: 7,
+                height: 7,
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ],
           ),
+          const Spacer(),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: 23,
               height: 1.0,
               fontWeight: FontWeight.w900,
+              letterSpacing: -.4,
             ),
           ),
+          const SizedBox(height: 5),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white30,
-              fontSize: 7,
+              color: Colors.white60,
+              fontSize: 9.5,
               height: 1.0,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.55,
             ),
           ),
         ],
@@ -396,7 +464,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
-        height: 48,
+        height: 54,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -404,18 +472,18 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               Colors.white.withValues(alpha: 0.025),
             ],
           ),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF632338)),
         ),
         child: TextField(
           onChanged: (value) {
             setState(() => _searchQuery = value);
           },
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
             hintText: 'Search name, phone, email or plan...',
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 10),
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
             prefixIcon: const Icon(
               Icons.search_rounded,
               color: Colors.white38,
@@ -453,7 +521,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // ============================================================
 
   Widget _buildFilters() {
-    final filters = ['All', 'Active', 'Expired'];
+    final filters = ['All', 'Active', 'Expiring', 'Expired'];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 13, 18, 10),
@@ -472,7 +540,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
-                  height: 38,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: selected
                         ? AppColors.primary
@@ -497,7 +565,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                       filters[index],
                       style: TextStyle(
                         color: selected ? Colors.white : Colors.white54,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: selected
                             ? FontWeight.w800
                             : FontWeight.w500,
@@ -518,12 +586,10 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // ============================================================
 
   Widget _buildMemberList() {
-    return Consumer<OwnerMemberProvider>(
-      builder: (context, provider, _) {
+    return Consumer2<OwnerMemberProvider, OwnerTrainerProvider>(
+      builder: (context, provider, trainerProvider, _) {
         if (provider.isLoading && provider.members.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
+          return const DashboardShimmer(message: 'Loading members...');
         }
 
         if (provider.error != null && provider.members.isEmpty) {
@@ -561,6 +627,11 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     ),
                   ),
                 ),
+                TextButton.icon(
+                  onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+                  icon: const Icon(Icons.switch_account_rounded),
+                  label: const Text('Back to role selection'),
+                ),
               ],
             ),
           );
@@ -587,7 +658,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _buildMemberCard(member),
+                child: _buildMemberCard(member, trainerProvider.trainers),
               );
             },
           ),
@@ -600,18 +671,22 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // MEMBER CARD
   // ============================================================
 
-  Widget _buildMemberCard(OwnerMemberModel member) {
+  Widget _buildMemberCard(
+    OwnerMemberModel member,
+    List<OwnerTrainerModel> trainers,
+  ) {
     final status = member.displayStatus;
     final statusColor = _statusColor(status);
+    final trainerName = _assignedTrainerName(member, trainers);
 
     return GestureDetector(
-      onTap: () => _showMemberDetails(member),
+      onTap: () => _showMemberDetails(member, trainerName),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: const EdgeInsets.all(13),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -621,8 +696,8 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                   Colors.white.withValues(alpha: 0.018),
                 ],
               ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: statusColor.withValues(alpha: 0.14)),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: statusColor.withValues(alpha: 0.22)),
               boxShadow: [
                 BoxShadow(
                   color: statusColor.withValues(alpha: 0.045),
@@ -634,18 +709,18 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
               children: [
                 // Avatar
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                      colors: [Color(0xFF54B8FF), Color(0xFF145A91)],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.18),
+                        color: const Color(0xFF54B8FF).withValues(alpha: 0.24),
                         blurRadius: 12,
                       ),
                     ],
@@ -675,7 +750,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -686,7 +761,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                         children: [
                           Icon(
                             Icons.card_membership_rounded,
-                            color: AppColors.primary.withValues(alpha: 0.8),
+                            color: AppColors.ownerBright,
                             size: 12,
                           ),
                           const SizedBox(width: 4),
@@ -697,8 +772,33 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white38,
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.fitness_center_rounded,
+                            color: AppColors.ownerBright,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              trainerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -722,7 +822,29 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white30,
-                                fontSize: 8,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            color: Colors.white24,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Joined ${member.startDate}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white30,
+                                fontSize: 10,
                               ),
                             ),
                           ),
@@ -766,7 +888,7 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                             status.toUpperCase(),
                             style: TextStyle(
                               color: statusColor,
-                              fontSize: 7,
+                              fontSize: 9,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.4,
                             ),
@@ -870,12 +992,12 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
   // MEMBER DETAILS
   // ============================================================
 
-  void _showMemberDetails(OwnerMemberModel member) {
+  void _showMemberDetails(OwnerMemberModel member, String trainerName) {
     final statusColor = _statusColor(member.displayStatus);
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0B0E16),
+      backgroundColor: AppColors.background,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -907,11 +1029,13 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFE62B52), Color(0xFF761326)],
+                        colors: [Color(0xFF54B8FF), Color(0xFF145A91)],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.30),
+                          color: const Color(
+                            0xFF54B8FF,
+                          ).withValues(alpha: 0.30),
                           blurRadius: 22,
                           spreadRadius: 2,
                         ),
@@ -1000,6 +1124,12 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
                     icon: Icons.card_membership_rounded,
                     title: 'Plan',
                     value: member.planDisplayName,
+                  ),
+
+                  DetailRow(
+                    icon: Icons.fitness_center_rounded,
+                    title: 'Assigned Trainer',
+                    value: trainerName,
                   ),
 
                   DetailRow(
@@ -1125,14 +1255,31 @@ class _OwnerMembersScreenState extends State<OwnerMembersScreen>
     }
   }
 
+  String _assignedTrainerName(
+    OwnerMemberModel member,
+    List<OwnerTrainerModel> trainers,
+  ) {
+    if (member.trainerName.trim().isNotEmpty) return member.trainerName.trim();
+    if (member.trainerId.trim().isEmpty) return 'Self-guided workouts';
+
+    for (final trainer in trainers) {
+      if (trainer.id == member.trainerId ||
+          trainer.trainerId == member.trainerId) {
+        return trainer.fullName;
+      }
+    }
+
+    return 'Trainer ID ${member.trainerId}';
+  }
+
   Widget _detailSectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
         title,
         style: TextStyle(
-          color: AppColors.primary.withValues(alpha: 0.85),
-          fontSize: 9,
+          color: AppColors.ownerBright,
+          fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.2,
         ),

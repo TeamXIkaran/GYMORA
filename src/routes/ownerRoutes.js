@@ -4,6 +4,7 @@ import {
     createOwnerPurchase,
     loginOwner,
     getOwnerProfile,
+    updateOwnerProfile,
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
     resetOwnerPassword,
@@ -18,6 +19,7 @@ router.post("/purchase", createOwnerPurchase);
 router.post("/login", loginOwner);
 
 router.get("/profile", authMiddleware, getOwnerProfile);
+router.put("/profile", authMiddleware, updateOwnerProfile);
 
 router.post("/forgot-password", sendForgotPasswordOTP);
 

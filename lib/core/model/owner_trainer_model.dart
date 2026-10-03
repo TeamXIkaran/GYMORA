@@ -2,6 +2,7 @@ import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
 class OwnerTrainerModel {
   final String id;
+  final String trainerId;
   final String fullName;
   final String phone;
   final String email;
@@ -16,6 +17,7 @@ class OwnerTrainerModel {
 
   OwnerTrainerModel({
     required this.id,
+    this.trainerId = '',
     required this.fullName,
     required this.phone,
     required this.email,
@@ -53,6 +55,7 @@ class OwnerTrainerModel {
   factory OwnerTrainerModel.fromJson(Map<String, dynamic> json) {
     return OwnerTrainerModel(
       id: parseString(json['id'] ?? json['_id']),
+      trainerId: parseString(json['trainerId']),
       fullName: parseString(json['fullName']),
       phone: parseString(json['phone']),
       email: parseString(json['email']),
@@ -70,6 +73,7 @@ class OwnerTrainerModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'trainerId': trainerId,
       'fullName': fullName,
       'phone': phone,
       'email': email,

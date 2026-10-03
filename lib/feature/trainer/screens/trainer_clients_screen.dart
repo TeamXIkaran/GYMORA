@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
 
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/trainer/widgets/trainer_state_views.dart';
@@ -66,6 +67,19 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
 
   List<TrainerClient> get _filteredClients => _store.filteredClients;
 
+  Widget _buildClientLoadingSkeleton() {
+    return AppShimmer(
+      child: Column(
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            ShimmerBlock(height: 108, radius: 20),
+            if (i < 2) const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,98 +116,103 @@ class _TrainerClientsScreenState extends State<TrainerClientsScreen> {
           SafeArea(
             child: ListenableBuilder(
               listenable: _store,
-              builder: (context, _) => Column(
-                children: [
-                  _buildHeader(),
+              builder: (context, _) {
+                if (_firstLoadDone &&
+                    _store.error != null &&
+                    _filteredClients.isEmpty) {
+                  return TrainerErrorView(
+                    message: _store.error!,
+                    onRetry: _refresh,
+                  );
+                }
+                return Column(
+                  children: [
+                    _buildHeader(),
 
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: const Color(0xFFFFC107),
-                      backgroundColor: const Color(0xFF0C111A),
-                      onRefresh: _refresh,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(
-                          parent: BouncingScrollPhysics(),
-                        ),
-                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_store.error != null && _firstLoadDone)
-                              TrainerErrorBanner(
-                                message: _store.error!,
-                                onRetry: _refresh,
-                              ),
-
-                            _buildOverviewCard(),
-
-                            const SizedBox(height: 22),
-
-                            _buildSearchBar(),
-
-                            const SizedBox(height: 14),
-
-                            _buildFilters(),
-
-                            const SizedBox(height: 22),
-
-                            Row(
-                              children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Your Clients',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        color: const Color(0xFFFFC107),
+                        backgroundColor: const Color(0xFF0C111A),
+                        onRefresh: _refresh,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(18, 8, 18, 30),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_store.error != null && _firstLoadDone)
+                                TrainerErrorBanner(
+                                  message: _store.error!,
+                                  onRetry: _refresh,
                                 ),
-                                if (_store.isFilteringClients)
-                                  const Padding(
-                                    padding: EdgeInsets.only(right: 8),
-                                    child: SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFFFFC107),
+
+                              _buildOverviewCard(),
+
+                              const SizedBox(height: 22),
+
+                              _buildSearchBar(),
+
+                              const SizedBox(height: 14),
+
+                              _buildFilters(),
+
+                              const SizedBox(height: 22),
+
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Your Clients',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
                                       ),
                                     ),
                                   ),
-                                Text(
-                                  '${_filteredClients.length} Members',
-                                  style: const TextStyle(
-                                    color: Color(0xFFFFC107),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
+                                  if (_store.isFilteringClients)
+                                    const Padding(
+                                      padding: EdgeInsets.only(right: 8),
+                                      child: SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFFFFC107),
+                                        ),
+                                      ),
+                                    ),
+                                  Text(
+                                    '${_filteredClients.length} Members',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFC107),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 13),
-
-                            if (!_firstLoadDone)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 40),
-                                child: TrainerLoadingView(
-                                  message: 'Loading your clients...',
-                                ),
-                              )
-                            else if (_filteredClients.isEmpty)
-                              _buildEmptyState()
-                            else
-                              ..._filteredClients.map(
-                                (client) => _buildClientCard(client),
+                                ],
                               ),
-                          ],
+
+                              const SizedBox(height: 13),
+
+                              if (!_firstLoadDone)
+                                _buildClientLoadingSkeleton()
+                              else if (_filteredClients.isEmpty)
+                                _buildEmptyState()
+                              else
+                                ..._filteredClients.map(
+                                  (client) => _buildClientCard(client),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              },
             ),
           ),
         ],

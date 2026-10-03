@@ -14,6 +14,9 @@ class ShimmerButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onPressed;
   final Widget? child;
+  final double? width;
+  final double height;
+  final double borderRadius;
 
   const ShimmerButton({
     super.key,
@@ -25,13 +28,16 @@ class ShimmerButton extends StatelessWidget {
     this.label,
     this.enabled = true,
     this.child,
+    this.width,
+    this.height = 54,
+    this.borderRadius = 16,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity,
-      height: 54,
+      width: width ?? double.infinity,
+      height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -39,7 +45,7 @@ class ShimmerButton extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: enabled
               ? [
                   BoxShadow(
@@ -51,7 +57,7 @@ class ShimmerButton extends StatelessWidget {
               : [],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(borderRadius),
           child: Stack(
             children: [
               // Shimmer sweep
@@ -85,10 +91,11 @@ class ShimmerButton extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: enabled ? onPressed : null,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(borderRadius),
                   splashColor: Colors.white.withValues(alpha: 0.12),
                   child: Center(
-                    child: child ??
+                    child:
+                        child ??
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

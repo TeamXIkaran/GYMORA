@@ -23,7 +23,7 @@ import 'package:gymora_fitness_management/feature/owner/screens/owner_dashboard_
 import 'package:gymora_fitness_management/feature/owner/screens/owner_members_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_notification_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_profile_screen.dart';
-import 'package:gymora_fitness_management/feature/owner/screens/owner_settings_screen.dart';
+import 'package:gymora_fitness_management/feature/owner/screens/edit_owner_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/owner/screens/owner_trainers_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_clients_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_dashboard_screen.dart';
@@ -152,13 +152,6 @@ class AppRouter {
         },
       ),
       GoRoute(
-        path: AppRoutes.ownerSettingRoute,
-        name: 'onwerSettingScreen',
-        builder: (context, state) {
-          return const OwnerSettingsScreen();
-        },
-      ),
-      GoRoute(
         path: AppRoutes.ownerNotificationRoute,
         name: 'onwerNotificationScreen',
         builder: (context, state) {
@@ -171,9 +164,16 @@ class AppRouter {
         builder: (context, state) => const OwnerProfileScreen(),
       ),
       GoRoute(
+        path: AppRoutes.ownerEditProfileRoute,
+        name: 'ownerEditProfile',
+        builder: (context, state) => const EditOwnerProfileScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.addMemberRoute,
         name: 'addMember',
-        builder: (context, state) => const AddMemberScreen(),
+        builder: (context, state) => AddMemberScreen(
+          initialTrainerId: state.uri.queryParameters['trainerId'],
+        ),
       ),
       GoRoute(
         path: AppRoutes.addTrainerRoute,

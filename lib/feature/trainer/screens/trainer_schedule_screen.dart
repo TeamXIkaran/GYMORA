@@ -122,6 +122,17 @@ class _TrainerScheduleScreenState extends State<TrainerScheduleScreen> {
               ListenableBuilder(
                 listenable: _store,
                 builder: (context, _) {
+                  if (_store.isLoading && !_store.hasLoaded) {
+                    return const TrainerLoadingView(
+                      message: 'Loading your schedule...',
+                    );
+                  }
+                  if (!_store.hasLoaded && _store.error != null) {
+                    return TrainerErrorView(
+                      message: _store.error!,
+                      onRetry: _store.loadAll,
+                    );
+                  }
                   return Column(
                     children: [
                       _buildHeader(),

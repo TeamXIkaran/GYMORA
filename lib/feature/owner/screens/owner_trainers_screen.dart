@@ -2,9 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
@@ -27,6 +32,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
 
   late final AnimationController _glowController;
   late final AnimationController _particleController;
+  late final AnimationController _buttonShimmerController;
 
   @override
   void initState() {
@@ -41,10 +47,15 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+    _buttonShimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<OwnerTrainerProvider>().ensureLoaded();
+        context.read<OwnerMemberProvider>().ensureLoaded();
       }
     });
   }
@@ -53,6 +64,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   void dispose() {
     _glowController.dispose();
     _particleController.dispose();
+    _buttonShimmerController.dispose();
     super.dispose();
   }
 
@@ -69,6 +81,15 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     }
 
     return result;
+  }
+
+  List<OwnerMemberModel> _membersForTrainer(
+    OwnerTrainerModel trainer,
+    List<OwnerMemberModel> members,
+  ) {
+    final ids = {trainer.trainerId, trainer.id}
+      ..removeWhere((id) => id.trim().isEmpty);
+    return members.where((member) => ids.contains(member.trainerId)).toList();
   }
 
   @override
@@ -132,7 +153,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.trainerBright.withValues(alpha: 0.08),
+                    AppColors.ownerBright.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -168,92 +189,125 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
             .length;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-          child: Row(
-            children: [
-              if (widget.onBack != null || context.canPop()) ...[
-                CircleButton(
-                  icon: Icons.arrow_back_rounded,
-                  onTap: widget.onBack ?? () => context.pop(),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.ownerPrimary.withValues(alpha: .18),
+                  const Color(0xFF0D1726),
+                  const Color(0xFF080D17),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: const Color(0xFF632338)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.ownerBright.withValues(alpha: .08),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
                 ),
-                const SizedBox(width: 12),
               ],
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -14,
+                  top: -25,
+                  child: Transform.rotate(
+                    angle: -.35,
+                    child: Icon(
+                      Icons.fitness_center_rounded,
+                      size: 118,
+                      color: AppColors.ownerBright.withValues(alpha: .08),
+                    ),
+                  ),
+                ),
+                Row(
                   children: [
-                    const Text(
-                      'GYM TEAM',
-                      style: TextStyle(
-                        color: AppColors.ownerBright,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
+                    if (widget.onBack != null || context.canPop()) ...[
+                      CircleButton(
+                        icon: Icons.arrow_back_rounded,
+                        onTap: widget.onBack ?? () => context.pop(),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'GYM TEAM',
+                            style: TextStyle(
+                              color: AppColors.ownerBright,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          const Text(
+                            'Trainers',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 27,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${provider.trainers.length} trainers · $activeCount active',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Trainers',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-
-                    Text(
-                      '${provider.trainers.length} trainers  /  $activeCount active',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10,
+                    const SizedBox(width: 10),
+                    ShimmerButton(
+                      shimmerCtrl: _buttonShimmerController,
+                      gradientColors: const [
+                        Color(0xFFFF3158),
+                        Color(0xFFB91438),
+                      ],
+                      accentColor: AppColors.ownerBright,
+                      width: 82,
+                      height: 46,
+                      borderRadius: 16,
+                      onPressed: () => context.pushNamed('addTrainer'),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: Colors.white,
+                            size: 17,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Add',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-
-              GestureDetector(
-                onTap: () => context.pushNamed('addTrainer'),
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 13),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.ownerGradient,
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.10),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        blurRadius: 18,
-                        offset: const Offset(0, 7),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: Colors.white,
-                        size: 17,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Add Trainer',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -265,16 +319,20 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildOverview() {
-    return Consumer<OwnerTrainerProvider>(
-      builder: (context, provider, _) {
-        final total = provider.trainers.length;
-        final active = provider.trainers
+    return Consumer2<OwnerTrainerProvider, OwnerMemberProvider>(
+      builder: (context, trainerProvider, memberProvider, _) {
+        final total = trainerProvider.trainers.length;
+        final active = trainerProvider.trainers
             .where((trainer) => trainer.isActive)
             .length;
-        final inactive = total - active;
+        final assignedMembers = trainerProvider.trainers
+            .expand(
+              (trainer) => _membersForTrainer(trainer, memberProvider.members),
+            )
+            .length;
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 6, 18, 13),
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 13),
           child: Row(
             children: [
               Expanded(
@@ -282,25 +340,25 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                   icon: Icons.groups_rounded,
                   value: '$total',
                   label: 'TOTAL',
-                  color: const Color(0xFF3B82F6),
+                  color: const Color(0xFFFF3158),
                 ),
               ),
-              const SizedBox(width: 9),
+              const SizedBox(width: 8),
               Expanded(
                 child: _overviewCard(
                   icon: Icons.bolt_rounded,
                   value: '$active',
                   label: 'ACTIVE',
-                  color: const Color(0xFF42DB82),
+                  color: const Color(0xFFE62B52),
                 ),
               ),
-              const SizedBox(width: 9),
+              const SizedBox(width: 8),
               Expanded(
                 child: _overviewCard(
-                  icon: Icons.pause_circle_outline_rounded,
-                  value: '$inactive',
-                  label: 'INACTIVE',
-                  color: const Color(0xFFFF8A00),
+                  icon: Icons.groups_rounded,
+                  value: '$assignedMembers',
+                  label: 'ASSIGNED MEMBERS',
+                  color: const Color(0xFFB91438),
                 ),
               ),
             ],
@@ -317,65 +375,91 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     required Color color,
   }) {
     return Container(
-      height: 82,
-      padding: const EdgeInsets.all(10),
+      height: 118,
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 11),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.065),
-            Colors.white.withValues(alpha: 0.018),
+            Color.alphaBlend(
+              color.withValues(alpha: .13),
+              const Color(0xFF21121B),
+            ),
+            const Color(0xFF160D14),
           ],
         ),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: .30)),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 18),
+          BoxShadow(
+            color: color.withValues(alpha: 0.09),
+            blurRadius: 20,
+            offset: const Offset(0, 7),
+          ),
         ],
       ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [color.withValues(alpha: .045), Colors.transparent],
+        ),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 24,
-                height: 24,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.11),
-                  borderRadius: BorderRadius.circular(7),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: .24),
+                      color.withValues(alpha: .08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: .18)),
                 ),
-                child: Icon(icon, color: color, size: 13),
+                child: Icon(icon, color: color, size: 17),
               ),
               const Spacer(),
               Container(
-                width: 5,
-                height: 5,
+                width: 7,
+                height: 7,
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ],
           ),
-
+          const Spacer(),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: 23,
               height: 1.0,
               fontWeight: FontWeight.w900,
+              letterSpacing: -.4,
             ),
           ),
-
+          const SizedBox(height: 5),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white30,
-              fontSize: 7,
+              color: Colors.white60,
+              fontSize: 9.5,
               height: 1.0,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.55,
             ),
           ),
         ],
@@ -391,7 +475,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
-        height: 52,
+        height: 54,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -399,29 +483,22 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
               Colors.white.withValues(alpha: 0.025),
             ],
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _searchQuery.isNotEmpty
-                ? AppColors.primary.withValues(alpha: 0.35)
-                : Colors.white.withValues(alpha: 0.07),
-          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF632338)),
         ),
         child: TextField(
           onChanged: (value) {
             setState(() => _searchQuery = value);
           },
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
             hintText: 'Search trainer or specialization...',
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
-            prefixIcon: Container(
-              padding: const EdgeInsets.all(14),
-              child: const Icon(
-                Icons.search_rounded,
-                color: Colors.white,
-                size: 19,
-              ),
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: Colors.white38,
+              size: 20,
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
@@ -430,15 +507,15 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                     },
                     icon: const Icon(
                       Icons.close_rounded,
-                      color: Colors.white,
+                      color: Colors.white38,
                       size: 18,
                     ),
                   )
                 : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
-              vertical: 16,
-              horizontal: 3,
+              vertical: 14,
+              horizontal: 4,
             ),
           ),
         ),
@@ -539,9 +616,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
     return Consumer<OwnerTrainerProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading && provider.trainers.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
+          return const DashboardShimmer(message: 'Loading trainers...');
         }
 
         if (provider.error != null && provider.trainers.isEmpty) {
@@ -581,6 +656,11 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                ),
+                TextButton.icon(
+                  onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+                  icon: const Icon(Icons.switch_account_rounded),
+                  label: const Text('Back to role selection'),
                 ),
               ],
             ),
@@ -622,7 +702,12 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   Widget _buildTrainerCard(OwnerTrainerModel trainer, int index) {
-    final colors = [AppColors.trainerBright, AppColors.trainerPrimary];
+    final colors = [AppColors.ownerBright, AppColors.ownerPrimary];
+    const avatarColors = [AppColors.trainerBright, AppColors.trainerPrimary];
+    final assignedMembers = _membersForTrainer(
+      trainer,
+      context.watch<OwnerMemberProvider>().members,
+    );
 
     final statusColor = trainer.isActive
         ? const Color(0xFF42DB82)
@@ -685,10 +770,14 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                             height: 53,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: LinearGradient(colors: colors),
+                              gradient: const LinearGradient(
+                                colors: avatarColors,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: colors.first.withValues(alpha: 0.25),
+                                  color: AppColors.trainerBright.withValues(
+                                    alpha: 0.25,
+                                  ),
                                   blurRadius: 15,
                                 ),
                               ],
@@ -829,10 +918,10 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
 
                             Expanded(
                               child: _miniInfo(
-                                Icons.mail_outline_rounded,
-                                'Email',
-                                trainer.email,
-                                AppColors.trainerPrimary,
+                                Icons.groups_rounded,
+                                'Assigned members',
+                                '${assignedMembers.length}',
+                                AppColors.ownerBright,
                               ),
                             ),
 
@@ -970,7 +1059,7 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   void _showTrainerDetails(OwnerTrainerModel trainer, int index) {
-    final colors = [AppColors.trainerBright, AppColors.trainerPrimary];
+    final colors = [AppColors.ownerBright, AppColors.ownerPrimary];
 
     showModalBottomSheet(
       context: context,
@@ -1018,10 +1107,17 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                       height: 82,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: colors),
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.trainerBright,
+                            AppColors.trainerPrimary,
+                          ],
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: colors.first.withValues(alpha: 0.28),
+                            color: AppColors.trainerBright.withValues(
+                              alpha: 0.28,
+                            ),
                             blurRadius: 25,
                             spreadRadius: 2,
                           ),
@@ -1128,11 +1224,15 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                             icon: Icons.fitness_center_rounded,
                             value: 'Trainer',
                             label: 'Role',
-                            color: AppColors.trainerPrimary,
+                            color: AppColors.ownerPrimary,
                           ),
                         ),
                       ],
                     ),
+
+                    const SizedBox(height: 20),
+
+                    _assignedMembersSection(trainer),
 
                     const SizedBox(height: 15),
 
@@ -1167,6 +1267,13 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
                       title: 'Specialization',
                       value: trainer.specialization,
                     ),
+
+                    if (trainer.trainerId.isNotEmpty)
+                      DetailRow(
+                        icon: Icons.badge_outlined,
+                        title: 'Trainer ID',
+                        value: trainer.trainerId,
+                      ),
 
                     DetailRow(
                       icon: Icons.circle,
@@ -1239,6 +1346,165 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
           ),
         );
       },
+    );
+  }
+
+  Widget _assignedMembersSection(OwnerTrainerModel trainer) {
+    return Consumer<OwnerMemberProvider>(
+      builder: (context, provider, _) {
+        final members = _membersForTrainer(trainer, provider.members);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _sectionTitle(
+                    'ASSIGNED MEMBERS  ·  ${members.length}',
+                    Icons.groups_rounded,
+                  ),
+                ),
+                if (trainer.trainerId.trim().isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      this.context.pushNamed(
+                        'addMember',
+                        queryParameters: {'trainerId': trainer.trainerId},
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.ownerBright,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 15),
+                    label: const Text(
+                      'Add member',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (provider.isLoading && !provider.hasLoaded)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                color: AppColors.ownerBright,
+                backgroundColor: Colors.white10,
+              )
+            else if (members.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .035),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .07),
+                  ),
+                ),
+                child: const Text(
+                  'No members are currently assigned to this trainer.',
+                  style: TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              )
+            else ...[
+              for (final member in members.take(6)) _assignedMemberTile(member),
+              if (members.length > 6)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Text(
+                    '+ ${members.length - 6} more members',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _assignedMemberTile(OwnerMemberModel member) {
+    final active = member.isActive;
+    final color = active ? const Color(0xFF42DB82) : const Color(0xFFFFB84D);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121825),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 35,
+            height: 35,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.ownerBright.withValues(alpha: .14),
+              border: Border.all(
+                color: AppColors.ownerBright.withValues(alpha: .28),
+              ),
+            ),
+            child: Text(
+              member.initials,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${member.planDisplayName}  ·  ID ${member.clientId}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white54, fontSize: 9),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 7),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              member.displayStatus,
+              style: TextStyle(
+                color: color,
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

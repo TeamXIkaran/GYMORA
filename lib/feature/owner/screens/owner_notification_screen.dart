@@ -1,89 +1,276 @@
 import 'package:flutter/material.dart';
-import 'package:gymora_fitness_management/config/theme/app_colors.dart';
+import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
+import 'package:provider/provider.dart';
 
+enum _Audience { members, trainers }
 
-class OwnerNotificationScreen extends StatelessWidget {
+class OwnerNotificationScreen extends StatefulWidget {
   const OwnerNotificationScreen({super.key});
+
+  @override
+  State<OwnerNotificationScreen> createState() =>
+      _OwnerNotificationScreenState();
+}
+
+class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
+    with SingleTickerProviderStateMixin {
+  static const _red = Color(0xFFFF3158);
+  static const _redDark = Color(0xFFB91438);
+
+  final _titleController = TextEditingController();
+  final _messageController = TextEditingController();
+  final _selectedRecipients = <String>{};
+  final _history = <_SentNotification>[];
+  late final AnimationController _shimmerController;
+
+  _Audience _audience = _Audience.members;
+  bool _sendToEveryone = true;
+  bool _isSending = false;
+  String? _selectedTemplate;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<OwnerMemberProvider>().ensureLoaded();
+      context.read<OwnerTrainerProvider>().ensureLoaded();
+    });
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _messageController.dispose();
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  List<_Recipient> _recipients(
+    OwnerMemberProvider members,
+    OwnerTrainerProvider trainers,
+  ) {
+    if (_audience == _Audience.members) {
+      return members.members
+          .map(
+            (member) => _Recipient(
+              id: member.id,
+              name: member.fullName,
+              subtitle: '${member.planDisplayName} · ${member.displayStatus}',
+            ),
+          )
+          .toList();
+    }
+
+    return trainers.trainers
+        .map(
+          (trainer) => _Recipient(
+            id: trainer.id,
+            name: trainer.fullName,
+            subtitle: trainer.specialization,
+          ),
+        )
+        .toList();
+  }
+
+  List<_MessageTemplate> get _templates => _audience == _Audience.members
+      ? const [
+          _MessageTemplate(
+            name: 'Workout reminder',
+            title: 'Time to get moving 💪',
+            message:
+                'Your workout is waiting for you. Check your plan and make time for a strong session today.',
+            icon: Icons.fitness_center_rounded,
+          ),
+          _MessageTemplate(
+            name: 'Consistency check-in',
+            title: 'Your next session is calling',
+            message:
+                'A little progress each day adds up. Book or complete your next workout and keep your momentum going.',
+            icon: Icons.local_fire_department_rounded,
+          ),
+          _MessageTemplate(
+            name: 'Membership update',
+            title: 'A note about your membership',
+            message:
+                'Please check your membership status in the app or speak with the gym team if you need help.',
+            icon: Icons.card_membership_rounded,
+          ),
+        ]
+      : const [
+          _MessageTemplate(
+            name: 'Schedule reminder',
+            title: 'Please review your training schedule',
+            message:
+                'Check your upcoming sessions and confirm that your member schedule is up to date.',
+            icon: Icons.calendar_month_rounded,
+          ),
+          _MessageTemplate(
+            name: 'Member follow-up',
+            title: 'Member follow-up reminder',
+            message:
+                'Please review your assigned members’ recent activity and follow up with anyone who may need support.',
+            icon: Icons.groups_rounded,
+          ),
+          _MessageTemplate(
+            name: 'Workout plan',
+            title: 'Workout plans need your attention',
+            message:
+                'Review assigned workout plans and make sure each member has a suitable next session.',
+            icon: Icons.assignment_rounded,
+          ),
+        ];
+
+  void _changeAudience(_Audience audience) {
+    if (_audience == audience) return;
+    setState(() {
+      _audience = audience;
+      _sendToEveryone = true;
+      _selectedRecipients.clear();
+      _selectedTemplate = null;
+      _titleController.clear();
+      _messageController.clear();
+    });
+  }
+
+  void _applyTemplate(_MessageTemplate template) {
+    setState(() {
+      _selectedTemplate = template.name;
+      _titleController.text = template.title;
+      _messageController.text = template.message;
+    });
+  }
+
+  Future<void> _send(List<_Recipient> recipients) async {
+    final title = _titleController.text.trim();
+    final message = _messageController.text.trim();
+    final sentAudience = _audience;
+    final sentAudienceLabel = _audienceLabel;
+    final audience = _sendToEveryone
+        ? recipients
+        : recipients.where((item) => _selectedRecipients.contains(item.id));
+    final selected = audience.toList();
+
+    if (title.isEmpty || message.isEmpty) {
+      _showSnack('Add a title and message before sending.');
+      return;
+    }
+    if (selected.isEmpty) {
+      _showSnack('Choose at least one ${_audienceLabel.toLowerCase()}.');
+      return;
+    }
+
+    setState(() => _isSending = true);
+    // Temporary local response while the notification API is being built.
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    if (!mounted) return;
+
+    setState(() {
+      _history.insert(
+        0,
+        _SentNotification(
+          title: title,
+          message: message,
+          audience: sentAudience,
+          recipientCount: selected.length,
+          sentAt: DateTime.now(),
+        ),
+      );
+      _isSending = false;
+      _titleController.clear();
+      _messageController.clear();
+      _selectedRecipients.clear();
+      _sendToEveryone = true;
+      _selectedTemplate = null;
+    });
+    _showSnack(
+      'Demo notification sent to ${selected.length} ${sentAudienceLabel.toLowerCase()}.',
+    );
+  }
+
+  String get _audienceLabel =>
+      _audience == _Audience.members ? 'Members' : 'Trainers';
+
+  void _showSnack(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF25131A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: _red.withValues(alpha: .2)),
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF05070C),
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Expanded(child: _buildNotificationList()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // HEADER
-  // ============================================================
-
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 15),
-      child: Row(
+      backgroundColor: const Color(0xFF07070B),
+      body: Stack(
         children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: Container(
-              width: 40,
-              height: 40,
+          const Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.045),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white70,
-                size: 17,
+                gradient: RadialGradient(
+                  center: Alignment(-.8, -.9),
+                  radius: 1.35,
+                  colors: [Color(0x332D1019), Color(0xFF07070B)],
+                ),
               ),
             ),
           ),
+          SafeArea(
+            child: Consumer2<OwnerMemberProvider, OwnerTrainerProvider>(
+              builder: (context, memberProvider, trainerProvider, _) {
+                final recipients = _recipients(memberProvider, trainerProvider);
+                final isLoading = _audience == _Audience.members
+                    ? memberProvider.isLoading && !memberProvider.hasLoaded
+                    : trainerProvider.isLoading && !trainerProvider.hasLoaded;
+                final error = _audience == _Audience.members
+                    ? memberProvider.error
+                    : trainerProvider.error;
 
-          const SizedBox(width: 13),
-
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Notifications',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Stay updated with your gym',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
-                ),
-              ],
-            ),
-          ),
-
-          TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Mark all',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
+                return Column(
+                  children: [
+                    _header(),
+                    Expanded(
+                      child: isLoading
+                          ? _loadingView()
+                          : error != null && recipients.isEmpty
+                          ? _errorView(error)
+                          : SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(18, 4, 18, 30),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildAudiencePicker(
+                                    memberProvider.members.length,
+                                    trainerProvider.trainers.length,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildComposer(recipients),
+                                  const SizedBox(height: 22),
+                                  _buildHistory(),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -91,173 +278,489 @@ class OwnerNotificationScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // NOTIFICATION LIST
-  // ============================================================
-
-  Widget _buildNotificationList() {
-    final notifications = [
-      _NotificationData(
-        icon: Icons.card_membership_rounded,
-        title: 'Membership Expiring',
-        message: 'Aarav Sharma\'s Premium membership expires in 3 days.',
-        time: '10 min ago',
-        type: NotificationType.warning,
-        unread: true,
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
+      child: Row(
+        children: [
+          _IconButton(
+            icon: Icons.arrow_back_rounded,
+            onTap: () => context.pop(),
+          ),
+          const SizedBox(width: 13),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TEAM COMMUNICATION',
+                  style: TextStyle(
+                    color: _red,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.6,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Notifications',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Send the right update to your team',
+                  style: TextStyle(color: Colors.white54, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          const _DemoBadge(),
+        ],
       ),
-      _NotificationData(
-        icon: Icons.person_add_alt_1_rounded,
-        title: 'New Member Added',
-        message: 'Neha Singh has joined your gym with Standard Plan.',
-        time: '32 min ago',
-        type: NotificationType.member,
-        unread: true,
-      ),
-      _NotificationData(
-        icon: Icons.currency_rupee_rounded,
-        title: 'Payment Received',
-        message: '₹10,000 payment received from Rahul Verma.',
-        time: '1 hour ago',
-        type: NotificationType.payment,
-        unread: true,
-      ),
-      _NotificationData(
-        icon: Icons.fitness_center_rounded,
-        title: 'Trainer Update',
-        message: 'Amit Verma completed today\'s training schedule.',
-        time: '2 hours ago',
-        type: NotificationType.trainer,
-        unread: false,
-      ),
-      _NotificationData(
-        icon: Icons.card_membership_rounded,
-        title: 'Membership Expired',
-        message: 'Priya Patel\'s Basic membership has expired.',
-        time: '4 hours ago',
-        type: NotificationType.danger,
-        unread: false,
-      ),
-      _NotificationData(
-        icon: Icons.people_alt_rounded,
-        title: 'Member Attendance',
-        message: '42 members checked in at your gym today.',
-        time: '5 hours ago',
-        type: NotificationType.activity,
-        unread: false,
-      ),
-      _NotificationData(
-        icon: Icons.trending_up_rounded,
-        title: 'Monthly Revenue',
-        message: 'Your monthly revenue has increased by 18%.',
-        time: 'Yesterday',
-        type: NotificationType.success,
-        unread: false,
-      ),
-      _NotificationData(
-        icon: Icons.person_outline_rounded,
-        title: 'Trainer Added',
-        message: 'Rakesh Yadav has been added to your trainer team.',
-        time: 'Yesterday',
-        type: NotificationType.trainer,
-        unread: false,
-      ),
-    ];
-
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(18, 5, 18, 30),
-      itemCount: notifications.length,
-      itemBuilder: (context, index) {
-        return _buildNotificationCard(notifications[index]);
-      },
     );
   }
 
-  // ============================================================
-  // NOTIFICATION CARD
-  // ============================================================
-
-  Widget _buildNotificationCard(_NotificationData notification) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: notification.unread
-            ? Colors.white.withValues(alpha: 0.055)
-            : Colors.white.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: notification.unread
-              ? AppColors.primary.withValues(alpha: 0.13)
-              : Colors.white.withValues(alpha: 0.055),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(13),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildNotificationIcon(notification),
-
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: notification.unread
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                          ),
-                        ),
-                      ),
-
-                      if (notification.unread)
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    notification.message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 10,
-                      height: 1.35,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    notification.time,
-                    style: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+  Widget _buildAudiencePicker(int memberCount, int trainerCount) {
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeading(
+            title: 'Choose audience',
+            subtitle: 'Notifications go only to members or trainers.',
+            icon: Icons.groups_rounded,
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: _AudienceCard(
+                  title: 'Members',
+                  subtitle: 'Workout & membership updates',
+                  count: memberCount,
+                  icon: Icons.person_rounded,
+                  selected: _audience == _Audience.members,
+                  onTap: () => _changeAudience(_Audience.members),
+                ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _AudienceCard(
+                  title: 'Trainers',
+                  subtitle: 'Schedule & client updates',
+                  count: trainerCount,
+                  icon: Icons.fitness_center_rounded,
+                  selected: _audience == _Audience.trainers,
+                  onTap: () => _changeAudience(_Audience.trainers),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComposer(List<_Recipient> recipients) {
+    final selectedCount = _sendToEveryone
+        ? recipients.length
+        : recipients
+              .where((item) => _selectedRecipients.contains(item.id))
+              .length;
+
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SectionHeading(
+            title: 'Compose update',
+            subtitle: 'Create a useful message for $_audienceLabel.',
+            icon: Icons.edit_note_rounded,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'QUICK TEMPLATES',
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final template in _templates)
+                _TemplateChip(
+                  template: template,
+                  selected: _selectedTemplate == template.name,
+                  onTap: () => _applyTemplate(template),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _textField(
+            controller: _titleController,
+            label: 'Notification title',
+            hint: 'Write a short, clear title',
+            icon: Icons.title_rounded,
+            maxLength: 60,
+          ),
+          const SizedBox(height: 12),
+          _textField(
+            controller: _messageController,
+            label: 'Message',
+            hint: 'Share the update or next step...',
+            icon: Icons.notes_rounded,
+            maxLength: 240,
+            maxLines: 4,
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'SEND TO',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              Text(
+                '$selectedCount ${_audienceLabel.toLowerCase()}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Expanded(
+                child: _ScopeButton(
+                  label: 'Everyone',
+                  selected: _sendToEveryone,
+                  onTap: () => setState(() => _sendToEveryone = true),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: _ScopeButton(
+                  label: 'Choose people',
+                  selected: !_sendToEveryone,
+                  onTap: () => setState(() => _sendToEveryone = false),
+                ),
+              ),
+            ],
+          ),
+          if (!_sendToEveryone) ...[
+            const SizedBox(height: 10),
+            _recipientSelector(recipients),
+          ],
+          const SizedBox(height: 18),
+          ShimmerButton(
+            shimmerCtrl: _shimmerController,
+            gradientColors: const [_red, _redDark],
+            accentColor: _red,
+            height: 54,
+            enabled: !_isSending && selectedCount > 0,
+            onPressed: () => _send(recipients),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isSending)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 9),
+                Text(
+                  _isSending ? 'Preparing demo send...' : 'Send notification',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 9),
+          const Text(
+            'Demo only · Nothing is delivered outside this screen yet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white38, fontSize: 9),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _recipientSelector(List<_Recipient> recipients) {
+    if (recipients.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(14),
+        child: Text(
+          'No recipients are available for this audience yet.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white54, fontSize: 11),
+        ),
+      );
+    }
+
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 230),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: recipients.length,
+        separatorBuilder: (_, _) => Divider(
+          height: 1,
+          indent: 52,
+          color: Colors.white.withValues(alpha: .05),
+        ),
+        itemBuilder: (context, index) {
+          final recipient = recipients[index];
+          final selected = _selectedRecipients.contains(recipient.id);
+          return CheckboxListTile(
+            value: selected,
+            onChanged: (value) {
+              setState(() {
+                if (value == true) {
+                  _selectedRecipients.add(recipient.id);
+                } else {
+                  _selectedRecipients.remove(recipient.id);
+                }
+              });
+            },
+            activeColor: _red,
+            checkColor: Colors.white,
+            controlAffinity: ListTileControlAffinity.trailing,
+            dense: true,
+            secondary: CircleAvatar(
+              radius: 17,
+              backgroundColor: _red.withValues(alpha: .14),
+              child: Text(
+                _initials(recipient.name),
+                style: const TextStyle(
+                  color: Color(0xFFFF8194),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            title: Text(
+              recipient.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text(
+              recipient.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white38, fontSize: 9),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _textField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required int maxLength,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        TextField(
+          controller: controller,
+          maxLength: maxLength,
+          maxLines: maxLines,
+          minLines: maxLines == 1 ? 1 : 3,
+          style: const TextStyle(color: Colors.white, fontSize: 12),
+          cursorColor: _red,
+          decoration: InputDecoration(
+            counterStyle: const TextStyle(color: Colors.white30, fontSize: 8),
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+            prefixIcon: maxLines == 1
+                ? Icon(icon, color: const Color(0xFFFF7187), size: 18)
+                : null,
+            prefix: maxLines == 1
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(icon, color: const Color(0xFFFF7187), size: 18),
+                  ),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: .025),
+            contentPadding: const EdgeInsets.all(14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: .07),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: .07),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide(color: _red.withValues(alpha: .65)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistory() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: _SectionHeading(
+                title: 'Recent sends',
+                subtitle: 'Local demo activity',
+                icon: Icons.schedule_rounded,
+              ),
+            ),
+            if (_history.isNotEmpty)
+              Text(
+                '${_history.length}',
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_history.isEmpty)
+          _Panel(
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: _red.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.mark_email_read_outlined,
+                    color: Color(0xFFFF7187),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Your demo sends will appear here after you send an update.',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 10,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          for (final item in _history) ...[
+            _HistoryCard(notification: item),
+            const SizedBox(height: 9),
+          ],
+      ],
+    );
+  }
+
+  Widget _loadingView() =>
+      const Center(child: CircularProgressIndicator(color: _red));
+
+  Widget _errorView(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: _red, size: 42),
+            const SizedBox(height: 12),
+            Text(
+              'Could not load $_audienceLabel',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
+            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: () {
+                if (_audience == _Audience.members) {
+                  context.read<OwnerMemberProvider>().fetchMembers();
+                } else {
+                  context.read<OwnerTrainerProvider>().fetchTrainers();
+                }
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try again'),
+              style: TextButton.styleFrom(foregroundColor: _red),
             ),
           ],
         ),
@@ -265,92 +768,469 @@ class OwnerNotificationScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // NOTIFICATION ICON
-  // ============================================================
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    return parts.length == 1
+        ? parts.first.substring(0, 1).toUpperCase()
+        : '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+}
 
-  Widget _buildNotificationIcon(_NotificationData notification) {
-    Color iconColor;
-    Color backgroundColor;
+class _Recipient {
+  const _Recipient({
+    required this.id,
+    required this.name,
+    required this.subtitle,
+  });
 
-    switch (notification.type) {
-      case NotificationType.warning:
-        iconColor = const Color(0xFFFFB84D);
-        backgroundColor = const Color(0xFFFFB84D).withValues(alpha: 0.10);
-        break;
+  final String id;
+  final String name;
+  final String subtitle;
+}
 
-      case NotificationType.member:
-        iconColor = const Color(0xFF4DDB88);
-        backgroundColor = const Color(0xFF4DDB88).withValues(alpha: 0.10);
-        break;
+class _MessageTemplate {
+  const _MessageTemplate({
+    required this.name,
+    required this.title,
+    required this.message,
+    required this.icon,
+  });
 
-      case NotificationType.payment:
-        iconColor = const Color(0xFF54B8FF);
-        backgroundColor = const Color(0xFF54B8FF).withValues(alpha: 0.10);
-        break;
+  final String name;
+  final String title;
+  final String message;
+  final IconData icon;
+}
 
-      case NotificationType.trainer:
-        iconColor = AppColors.primary;
-        backgroundColor = AppColors.primary.withValues(alpha: 0.10);
-        break;
+class _SentNotification {
+  const _SentNotification({
+    required this.title,
+    required this.message,
+    required this.audience,
+    required this.recipientCount,
+    required this.sentAt,
+  });
 
-      case NotificationType.danger:
-        iconColor = const Color(0xFFFF536F);
-        backgroundColor = const Color(0xFFFF536F).withValues(alpha: 0.10);
-        break;
+  final String title;
+  final String message;
+  final _Audience audience;
+  final int recipientCount;
+  final DateTime sentAt;
+}
 
-      case NotificationType.activity:
-        iconColor = const Color(0xFFB57CFF);
-        backgroundColor = const Color(0xFFB57CFF).withValues(alpha: 0.10);
-        break;
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
 
-      case NotificationType.success:
-        iconColor = const Color(0xFF42DB82);
-        backgroundColor = const Color(0xFF42DB82).withValues(alpha: 0.10);
-        break;
-    }
+  final Widget child;
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: 43,
-      height: 43,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: iconColor.withValues(alpha: 0.16)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B1118), Color(0xFF100D13)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0x44FF3158)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF3158).withValues(alpha: .045),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Icon(notification.icon, color: iconColor, size: 20),
+      child: child,
     );
   }
 }
 
-// ============================================================
-// NOTIFICATION MODEL
-// ============================================================
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
 
-enum NotificationType {
-  warning,
-  member,
-  payment,
-  trainer,
-  danger,
-  activity,
-  success,
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF3158).withValues(alpha: .11),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFFFF7187), size: 19),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white54, fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _NotificationData {
-  final IconData icon;
-  final String title;
-  final String message;
-  final String time;
-  final NotificationType type;
-  final bool unread;
-
-  const _NotificationData({
-    required this.icon,
+class _AudienceCard extends StatelessWidget {
+  const _AudienceCard({
     required this.title,
-    required this.message,
-    required this.time,
-    required this.type,
-    required this.unread,
+    required this.subtitle,
+    required this.count,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
   });
+
+  final String title;
+  final String subtitle;
+  final int count;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFFFF3158).withValues(alpha: .10)
+                : Colors.white.withValues(alpha: .025),
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: selected
+                  ? const Color(0x99FF3158)
+                  : Colors.white.withValues(alpha: .07),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF3158).withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: const Color(0xFFFF7187), size: 19),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '$count',
+                          style: const TextStyle(
+                            color: Color(0xFFFF8194),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TemplateChip extends StatelessWidget {
+  const _TemplateChip({
+    required this.template,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _MessageTemplate template;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      onPressed: onTap,
+      avatar: Icon(
+        template.icon,
+        size: 14,
+        color: selected ? Colors.white : const Color(0xFFFF7187),
+      ),
+      label: Text(template.name),
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : Colors.white70,
+        fontSize: 9,
+        fontWeight: FontWeight.w700,
+      ),
+      side: BorderSide(
+        color: selected
+            ? const Color(0xFFFF3158)
+            : Colors.white.withValues(alpha: .08),
+      ),
+      backgroundColor: selected
+          ? const Color(0xFFFF3158).withValues(alpha: .20)
+          : Colors.white.withValues(alpha: .035),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+}
+
+class _ScopeButton extends StatelessWidget {
+  const _ScopeButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: selected
+            ? const Color(0xFFFF3158).withValues(alpha: .13)
+            : Colors.white.withValues(alpha: .02),
+        foregroundColor: selected ? const Color(0xFFFF8194) : Colors.white60,
+        side: BorderSide(
+          color: selected
+              ? const Color(0xAAFF3158)
+              : Colors.white.withValues(alpha: .08),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+        textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+      ),
+      child: Text(label),
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.notification});
+
+  final _SentNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = notification.audience == _Audience.members
+        ? 'Members'
+        : 'Trainers';
+    final time = notification.sentAt;
+    final timeLabel =
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .035),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF3158).withValues(alpha: .11),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.send_rounded,
+              color: Color(0xFFFF7187),
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notification.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 9,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 5,
+                  children: [
+                    _HistoryTag(label: label),
+                    _HistoryTag(
+                      label: '${notification.recipientCount} recipients',
+                    ),
+                    _HistoryTag(label: timeLabel),
+                    const _DemoBadge(compact: true),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryTag extends StatelessWidget {
+  const _HistoryTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white60,
+          fontSize: 8,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _DemoBadge extends StatelessWidget {
+  const _DemoBadge({this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF3158).withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0x55FF3158)),
+      ),
+      child: Text(
+        'DEMO',
+        style: TextStyle(
+          color: const Color(0xFFFF8194),
+          fontSize: compact ? 7 : 8,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .8,
+        ),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  const _IconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: .045),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Icon(icon, color: Colors.white70, size: 19),
+        ),
+      ),
+    );
+  }
 }

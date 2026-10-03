@@ -25,6 +25,9 @@ class OwnerLoginProvider extends ChangeNotifier {
   PurchaseResponse? _purchaseResponse;
   String? _errorMessage;
   int? _statusCode;
+  bool _isProfileLoading = false;
+  bool _isProfileUpdating = false;
+  String? _profileError;
 
   // ── Getters ──
   OwnerStatus get status => _status;
@@ -34,6 +37,53 @@ class OwnerLoginProvider extends ChangeNotifier {
   int? get statusCode => _statusCode;
   bool get isLoading => _status == OwnerStatus.loading;
   bool get isAuthenticated => _status == OwnerStatus.authenticated;
+  bool get isProfileLoading => _isProfileLoading;
+  bool get isProfileUpdating => _isProfileUpdating;
+  String? get profileError => _profileError;
+
+  Future<bool> fetchProfile() async {
+    if (_isProfileLoading) return false;
+    _isProfileLoading = true;
+    _profileError = null;
+    notifyListeners();
+    try {
+      final response = await _service.getProfile();
+      if (!response.success || response.data == null) {
+        _profileError = response.message ?? 'Could not load owner profile';
+        return false;
+      }
+      _owner = response.data;
+      return true;
+    } catch (error) {
+      _profileError = error.toString();
+      return false;
+    } finally {
+      _isProfileLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateProfile(Map<String, dynamic> changes) async {
+    if (_isProfileUpdating) return false;
+    _isProfileUpdating = true;
+    _profileError = null;
+    notifyListeners();
+    try {
+      final response = await _service.updateProfile(changes);
+      if (!response.success || response.data == null) {
+        _profileError = response.message ?? 'Could not update owner profile';
+        return false;
+      }
+      _owner = response.data;
+      return true;
+    } catch (error) {
+      _profileError = error.toString();
+      return false;
+    } finally {
+      _isProfileUpdating = false;
+      notifyListeners();
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────
   // OWNER LOGIN
@@ -134,42 +184,6 @@ class OwnerLoginProvider extends ChangeNotifier {
 
     _purchaseResponse = response.data!;
     _status = OwnerStatus.initial;
-    _errorMessage = null;
-    _statusCode = response.statusCode;
-    notifyListeners();
-    return true;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // OWNER PROFILE
-  // ─────────────────────────────────────────────────────────────────────
-
-  Future<bool> fetchProfile() async {
-    _status = OwnerStatus.loading;
-    _errorMessage = null;
-    _statusCode = null;
-    notifyListeners();
-
-    final response = await _service.getProfile();
-
-    debugPrint('═══════════════════════════════════════════');
-    debugPrint('🎯 [OwnerProvider] PROFILE RESULT');
-    debugPrint('📦 Success: ${response.success}');
-    debugPrint('📦 Message: ${response.message}');
-    debugPrint('📦 StatusCode: ${response.statusCode}');
-    debugPrint('📦 Data: ${response.data}');
-    debugPrint('═══════════════════════════════════════════');
-
-    if (!response.success || response.data == null) {
-      _status = OwnerStatus.error;
-      _errorMessage = response.message ?? 'Failed to fetch profile';
-      _statusCode = response.statusCode;
-      notifyListeners();
-      return false;
-    }
-
-    _owner = response.data!;
-    _status = OwnerStatus.authenticated;
     _errorMessage = null;
     _statusCode = response.statusCode;
     notifyListeners();

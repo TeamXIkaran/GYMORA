@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/membership_plan_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +12,9 @@ import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.d
 import 'package:gymora_fitness_management/feature/owner/widgets/owner_partcial_painter.dart';
 
 class AddMemberScreen extends StatefulWidget {
-  const AddMemberScreen({super.key});
+  const AddMemberScreen({super.key, this.initialTrainerId});
+
+  final String? initialTrainerId;
 
   @override
   State<AddMemberScreen> createState() => _AddMemberScreenState();
@@ -47,6 +50,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   // ── State ──────────────────────────────────────────────────
 
   String _selectedPlan = 'BASIC';
+  int _currentStep = 0;
   bool _isSubmitting = false;
 
   // ── Animations ─────────────────────────────────────────────
@@ -71,6 +75,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   @override
   void initState() {
     super.initState();
+    _trainerIdController.text = widget.initialTrainerId ?? '';
 
     _glowController = AnimationController(
       vsync: this,
@@ -295,171 +300,169 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeroCard(),
+                          _buildStepIndicator(),
+                          const SizedBox(height: 22),
+                          if (_currentStep == 0) ...[
+                            _buildSectionTitle(
+                              'Personal Details',
+                              'Fill in the member\'s information',
+                            ),
 
-                          const SizedBox(height: 26),
+                            const SizedBox(height: 14),
 
-                          _buildSectionTitle(
-                            'Personal Details',
-                            'Fill in the member\'s information',
-                          ),
+                            // ── Full Name ───────────────────────
+                            _buildTextField(
+                              controller: _nameController,
+                              focusNode: _nameFocus,
+                              label: 'Full Name',
+                              hint: 'Enter member\'s full name',
+                              icon: Icons.person_outline_rounded,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Please enter name';
+                                }
 
-                          const SizedBox(height: 14),
+                                return null;
+                              },
+                            ),
 
-                          // ── Full Name ───────────────────────
-                          _buildTextField(
-                            controller: _nameController,
-                            focusNode: _nameFocus,
-                            label: 'Full Name',
-                            hint: 'Enter member\'s full name',
-                            icon: Icons.person_outline_rounded,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Please enter name';
-                              }
+                            const SizedBox(height: 12),
 
-                              return null;
-                            },
-                          ),
+                            // ── Email ──────────────────────────
+                            _buildTextField(
+                              controller: _emailController,
+                              focusNode: _emailFocus,
+                              label: 'Email Address',
+                              hint: 'Enter email address',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Please enter email';
+                                }
 
-                          const SizedBox(height: 12),
+                                if (!v.contains('@')) {
+                                  return 'Please enter a valid email';
+                                }
 
-                          // ── Email ──────────────────────────
-                          _buildTextField(
-                            controller: _emailController,
-                            focusNode: _emailFocus,
-                            label: 'Email Address',
-                            hint: 'Enter email address',
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Please enter email';
-                              }
+                                return null;
+                              },
+                            ),
 
-                              if (!v.contains('@')) {
-                                return 'Please enter a valid email';
-                              }
+                            const SizedBox(height: 12),
 
-                              return null;
-                            },
-                          ),
+                            // ── Phone ──────────────────────────
+                            _buildTextField(
+                              controller: _phoneController,
+                              focusNode: _phoneFocus,
+                              label: 'Phone Number',
+                              hint: 'Enter phone number',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              validator: (v) {
+                                final t = v?.trim() ?? '';
 
-                          const SizedBox(height: 12),
+                                if (t.isEmpty) {
+                                  return 'Please enter phone number';
+                                }
 
-                          // ── Phone ──────────────────────────
-                          _buildTextField(
-                            controller: _phoneController,
-                            focusNode: _phoneFocus,
-                            label: 'Phone Number',
-                            hint: 'Enter phone number',
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(10),
-                            ],
-                            validator: (v) {
-                              final t = v?.trim() ?? '';
+                                if (t.length != 10) {
+                                  return 'Enter a valid 10-digit number';
+                                }
 
-                              if (t.isEmpty) {
-                                return 'Please enter phone number';
-                              }
+                                return null;
+                              },
+                            ),
 
-                              if (t.length != 10) {
-                                return 'Enter a valid 10-digit number';
-                              }
+                            const SizedBox(height: 12),
 
-                              return null;
-                            },
-                          ),
+                            // ── Client ID ───────────────────────
+                            _buildTextField(
+                              controller: _clientIdController,
+                              focusNode: _clientIdFocus,
+                              label: 'Client ID',
+                              hint: 'Enter client ID e.g. 0001',
+                              icon: Icons.badge_outlined,
+                              keyboardType: TextInputType.text,
+                              validator: (v) {
+                                final t = v?.trim() ?? '';
 
-                          const SizedBox(height: 12),
+                                if (t.isEmpty) {
+                                  return 'Please enter client ID';
+                                }
 
-                          // ── Client ID ───────────────────────
-                          _buildTextField(
-                            controller: _clientIdController,
-                            focusNode: _clientIdFocus,
-                            label: 'Client ID',
-                            hint: 'Enter client ID e.g. 0001',
-                            icon: Icons.badge_outlined,
-                            keyboardType: TextInputType.text,
-                            validator: (v) {
-                              final t = v?.trim() ?? '';
+                                if (t.length < 3) {
+                                  return 'Please enter a valid client ID';
+                                }
 
-                              if (t.isEmpty) {
-                                return 'Please enter client ID';
-                              }
+                                return null;
+                              },
+                            ),
 
-                              if (t.length < 3) {
-                                return 'Please enter a valid client ID';
-                              }
+                            const SizedBox(height: 12),
 
-                              return null;
-                            },
-                          ),
+                            // ── Trainer ID ──────────────────────
+                            _buildTextField(
+                              controller: _trainerIdController,
+                              focusNode: _trainerIdFocus,
+                              label: 'Trainer ID',
+                              hint: 'Enter trainer ID e.g. 0003',
+                              icon: Icons.fitness_center_rounded,
+                              keyboardType: TextInputType.text,
+                              validator: (v) {
+                                final t = v?.trim() ?? '';
 
-                          const SizedBox(height: 12),
+                                if (t.isEmpty) {
+                                  return 'Please enter trainer ID';
+                                }
 
-                          // ── Trainer ID ──────────────────────
-                          _buildTextField(
-                            controller: _trainerIdController,
-                            focusNode: _trainerIdFocus,
-                            label: 'Trainer ID',
-                            hint: 'Enter trainer ID e.g. 0003',
-                            icon: Icons.fitness_center_rounded,
-                            keyboardType: TextInputType.text,
-                            validator: (v) {
-                              final t = v?.trim() ?? '';
+                                if (t.length < 3) {
+                                  return 'Please enter a valid trainer ID';
+                                }
 
-                              if (t.isEmpty) {
-                                return 'Please enter trainer ID';
-                              }
+                                return null;
+                              },
+                            ),
 
-                              if (t.length < 3) {
-                                return 'Please enter a valid trainer ID';
-                              }
+                            const SizedBox(height: 12),
 
-                              return null;
-                            },
-                          ),
+                            // ── Password ────────────────────────
+                            _buildTextField(
+                              controller: _passwordController,
+                              focusNode: _passwordFocus,
+                              label: 'Password',
+                              hint: 'Create a password for member',
+                              icon: Icons.lock_outline_rounded,
+                              obscureText: true,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Please enter password';
+                                }
 
-                          const SizedBox(height: 12),
+                                if (v.length < 6) {
+                                  return 'Password must be at least 6 characters';
+                                }
 
-                          // ── Password ────────────────────────
-                          _buildTextField(
-                            controller: _passwordController,
-                            focusNode: _passwordFocus,
-                            label: 'Password',
-                            hint: 'Create a password for member',
-                            icon: Icons.lock_outline_rounded,
-                            obscureText: true,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Please enter password';
-                              }
+                                return null;
+                              },
+                            ),
+                          ],
+                          if (_currentStep == 1) ...[
+                            _buildSectionTitle(
+                              'Membership Plan',
+                              'Choose the appropriate plan',
+                            ),
 
-                              if (v.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
+                            const SizedBox(height: 14),
 
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 26),
-
-                          _buildSectionTitle(
-                            'Membership Plan',
-                            'Choose the appropriate plan',
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          _buildPlanSelector(),
-
-                          const SizedBox(height: 36),
-
+                            _buildPlanSelector(),
+                          ],
+                          if (_currentStep == 2) _buildReviewCard(),
+                          const SizedBox(height: 24),
                           _buildAddButton(),
                         ],
                       ),
@@ -475,6 +478,207 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   }
 
   // ── Header ─────────────────────────────────────────────────
+
+  Widget _buildStepIndicator() {
+    const labels = ['Personal', 'Plan', 'Review'];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: .86),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF29456B)),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++) ...[
+            Expanded(
+              child: Column(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i <= _currentStep
+                          ? AppColors.primary
+                          : AppColors.surfaceHigh,
+                      border: Border.all(
+                        color: i <= _currentStep
+                            ? AppColors.primary
+                            : const Color(0xFF29456B),
+                      ),
+                      boxShadow: i == _currentStep
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: .3),
+                                blurRadius: 14,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        color: i <= _currentStep
+                            ? Colors.white
+                            : Colors.white54,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    labels[i],
+                    style: TextStyle(
+                      color: i == _currentStep ? Colors.white : Colors.white54,
+                      fontSize: 11,
+                      fontWeight: i == _currentStep
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (i < labels.length - 1)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 17),
+                  child: Container(
+                    height: 1,
+                    color: i < _currentStep
+                        ? AppColors.primary
+                        : const Color(0xFF29456B),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard() {
+    final plan = _plans[_selectedPlan]!;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: .12),
+            AppColors.card,
+            AppColors.backgroundSecondary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.primary.withValues(alpha: .28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Review Member',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Check the details before creating the account.',
+            style: TextStyle(color: Colors.white60, fontSize: 12),
+          ),
+          const SizedBox(height: 18),
+          _reviewRow(
+            Icons.person_outline_rounded,
+            'Name',
+            _nameController.text,
+          ),
+          _reviewRow(Icons.email_outlined, 'Email', _emailController.text),
+          _reviewRow(Icons.phone_outlined, 'Phone', _phoneController.text),
+          _reviewRow(
+            Icons.badge_outlined,
+            'Client ID',
+            _clientIdController.text,
+          ),
+          _reviewRow(
+            Icons.fitness_center_rounded,
+            'Trainer ID',
+            _trainerIdController.text,
+          ),
+          const Divider(color: Color(0xFF29456B), height: 22),
+          _reviewRow(
+            plan.icon,
+            'Plan',
+            '${plan.name} · ${plan.durationMonths} months · ${formatRupees(plan.price)}',
+          ),
+          _reviewRow(Icons.lock_outline_rounded, 'Password', 'Set and ready'),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 17),
+          ),
+          const SizedBox(width: 11),
+          SizedBox(
+            width: 74,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleStepAction() async {
+    if (_currentStep == 0) {
+      if (!(_formKey.currentState?.validate() ?? false)) return;
+      FocusScope.of(context).unfocus();
+    }
+    if (_currentStep < 2) {
+      setState(() => _currentStep++);
+      return;
+    }
+    await _submitForm();
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) setState(() => _currentStep--);
+  }
 
   Widget _buildHeader() {
     return Padding(
@@ -537,79 +741,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   }
 
   // ── Hero Card ──────────────────────────────────────────────
-
-  Widget _buildHeroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary.withValues(alpha: 0.12),
-            const Color(0xFF14101A).withValues(alpha: 0.80),
-          ],
-        ),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.20),
-                  AppColors.primary.withValues(alpha: 0.08),
-                ],
-              ),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.22),
-              ),
-            ),
-            child: const Icon(
-              Icons.person_add_alt_1_rounded,
-              color: AppColors.primary,
-              size: 26,
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'New Member Registration',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  'Add a new member to your gym and assign a membership plan.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Section Title ──────────────────────────────────────────
 
   Widget _buildSectionTitle(String title, String subtitle) {
     return Column(
@@ -676,13 +807,13 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: focused
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(18),
+            ? const Color(0xFF142236)
+            : const Color(0xFF0D1726).withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: focused
               ? AppColors.primary.withValues(alpha: 0.35)
-              : Colors.white.withValues(alpha: 0.07),
+              : const Color(0xFF29456B),
           width: focused ? 1.2 : 1,
         ),
         boxShadow: focused
@@ -722,7 +853,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                   ),
                   child: Icon(
                     icon,
-                    color: focused ? AppColors.primary : Colors.white38,
+                    color: focused
+                        ? AppColors.primary
+                        : const Color(0xFF75A9E8),
                     size: 14,
                   ),
                 ),
@@ -735,7 +868,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                     color: focused
                         ? AppColors.primary.withValues(alpha: 0.8)
                         : Colors.white38,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -761,7 +894,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               hintText: hint,
               hintStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.18),
-                fontSize: 12,
+                fontSize: 13,
               ),
               contentPadding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
               border: InputBorder.none,
@@ -799,12 +932,12 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               decoration: BoxDecoration(
                 color: selected
                     ? AppColors.primary.withValues(alpha: 0.10)
-                    : Colors.white.withValues(alpha: 0.03),
+                    : const Color(0xFF0D1726),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: selected
                       ? AppColors.primary.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.07),
+                      : const Color(0xFF29456B),
                 ),
                 boxShadow: selected
                     ? [
@@ -823,12 +956,14 @@ class _AddMemberScreenState extends State<AddMemberScreen>
                     decoration: BoxDecoration(
                       color: selected
                           ? AppColors.primary.withValues(alpha: 0.15)
-                          : Colors.white.withValues(alpha: 0.04),
+                          : const Color(0xFF142236),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       plan.icon,
-                      color: selected ? AppColors.primary : Colors.white30,
+                      color: selected
+                          ? AppColors.primary
+                          : const Color(0xFF75A9E8),
                       size: 20,
                     ),
                   ),
@@ -881,76 +1016,78 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   // ── Add Button ─────────────────────────────────────────────
 
   Widget _buildAddButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _isSubmitting ? null : _submitForm,
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedBuilder(
-            animation: _shimmerController,
-            builder: (_, _) {
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: _isSubmitting
-                        ? [Colors.white12, Colors.white10]
-                        : const [
-                            Color(0xFFFF3158),
-                            AppColors.primary,
-                            Color(0xFFB91438),
-                          ],
+    final label = switch (_currentStep) {
+      0 => 'Next',
+      1 => 'Review details',
+      _ => 'Create member',
+    };
+    final icon = _currentStep < 2
+        ? Icons.arrow_forward_rounded
+        : Icons.person_add_alt_1_rounded;
+
+    return Row(
+      children: [
+        if (_currentStep > 0) ...[
+          Expanded(
+            child: SizedBox(
+              height: 54,
+              child: OutlinedButton.icon(
+                onPressed: _isSubmitting ? null : _previousStep,
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: const BorderSide(color: Color(0xFF29456B)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: _isSubmitting
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.30),
-                            blurRadius: 22,
-                            spreadRadius: -4,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
                 ),
-                child: Center(
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.person_add_alt_1_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            SizedBox(width: 10),
-                            Text(
-                              'Add Member',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          flex: _currentStep == 0 ? 1 : 2,
+          child: ShimmerButton(
+            shimmerCtrl: _shimmerController,
+            gradientColors: _isSubmitting
+                ? const [Colors.white12, Colors.white10]
+                : const [
+                    Color(0xFFFF3158),
+                    AppColors.primary,
+                    Color(0xFFB91438),
+                  ],
+            accentColor: AppColors.primary,
+            enabled: !_isSubmitting,
+            onPressed: _handleStepAction,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
                         ),
-                ),
-              );
-            },
+                      ),
+                      const SizedBox(width: 9),
+                      Icon(icon, color: Colors.white, size: 18),
+                    ],
+                  ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

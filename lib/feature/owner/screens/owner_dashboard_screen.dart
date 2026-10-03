@@ -1,5 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gymora_fitness_management/config/routes/app_router.dart';
+import 'package:gymora_fitness_management/core/widgets/app_shimmer.dart';
 import 'package:gymora_fitness_management/core/model/owner_dashboard_model.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
@@ -39,10 +43,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   void _goHome() => setState(() => _currentIndex = 0);
 
+  void _selectTab(int index) => setState(() => _currentIndex = index);
+
   @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
-      const _HomeTab(),
+      _HomeTab(onSelectTab: _selectTab),
       OwnerMembersScreen(onBack: _goHome),
       OwnerTrainersScreen(onBack: _goHome),
       MembershipScreen(onBack: _goHome),
@@ -57,7 +63,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF03060B),
+        backgroundColor: AppColors.background,
         body: IndexedStack(index: _currentIndex, children: screens),
         bottomNavigationBar: _buildBottomNav(),
       ),
@@ -69,32 +75,47 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   // ============================================================
 
   Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF070A10),
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 30,
-            offset: const Offset(0, -10),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(Icons.home_rounded, 'Home', 0),
-              _navItem(Icons.people_alt_rounded, 'Members', 1),
-              _navItem(Icons.fitness_center_rounded, 'Trainers', 2),
-              _navItem(Icons.card_membership_rounded, 'Plans', 3),
-              _navItem(Icons.person_rounded, 'Profile', 4),
+    final radius = BorderRadius.circular(28);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .42),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: radius,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: 72,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF101722).withValues(alpha: .92),
+                  borderRadius: radius,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .08),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _navItem(Icons.home_rounded, 'Home', 0),
+                    _navItem(Icons.people_alt_rounded, 'Members', 1),
+                    _navItem(Icons.fitness_center_rounded, 'Trainers', 2),
+                    _navItem(Icons.card_membership_rounded, 'Plans', 3),
+                    _navItem(Icons.person_rounded, 'Profile', 4),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -104,71 +125,56 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   Widget _navItem(IconData icon, String label, int index) {
     final selected = _currentIndex == index;
 
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.20),
-                    AppColors.primary.withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                )
-              : null,
-          color: selected ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(17),
-          border: selected
-              ? Border.all(color: AppColors.primary.withValues(alpha: 0.18))
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected)
-              Container(
-                width: 22,
-                height: 2.5,
-                margin: const EdgeInsets.only(bottom: 5),
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: GestureDetector(
+          onTap: () => setState(() => _currentIndex = index),
+          behavior: HitTestBehavior.opaque,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                width: selected ? 48 : 40,
+                height: 31,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.55),
-                      blurRadius: 8,
-                    ),
-                  ],
+                  gradient: selected
+                      ? LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: .24),
+                            AppColors.primary.withValues(alpha: .10),
+                          ],
+                        )
+                      : null,
+                  borderRadius: BorderRadius.circular(15),
+                  border: selected
+                      ? Border.all(
+                          color: AppColors.primary.withValues(alpha: .30),
+                        )
+                      : null,
+                ),
+                child: Icon(
+                  icon,
+                  color: selected ? AppColors.primary : Colors.white54,
+                  size: 20,
                 ),
               ),
-
-            Icon(
-              icon,
-              color: selected
-                  ? AppColors.primary
-                  : Colors.white.withValues(alpha: 0.30),
-              size: 21,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              label,
-              style: TextStyle(
-                color: selected
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.30),
-                fontSize: 9,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white54,
+                  fontSize: 10,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+                child: Text(label, maxLines: 1, overflow: TextOverflow.fade),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -180,7 +186,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 // ============================================================
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab();
+  const _HomeTab({required this.onSelectTab});
+
+  final ValueChanged<int> onSelectTab;
 
   @override
   Widget build(BuildContext context) {
@@ -206,8 +214,8 @@ class _HomeTab extends StatelessWidget {
             Consumer<OwnerDashboardProvider>(
               builder: (context, dashProvider, _) {
                 if (dashProvider.isLoading && dashProvider.dashboard == null) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                  return const DashboardShimmer(
+                    message: 'Loading owner dashboard...',
                   );
                 }
 
@@ -234,7 +242,16 @@ class _HomeTab extends StatelessWidget {
 
                         const SizedBox(height: 22),
 
-                        _buildStatsRow(dashboard),
+                        _buildStatsRow(
+                          dashboard,
+                          context
+                              .watch<OwnerMemberProvider>()
+                              .activeMembers
+                              .map((member) => member.membershipPlan)
+                              .where((plan) => plan.trim().isNotEmpty)
+                              .toSet()
+                              .length,
+                        ),
 
                         const SizedBox(height: 22),
 
@@ -242,15 +259,11 @@ class _HomeTab extends StatelessWidget {
 
                         const SizedBox(height: 25),
 
-                        _buildQuickActions(context),
+                        _buildQuickActions(context, onSelectTab),
 
                         const SizedBox(height: 27),
 
-                        _buildRecentMembers(dashboard),
-
-                        const SizedBox(height: 27),
-
-                        _buildTrainerOverview(dashboard),
+                        _buildCommunityOverview(dashboard, onSelectTab),
                       ],
                     ),
                   ),
@@ -362,6 +375,13 @@ class _HomeTab extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => context.go(AppRoutes.roleSelectionRoute),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              icon: const Icon(Icons.switch_account_rounded),
+              label: const Text('Back to role selection'),
+            ),
           ],
         ),
       ),
@@ -376,198 +396,232 @@ class _HomeTab extends StatelessWidget {
     final ownerName = dashboard?.owner.name ?? 'Owner';
     final gymName = dashboard?.owner.gymName ?? 'Your Gym';
 
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: .22),
+            const Color(0xFF11131D),
+            const Color(0xFF090D15),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.primary.withValues(alpha: .32)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: .10),
+            blurRadius: 32,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -6,
+            top: -16,
+            child: Transform.rotate(
+              angle: -.32,
+              child: Icon(
+                Icons.fitness_center_rounded,
+                size: 132,
+                color: AppColors.primary.withValues(alpha: .08),
+              ),
+            ),
+          ),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                          blurRadius: 10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'GYM OWNER',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text.rich(
+                      TextSpan(
+                        text: 'Hello, ',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -.8,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: ownerName,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Manage your gym. Grow your business.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _headerPill(
+                          icon: Icons.location_on_rounded,
+                          text: gymName,
+                        ),
+                        _headerPill(
+                          icon: Icons.circle,
+                          text: 'Owner',
+                          accent: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Material(
+                color: Colors.white.withValues(alpha: .07),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => context.pushNamed('onwerNotificationScreen'),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Colors.white,
+                          size: 23,
+                        ),
+                        Positioned(
+                          top: 7,
+                          right: 8,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(width: 9),
-
-                  Flexible(
-                    child: Text(
-                      'Hello, $ownerName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF42DB82),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-
-                  const SizedBox(width: 7),
-
-                  Flexible(
-                    child: Text(
-                      gymName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 7),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF42DB82).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'LIVE',
-                      style: TextStyle(
-                        color: Color(0xFF42DB82),
-                        fontSize: 6.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-
-        const SizedBox(width: 12),
-
-        GestureDetector(
-          onTap: () => context.pushNamed('onwerNotificationScreen'),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.08),
-                  Colors.white.withValues(alpha: 0.025),
-                ],
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  blurRadius: 20,
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-
-                Positioned(
-                  top: 9,
-                  right: 10,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF080B12),
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
+  Widget _headerPill({
+    required IconData icon,
+    required String text,
+    Color accent = Colors.white70,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 210),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: accent, size: 13),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   // ============================================================
   // STATS
   // ============================================================
 
-  Widget _buildStatsRow(OwnerDashboardModel? dashboard) {
+  Widget _buildStatsRow(OwnerDashboardModel? dashboard, int activePlanTypes) {
     final summary = dashboard?.summary;
+    final cards = [
+      _statCard(
+        icon: Icons.people_alt_rounded,
+        value: '${summary?.totalMembers ?? 0}',
+        label: 'MEMBERS',
+        graphValue: (summary?.totalMembers ?? 0).toDouble(),
+        color: const Color(0xFF54B8FF),
+      ),
+      _statCard(
+        icon: Icons.fitness_center_rounded,
+        value: '${summary?.totalTrainers ?? 0}',
+        label: 'TRAINERS',
+        graphValue: (summary?.totalTrainers ?? 0).toDouble(),
+        color: const Color(0xFFFF8A3D),
+      ),
+      _statCard(
+        icon: Icons.currency_rupee_rounded,
+        value: summary?.formattedRevenue ?? '₹0',
+        label: 'REVENUE',
+        graphValue: (summary?.totalRevenue ?? 0) / 10000,
+        color: AppColors.primary,
+      ),
+      _statCard(
+        icon: Icons.card_membership_rounded,
+        value: '$activePlanTypes',
+        label: 'ACTIVE PLAN TYPES',
+        graphValue: activePlanTypes.toDouble(),
+        color: const Color(0xFFC14CFF),
+      ),
+    ];
 
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(
-            icon: Icons.people_alt_rounded,
-            value: '${summary?.totalMembers ?? 0}',
-            label: 'MEMBERS',
-            color: const Color(0xFF54B8FF),
-          ),
-        ),
-
-        const SizedBox(width: 9),
-
-        Expanded(
-          child: _statCard(
-            icon: Icons.fitness_center_rounded,
-            value: '${summary?.totalTrainers ?? 0}',
-            label: 'TRAINERS',
-            color: const Color(0xFFFF8A00),
-          ),
-        ),
-
-        const SizedBox(width: 9),
-
-        Expanded(
-          child: _statCard(
-            icon: Icons.currency_rupee_rounded,
-            value: summary?.formattedRevenue ?? '₹0',
-            label: 'REVENUE',
-            color: const Color(0xFF42DB82),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 720 ? 4 : 2;
+        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final card in cards) SizedBox(width: width, child: card),
+          ],
+        );
+      },
     );
   }
 
@@ -575,10 +629,11 @@ class _HomeTab extends StatelessWidget {
     required IconData icon,
     required String value,
     required String label,
+    required double graphValue,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(11, 11, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -588,8 +643,8 @@ class _HomeTab extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.065)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.035),
@@ -604,8 +659,8 @@ class _HomeTab extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(11),
@@ -641,7 +696,7 @@ class _HomeTab extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.4,
             ),
@@ -655,11 +710,13 @@ class _HomeTab extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white30,
-              fontSize: 7.5,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.9,
             ),
           ),
+          const SizedBox(height: 10),
+          _MetricBars(value: graphValue, color: color),
         ],
       ),
     );
@@ -748,7 +805,7 @@ class _HomeTab extends StatelessWidget {
                     SizedBox(height: 3),
                     Text(
                       'Monthly performance',
-                      style: TextStyle(color: Colors.white30, fontSize: 9),
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
                 ),
@@ -787,7 +844,7 @@ class _HomeTab extends StatelessWidget {
                       'CURRENT MONTH',
                       style: TextStyle(
                         color: Colors.white30,
-                        fontSize: 7,
+                        fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
                       ),
@@ -839,7 +896,7 @@ class _HomeTab extends StatelessWidget {
                           color: isPositive
                               ? const Color(0xFF42DB82)
                               : const Color(0xFFFF536F),
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -923,7 +980,7 @@ class _HomeTab extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -954,7 +1011,7 @@ class _HomeTab extends StatelessWidget {
           title,
           style: TextStyle(
             color: active ? Colors.white54 : Colors.white24,
-            fontSize: 8,
+            fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -965,7 +1022,7 @@ class _HomeTab extends StatelessWidget {
           value,
           style: TextStyle(
             color: active ? Colors.white : Colors.white38,
-            fontSize: 8,
+            fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -977,7 +1034,41 @@ class _HomeTab extends StatelessWidget {
   // QUICK ACTIONS
   // ============================================================
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(
+    BuildContext context,
+    ValueChanged<int> onSelectTab,
+  ) {
+    final actions = [
+      _actionCard(
+        icon: Icons.person_add_alt_1_rounded,
+        title: 'Add Member',
+        subtitle: 'Register a member',
+        color: const Color(0xFF54B8FF),
+        onTap: () => context.pushNamed('addMember'),
+      ),
+      _actionCard(
+        icon: Icons.fitness_center_rounded,
+        title: 'Add Trainer',
+        subtitle: 'Grow your team',
+        color: const Color(0xFFFF8A3D),
+        onTap: () => context.pushNamed('addTrainer'),
+      ),
+      _actionCard(
+        icon: Icons.card_membership_rounded,
+        title: 'Memberships',
+        subtitle: 'Manage plans',
+        color: const Color(0xFFC14CFF),
+        onTap: () => onSelectTab(3),
+      ),
+      _actionCard(
+        icon: Icons.storefront_rounded,
+        title: 'Gym Profile',
+        subtitle: 'View gym details',
+        color: const Color(0xFFFF3F70),
+        onTap: () => onSelectTab(4),
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -985,34 +1076,23 @@ class _HomeTab extends StatelessWidget {
           title: 'Quick Actions',
           subtitle: 'Manage your gym faster',
           icon: Icons.bolt_rounded,
+          actionLabel: 'View all',
+          onAction: () => onSelectTab(1),
         ),
-
-        const SizedBox(height: 13),
-
-        Row(
-          children: [
-            Expanded(
-              child: _actionCard(
-                icon: Icons.person_add_alt_1_rounded,
-                title: 'Add Member',
-                subtitle: 'Create new member',
-                color: const Color(0xFF54B8FF),
-                onTap: () => context.pushNamed('addMember'),
-              ),
-            ),
-
-            const SizedBox(width: 11),
-
-            Expanded(
-              child: _actionCard(
-                icon: Icons.fitness_center_rounded,
-                title: 'Add Trainer',
-                subtitle: 'Create new trainer',
-                color: const Color(0xFFFF8A00),
-                onTap: () => context.pushNamed('addTrainer'),
-              ),
-            ),
-          ],
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 720 ? 4 : 2;
+            final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final action in actions)
+                  SizedBox(width: width, child: action),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1022,6 +1102,9 @@ class _HomeTab extends StatelessWidget {
     required String title,
     required String subtitle,
     IconData? icon,
+    Color accent = AppColors.primary,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1031,13 +1114,11 @@ class _HomeTab extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.09),
+              color: accent.withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.12),
-              ),
+              border: Border.all(color: accent.withValues(alpha: 0.18)),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 15),
+            child: Icon(icon, color: accent, size: 15),
           ),
           const SizedBox(width: 10),
         ],
@@ -1057,11 +1138,24 @@ class _HomeTab extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 subtitle,
-                style: const TextStyle(color: Colors.white30, fontSize: 9),
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ],
           ),
         ),
+        if (actionLabel != null && onAction != null)
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              foregroundColor: accent,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Text(
+              actionLabel,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
+            ),
+          ),
       ],
     );
   }
@@ -1073,103 +1167,116 @@ class _HomeTab extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 94),
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color.withValues(alpha: 0.095), const Color(0xFF0A0F17)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.045),
-              blurRadius: 24,
-              offset: const Offset(0, 9),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          height: 148,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withValues(alpha: .17),
+                const Color(0xFF0B1019),
+                const Color(0xFF090D14),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 43,
-              height: 43,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    color.withValues(alpha: 0.18),
-                    color.withValues(alpha: 0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: color.withValues(alpha: 0.16)),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                  ),
-                ],
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: color.withValues(alpha: .35)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: .06),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
-              child: Icon(icon, color: color, size: 19),
-            ),
-
-            const SizedBox(width: 10),
-
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: .28)),
+                ),
+                child: Icon(icon, color: color, size: 21),
+              ),
+              const Spacer(),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
+                  Expanded(
+                    child: Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 4),
-
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white30, fontSize: 8),
-                  ),
+                  const SizedBox(width: 5),
+                  Icon(Icons.arrow_forward_rounded, color: color, size: 16),
                 ],
               ),
-            ),
-
-            const SizedBox(width: 5),
-
-            Container(
-              width: 25,
-              height: 25,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.arrow_forward_rounded, color: color, size: 13),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
   // ============================================================
   // RECENT MEMBERS
   // ============================================================
 
-  Widget _buildRecentMembers(OwnerDashboardModel? dashboard) {
+  Widget _buildCommunityOverview(
+    OwnerDashboardModel? dashboard,
+    ValueChanged<int> onSelectTab,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final members = _buildRecentMembers(dashboard, onSelectTab);
+        final trainers = _buildTrainerOverview(dashboard, onSelectTab);
+        if (constraints.maxWidth >= 720) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: members),
+              const SizedBox(width: 16),
+              Expanded(child: trainers),
+            ],
+          );
+        }
+        return Column(
+          children: [members, const SizedBox(height: 24), trainers],
+        );
+      },
+    );
+  }
+
+  Widget _buildRecentMembers(
+    OwnerDashboardModel? dashboard,
+    ValueChanged<int> onSelectTab,
+  ) {
     final recentMembers = dashboard?.recentMembers ?? const <RecentMember>[];
 
     return Column(
@@ -1179,6 +1286,9 @@ class _HomeTab extends StatelessWidget {
           title: 'Recent Members',
           subtitle: 'Latest members in your gym',
           icon: Icons.people_alt_rounded,
+          accent: const Color(0xFF54B8FF),
+          actionLabel: 'View all',
+          onAction: () => onSelectTab(1),
         ),
 
         const SizedBox(height: 13),
@@ -1217,13 +1327,13 @@ class _HomeTab extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
-                colors: [Color(0xFFE62B52), Color(0xFF701529)],
+                colors: [Color(0xFF54B8FF), Color(0xFF145A91)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.18),
+                  color: const Color(0xFF54B8FF).withValues(alpha: 0.22),
                   blurRadius: 14,
                 ),
               ],
@@ -1268,7 +1378,7 @@ class _HomeTab extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white38,
-                          fontSize: 8.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1317,7 +1427,7 @@ class _HomeTab extends StatelessWidget {
                   member.displayStatus,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 7.5,
+                    fontSize: 9,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1391,7 +1501,10 @@ class _HomeTab extends StatelessWidget {
   // TRAINER OVERVIEW
   // ============================================================
 
-  Widget _buildTrainerOverview(OwnerDashboardModel? dashboard) {
+  Widget _buildTrainerOverview(
+    OwnerDashboardModel? dashboard,
+    ValueChanged<int> onSelectTab,
+  ) {
     final trainers =
         dashboard?.trainerOverview ?? const <TrainerOverviewItem>[];
 
@@ -1399,9 +1512,11 @@ class _HomeTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'Trainer Overview',
+          title: 'Top Trainers',
           subtitle: 'Your gym training team',
           icon: Icons.fitness_center_rounded,
+          actionLabel: 'View all',
+          onAction: () => onSelectTab(2),
         ),
 
         const SizedBox(height: 13),
@@ -1557,6 +1672,52 @@ class _HomeTab extends StatelessWidget {
 // PREMIUM REVENUE GRAPH
 // Uses ONLY existing previous/current revenue values.
 // ============================================================
+
+class _MetricBars extends StatelessWidget {
+  const _MetricBars({required this.value, required this.color});
+
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final magnitude = (value / (value + 100)).clamp(0.0, 1.0);
+    final filled = value <= 0 ? 0 : (2 + magnitude * 6).round();
+    const heights = [7.0, 11.0, 8.0, 15.0, 10.0, 18.0, 12.0, 22.0];
+
+    return SizedBox(
+      height: 22,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < heights.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 220 + i * 35),
+                height: heights[i],
+                decoration: BoxDecoration(
+                  color: i < filled
+                      ? color.withValues(alpha: .88)
+                      : color.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: i < filled
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: .28),
+                            blurRadius: 7,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 class _RevenueChartPainter extends CustomPainter {
   final double previousValue;

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class GradientButton extends StatelessWidget {
@@ -7,6 +6,7 @@ class GradientButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const GradientButton({
+    super.key,
     required this.label,
     required this.color,
     this.onPressed,
