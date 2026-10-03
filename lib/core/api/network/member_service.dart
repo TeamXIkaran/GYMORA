@@ -196,6 +196,13 @@ WorkoutPlan? _currentWorkout(List<WorkoutPlan> workouts) {
   }
   final assigned = workouts.where((w) => w.status == 'ASSIGNED').toList();
   if (assigned.isNotEmpty) {
+    // The API's list ordering is not guaranteed. Prefer the most recently
+    // assigned plan so an older pending plan cannot hide a trainer's update.
+    assigned.sort((a, b) {
+      final aDate = a.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
     final now = DateTime.now();
     for (final workout in assigned) {
       final date = workout.date?.toLocal();

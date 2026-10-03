@@ -461,15 +461,21 @@ class TrainerDashboardProvider extends ChangeNotifier {
   // WORKOUT
   // ===========================================================================
 
-  /// No backend workout endpoint exists yet.
-  ///
-  /// Workout is therefore kept in memory for the current app session.
-  void assignWorkout(String clientId, WorkoutPlan plan) {
+  /// Saves a trainer-created workout to the backend so the assigned member's
+  /// `/api/client/workouts` request returns the same plan.
+  Future<void> assignWorkout(String clientId, WorkoutPlan plan) async {
     final client = clientById(clientId);
 
     if (client == null) {
-      return;
+      throw Exception('This client is no longer in your assigned client list.');
     }
+
+    await _api.assignWorkout(
+      clientId: client.id,
+      title: plan.title,
+      exercises: plan.exercises,
+      notes: plan.notes,
+    );
 
     client.workoutPlan = plan;
 

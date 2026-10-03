@@ -430,12 +430,12 @@ const verifyForgotPasswordOTP = async (req, res) => {
 
 const resetOwnerPassword = async (req, res) => {
     try {
-        const { email, newPassword } = req.body;
+        const { email, gymId, newPassword } = req.body;
 
-        if (!email || !newPassword) {
+        if (!email || !gymId || !newPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Email and new password are required",
+                message: "Email, Gym ID, and new password are required",
             });
         }
 
@@ -448,12 +448,13 @@ const resetOwnerPassword = async (req, res) => {
 
         const owner = await Owner.findOne({
             email: email.toLowerCase().trim(),
+            gymId: gymId.trim(),
         });
 
         if (!owner) {
             return res.status(404).json({
                 success: false,
-                message: "Owner with this email does not exist",
+                message: "Owner with this email and Gym ID does not exist",
             });
         }
 

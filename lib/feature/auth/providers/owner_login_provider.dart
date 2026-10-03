@@ -267,6 +267,7 @@ class OwnerLoginProvider extends ChangeNotifier {
   Future<bool> resetPassword({
     required String email,
     required String otp,
+    required String gymId,
     required String newPassword,
   }) async {
     _status = OwnerStatus.loading;
@@ -277,6 +278,7 @@ class OwnerLoginProvider extends ChangeNotifier {
     final request = ResetPasswordRequest(
       email: email,
       otp: otp,
+      gymId: gymId,
       newPassword: newPassword,
     );
     final response = await _service.resetPassword(request);

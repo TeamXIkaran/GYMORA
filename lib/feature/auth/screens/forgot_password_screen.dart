@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
-import 'package:gymora_fitness_management/feature/auth/screens/reset_password_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
 import 'package:gymora_fitness_management/core/widgets/glassTextField_widget.dart';
 import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
@@ -299,31 +299,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
     if (success) {
       // ── Navigate to Reset Password Screen ──
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, _, _) =>
-              ResetPasswordScreen(email: _emailCtrl.text.trim(), otp: otp),
-          transitionsBuilder: (_, animation, _, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position:
-                    Tween<Offset>(
-                      begin: const Offset(0.05, 0),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      ),
-                    ),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
+      context.pushReplacementNamed(
+        'resetPassword',
+        extra: {'email': _emailCtrl.text.trim(), 'otp': otp},
       );
     } else {
       final errorMsg =

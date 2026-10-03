@@ -11,6 +11,7 @@ class AppRoutes {
   static const String purchaseMemberShipRoute = '/purchase-membership';
   static const String gymDetailedRoute = '/gym-detailed';
   static const String qrScreenRoute = '/qr-screen';
+   static const String resetPasswordScreenRoute = '/reset-password';
 
   // Owner Routes
   static const String ownerDashboardRoute = '/owner-dashboard';

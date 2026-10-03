@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/auth/providers/owner_login_provider.dart';
 import 'package:gymora_fitness_management/feature/auth/widgets/auth_background_widget.dart';
@@ -31,8 +32,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
   ];
 
   // ── Controllers ──
+  final _gymIdCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
+  final _gymIdFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
 
@@ -172,8 +175,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     _glowPulseCtrl.dispose();
     _shimmerCtrl.dispose();
     _strengthCtrl.dispose();
+    _gymIdCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
+    _gymIdFocus.dispose();
     _passwordFocus.dispose();
     _confirmFocus.dispose();
     super.dispose();
@@ -244,8 +249,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
 
   Future<void> _resetPassword() async {
     FocusScope.of(context).unfocus();
+    final gymId = _gymIdCtrl.text.trim();
     final password = _passwordCtrl.text;
     final confirmPassword = _confirmPasswordCtrl.text;
+
+    if (gymId.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your Gym ID.');
+      return;
+    }
 
     // ── Validate password ──
     final passwordError = _validatePassword(password);
@@ -270,6 +281,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     final success = await ownerProvider.resetPassword(
       email: widget.email,
       otp: widget.otp,
+      gymId: gymId,
       newPassword: password,
     );
 
@@ -291,10 +303,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         ),
       );
 
-      // Pop all the way back to login
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
+      // Replace the reset flow with the owner login route.
+      context.goNamed('ownerLogin', extra: {'gymId': gymId});
     } else {
       setState(() {
         _errorMessage =
@@ -343,7 +353,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                     _buildHeading(),
                     const SizedBox(height: 14),
                     _buildEmailInfo(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    _buildGymIdField(),
+                    const SizedBox(height: 16),
                     _buildPasswordField(),
                     const SizedBox(height: 8),
                     _buildPasswordStrength(),
@@ -536,6 +548,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildGymIdField() {
+    return AnimatedBuilder(
+      animation: _fieldsCtrl,
+      builder: (_, child) =>
+          Opacity(opacity: _fieldOpacity.value, child: child),
+      child: GlassTextField(
+        controller: _gymIdCtrl,
+        focusNode: _gymIdFocus,
+        hint: 'Gym ID',
+        prefixIcon: Icons.business_rounded,
+        accentColor: _accent,
+        keyboardType: TextInputType.text,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocus),
+      ),
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:gymora_fitness_management/feature/auth/screens/forgot_password_s
 import 'package:gymora_fitness_management/feature/auth/screens/gym_details_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/owner_login_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/purchase_membership_screen.dart';
+import 'package:gymora_fitness_management/feature/auth/screens/reset_password_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/role_selection_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/splash_screen.dart';
 import 'package:gymora_fitness_management/feature/auth/screens/trainer_login_screen.dart';
@@ -63,7 +64,11 @@ class AppRouter {
         path: AppRoutes.ownerloginRoute,
         name: 'ownerLogin',
         builder: (context, state) {
-          return const OwnerLoginScreen();
+          final extra = state.extra;
+          final params = extra is Map
+              ? Map<String, dynamic>.from(extra)
+              : const <String, dynamic>{};
+          return OwnerLoginScreen(initialGymId: params['gymId']?.toString());
         },
       ),
 
@@ -72,6 +77,20 @@ class AppRouter {
         name: 'trainerLogin',
         builder: (context, state) {
           return const TrainerLoginScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.resetPasswordScreenRoute,
+        name: 'resetPassword',
+        builder: (context, state) {
+          final extra = state.extra;
+          final params = extra is Map
+              ? Map<String, dynamic>.from(extra)
+              : const <String, dynamic>{};
+          return ResetPasswordScreen(
+            email: params['email']?.toString() ?? '',
+            otp: params['otp']?.toString() ?? '',
+          );
         },
       ),
 

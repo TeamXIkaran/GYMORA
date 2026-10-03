@@ -1073,14 +1073,21 @@ class _AssignWorkoutSheet extends StatefulWidget {
 }
 
 class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
+  bool _saving = false;
   late String _template;
+  late bool _isCustomWorkout;
   late final TextEditingController _notesController;
+  late final TextEditingController _customTitleController;
+  late final TextEditingController _customExercisesController;
 
   @override
   void initState() {
     super.initState();
 
     final existing = widget.client.workoutPlan;
+    _isCustomWorkout =
+        existing != null &&
+        !TrainerOptions.workoutTemplates.containsKey(existing.title);
 
     _template =
         existing != null &&
@@ -1089,33 +1096,85 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
         : TrainerOptions.workoutTemplates.keys.first;
 
     _notesController = TextEditingController(text: existing?.notes ?? '');
+    _customTitleController = TextEditingController(
+      text: _isCustomWorkout ? existing!.title : '',
+    );
+    _customExercisesController = TextEditingController(
+      text: _isCustomWorkout ? existing!.exercises.join('\n') : '',
+    );
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _customTitleController.dispose();
+    _customExercisesController.dispose();
     super.dispose();
   }
 
-  void _save() {
-    TrainerDashboardProvider.instance.assignWorkout(
-      widget.client.id,
-      WorkoutPlan(
-        title: _template,
-        exercises: TrainerOptions.workoutTemplates[_template]!,
-        notes: _notesController.text.trim(),
-        assignedOn: DateTime.now(),
-      ),
-    );
+  Future<void> _save() async {
+    if (_saving) return;
+    final workoutTitle = _isCustomWorkout
+        ? _customTitleController.text.trim()
+        : _template;
+    final exercises = _isCustomWorkout
+        ? _customExercisesController.text
+              .split('\n')
+              .map((exercise) => exercise.trim())
+              .where((exercise) => exercise.isNotEmpty)
+              .toList()
+        : TrainerOptions.workoutTemplates[_template]!;
+
+    if (workoutTitle.isEmpty || exercises.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a workout name and at least one exercise.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await TrainerDashboardProvider.instance.assignWorkout(
+        widget.client.id,
+        WorkoutPlan(
+          title: workoutTitle,
+          exercises: exercises,
+          notes: _notesController.text.trim(),
+          assignedOn: DateTime.now(),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not assign workout: $error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
 
     Navigator.pop(context);
 
-    widget.onSaved('$_template assigned to ${widget.client.name}');
+    widget.onSaved('$workoutTitle assigned to ${widget.client.name}');
   }
 
   @override
   Widget build(BuildContext context) {
-    final exercises = TrainerOptions.workoutTemplates[_template]!;
+    final options = [...TrainerOptions.workoutTemplates.keys, 'Custom Workout'];
+    final exercises = _isCustomWorkout
+        ? _customExercisesController.text
+              .split('\n')
+              .map((exercise) => exercise.trim())
+              .where((exercise) => exercise.isNotEmpty)
+              .toList()
+        : TrainerOptions.workoutTemplates[_template]!;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -1174,14 +1233,29 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                 ],
               ),
               const SizedBox(height: 20),
+              const Text(
+                'CHOOSE A WORKOUT STYLE',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 9),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: TrainerOptions.workoutTemplates.keys.map((t) {
-                  final selected = t == _template;
+                children: options.map((t) {
+                  final selected = _isCustomWorkout
+                      ? t == 'Custom Workout'
+                      : t == _template;
 
                   return GestureDetector(
-                    onTap: () => setState(() => _template = t),
+                    onTap: () => setState(() {
+                      _isCustomWorkout = t == 'Custom Workout';
+                      if (!_isCustomWorkout) _template = t;
+                    }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
@@ -1212,47 +1286,62 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                 }).toList(),
               ),
               const SizedBox(height: 18),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.035),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.06),
-                  ),
+              if (_isCustomWorkout) ...[
+                _customWorkoutField(
+                  controller: _customTitleController,
+                  hint: 'Workout name, e.g. Return-to-training plan',
+                  icon: Icons.edit_rounded,
+                  maxLines: 1,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: exercises
-                      .map(
-                        (e) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: _yellow,
-                                size: 15,
-                              ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  e,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 10),
+                _customWorkoutField(
+                  controller: _customExercisesController,
+                  hint: 'One exercise per line, e.g. Squat - 3 x 10',
+                  icon: Icons.format_list_bulleted_rounded,
+                  maxLines: 6,
+                ),
+              ] else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.035),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: exercises
+                        .map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  color: _yellow,
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Text(
+                                    e,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+                  ),
                 ),
-              ),
               const SizedBox(height: 14),
               Container(
                 decoration: BoxDecoration(
@@ -1284,7 +1373,7 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _yellow,
                     foregroundColor: Colors.black,
@@ -1293,9 +1382,20 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  icon: const Icon(Icons.send_rounded, size: 17),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 17,
+                          height: 17,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Icon(Icons.send_rounded, size: 17),
                   label: Text(
-                    widget.client.workoutPlan == null
+                    _saving
+                        ? 'Assigning...'
+                        : widget.client.workoutPlan == null
                         ? 'Assign Workout'
                         : 'Update Workout',
                     style: const TextStyle(
@@ -1306,6 +1406,39 @@ class _AssignWorkoutSheetState extends State<_AssignWorkoutSheet> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _customWorkoutField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    required int maxLines,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        minLines: maxLines == 1 ? 1 : 4,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+        cursorColor: _yellow,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          prefixIcon: Icon(icon, color: _yellow, size: 19),
+          alignLabelWithHint: true,
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
           ),
         ),
       ),

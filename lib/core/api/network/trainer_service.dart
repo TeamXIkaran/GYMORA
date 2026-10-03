@@ -247,6 +247,31 @@ class TrainerService {
     return ClientProgressDetail.fromJson(data);
   }
 
+  /// POST /api/trainers/workouts
+  /// Assigns a workout to one of the trainer's clients. The backend uses the
+  /// member's business `clientId` (for example `0003`), not its Mongo id.
+  Future<void> assignWorkout({
+    required String clientId,
+    required String title,
+    required List<String> exercises,
+    required String notes,
+  }) async {
+    await _send(
+      'POST',
+      '/trainers/workouts',
+      body: {
+        'clientId': clientId,
+        'title': title,
+        'muscleGroups': _muscleGroupsFor(title),
+        'date': DateTime.now().toIso8601String().substring(0, 10),
+        'duration': 45,
+        'estimatedCalories': 320,
+        'exercises': exercises.map(_workoutExercisePayload).toList(),
+        'notes': notes,
+      },
+    );
+  }
+
   // ===========================================================================
   // PROFILE
   // ===========================================================================
@@ -484,4 +509,57 @@ class TrainerService {
 
     return <String, dynamic>{};
   }
+}
+
+Map<String, dynamic> _workoutExercisePayload(String prescription) {
+  final text = prescription.trim();
+  final prescriptionMatch = RegExp(
+    r'[-–—:]\s*(\d+)\s*(?:rounds?\s*)?[x×]\s*(\d+)',
+    caseSensitive: false,
+  ).firstMatch(text);
+  final durationMatch = RegExp(
+    r'[-–—:]\s*(\d+)\s*(sec(?:onds?)?|min(?:utes?)?)\b',
+    caseSensitive: false,
+  ).firstMatch(text);
+
+  var sets = 3;
+  var reps = 10;
+  if (prescriptionMatch != null) {
+    sets = int.tryParse(prescriptionMatch.group(1)!) ?? sets;
+    reps = int.tryParse(prescriptionMatch.group(2)!) ?? reps;
+  } else if (durationMatch != null) {
+    final amount = int.tryParse(durationMatch.group(1)!) ?? reps;
+    final unit = durationMatch.group(2)!.toLowerCase();
+    // The member workout model represents timed exercise targets in seconds.
+    reps = unit.startsWith('min') ? amount * 60 : amount;
+    sets = 1;
+  }
+
+  final name = text.replaceFirst(RegExp(r'\s*[-–—:]\s*.*$'), '').trim();
+  return {
+    'name': name.isEmpty ? text : name,
+    'sets': sets,
+    'reps': reps,
+    'weight': 0,
+    'restSeconds': 60,
+  };
+}
+
+List<String> _muscleGroupsFor(String title) {
+  final normalized = title.toLowerCase();
+  const groups = <(String, List<String>)>[
+    ('Chest', ['chest', 'push']),
+    ('Back', ['back', 'pull']),
+    ('Shoulders', ['shoulder']),
+    ('Arms', ['arm', 'bicep', 'tricep']),
+    ('Core', ['core', 'stability']),
+    ('Legs', ['leg', 'lower body', 'glute', 'squat']),
+    ('Cardio', ['cardio', 'hiit', 'fat loss', 'endurance']),
+    ('Mobility', ['mobility', 'stretch']),
+  ];
+  final matched = groups
+      .where((group) => group.$2.any(normalized.contains))
+      .map((group) => group.$1)
+      .toList();
+  return matched.isEmpty ? ['Full Body'] : matched;
 }

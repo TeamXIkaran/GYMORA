@@ -153,7 +153,9 @@ class OwnerLoginResponse {
   factory OwnerLoginResponse.fromJson(Map<String, dynamic> json) {
     return OwnerLoginResponse(
       token: (json['token'] ?? '').toString(),
-      owner: OwnerLoginModel.fromJson(json['owner'] as Map<String, dynamic>? ?? {}),
+      owner: OwnerLoginModel.fromJson(
+        json['owner'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 
@@ -298,17 +300,20 @@ class VerifyOtpRequest {
 class ResetPasswordRequest {
   final String email;
   final String otp;
+  final String gymId;
   final String newPassword;
 
   ResetPasswordRequest({
     required this.email,
     required this.otp,
+    required this.gymId,
     required this.newPassword,
   });
 
   Map<String, dynamic> toJson() => {
     'email': email,
     'otp': otp,
+    'gymId': gymId,
     'newPassword': newPassword,
   };
 }
