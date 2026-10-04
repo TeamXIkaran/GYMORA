@@ -70,7 +70,8 @@ const submitPayment = async (req, res) => {
             });
         }
 
-        // Create payment if it does not exist
+        // Create payment if it does not exist. Submitting a payment request
+        // must never be treated as proof that the UPI payment was completed.
         if (!payment) {
             payment = await Payment.create({
                 owner: owner._id,
@@ -81,44 +82,18 @@ const submitPayment = async (req, res) => {
                 amount: planDetails.amount,
                 paymentStatus: "PENDING",
             });
+        } else if (payment.paymentStatus === "REJECTED") {
+            // Allow the owner to retry after a rejected payment.
+            payment.paymentStatus = "PENDING";
+            payment.verifiedAt = undefined;
         }
 
-        /*
-         * MVP AUTO-APPROVAL
-         * -----------------
-         * No webhook/admin approval for now.
-         * Payment is automatically approved after submission.
-         */
-
-        const membershipStartDate = new Date();
-        const membershipEndDate = new Date(membershipStartDate);
-
-        if (owner.plan === "STARTER") {
-            membershipEndDate.setMonth(
-                membershipEndDate.getMonth() + 1
-            );
-        } else if (owner.plan === "PRO") {
-            membershipEndDate.setMonth(
-                membershipEndDate.getMonth() + 3
-            );
-        } else if (owner.plan === "ELITE") {
-            membershipEndDate.setMonth(
-                membershipEndDate.getMonth() + 6
-            );
-        }
-
-        payment.paymentStatus = "APPROVED";
-        payment.verifiedAt = new Date();
-
-        owner.paymentStatus = "APPROVED";
-        owner.membershipStatus = "ACTIVE";
-        owner.membershipStartDate = membershipStartDate;
-        owner.membershipEndDate = membershipEndDate;
-
+        owner.paymentStatus = "PENDING";
+        owner.membershipStatus = "PENDING";
         await payment.save();
         await owner.save();
 
-        // Notify payment verification email
+        // Notify the verifier that a payment request is awaiting review.
         sendPaymentNotification({
             gymName: payment.gymName,
             gymId: payment.gymId,
@@ -126,7 +101,7 @@ const submitPayment = async (req, res) => {
             plan: payment.plan,
             amount: payment.amount,
             paymentId: payment._id,
-            paymentStatus: payment.paymentStatus,
+            paymentStatus: "PENDING",
         }).catch((error) => {
             console.error(
                 "Payment notification email failed:",
@@ -134,35 +109,17 @@ const submitPayment = async (req, res) => {
             );
         });
 
-        // Send login credentials/reminder to owner
-        sendOwnerCredentialsEmail({
-            gymName: owner.gymName,
-            gymId: owner.gymId,
-            ownerName: owner.ownerName,
-            plan: owner.plan,
-            membershipStartDate: owner.membershipStartDate,
-            membershipEndDate: owner.membershipEndDate,
-            email: owner.email,
-        }).catch((error) => {
-            console.error(
-                "Owner credentials email failed:",
-                error.message
-            );
-        });
-
-        return res.status(200).json({
+        return res.status(202).json({
             success: true,
-            message: "Payment approved and membership activated successfully",
+            message: "Payment request created. Awaiting payment verification.",
             data: {
                 paymentId: payment._id,
                 gymName: owner.gymName,
                 gymId: owner.gymId,
                 plan: owner.plan,
                 amount: payment.amount,
-                paymentStatus: owner.paymentStatus,
+                paymentStatus: payment.paymentStatus,
                 membershipStatus: owner.membershipStatus,
-                membershipStartDate: owner.membershipStartDate,
-                membershipEndDate: owner.membershipEndDate,
             },
         });
     } catch (error) {
@@ -236,6 +193,19 @@ const approvePayment = async (req, res) => {
             );
         }
 
+        // Do not expose APPROVED to the app until the owner confirmation email
+        // has been accepted by the mail provider. The app polls payment status
+        // and navigates to login only after this approval is persisted.
+        await sendOwnerCredentialsEmail({
+            gymName: owner.gymName,
+            gymId: owner.gymId,
+            ownerName: owner.ownerName,
+            plan: owner.plan,
+            membershipStartDate,
+            membershipEndDate,
+            email: owner.email,
+        });
+
         payment.paymentStatus = "APPROVED";
         payment.verifiedAt = new Date();
 
@@ -246,21 +216,6 @@ const approvePayment = async (req, res) => {
 
         await payment.save();
         await owner.save();
-
-        sendOwnerCredentialsEmail({
-            gymName: owner.gymName,
-            gymId: owner.gymId,
-            ownerName: owner.ownerName,
-            plan: owner.plan,
-            membershipStartDate: owner.membershipStartDate,
-            membershipEndDate: owner.membershipEndDate,
-            email: owner.email,
-        }).catch((error) => {
-            console.error(
-                "Owner credentials email failed:",
-                error.message
-            );
-        });
 
         return res.status(200).json({
             success: true,

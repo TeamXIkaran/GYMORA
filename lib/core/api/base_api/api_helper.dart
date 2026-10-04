@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -37,8 +38,23 @@ class ApiHelper {
     String endpoint,
     dynamic body, {
     Map<String, String>? headers,
+    Duration? timeout,
   }) async {
-    return _request<T>('POST', endpoint, body: body, headers: headers);
+    try {
+      final request = _request<T>(
+        'POST',
+        endpoint,
+        body: body,
+        headers: headers,
+      );
+      return timeout == null ? await request : await request.timeout(timeout);
+    } on TimeoutException catch (e, s) {
+      _logger.error('NETWORK', 'Request timed out', error: e, stackTrace: s);
+      return ApiResponse.error(
+        'Request timed out. Please try again.',
+        statusCode: 408,
+      );
+    }
   }
 
   Future<ApiResponse<T>> put<T>(
@@ -140,6 +156,12 @@ class ApiHelper {
       );
 
       return _handleResponse<T>(response);
+    } on TimeoutException catch (e, s) {
+      _logger.error('NETWORK', 'Request timed out', error: e, stackTrace: s);
+      return ApiResponse.error(
+        'Request timed out. Please try again.',
+        statusCode: 408,
+      );
     } on SocketException catch (e, s) {
       _logger.error(
         'NETWORK',

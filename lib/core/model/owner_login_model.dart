@@ -299,21 +299,21 @@ class VerifyOtpRequest {
 
 class ResetPasswordRequest {
   final String email;
-  final String otp;
   final String gymId;
   final String newPassword;
+  final String confirmPassword;
 
   ResetPasswordRequest({
     required this.email,
-    required this.otp,
     required this.gymId,
     required this.newPassword,
+    required this.confirmPassword,
   });
 
   Map<String, dynamic> toJson() => {
     'email': email,
-    'otp': otp,
     'gymId': gymId,
     'newPassword': newPassword,
+    'confirmPassword': confirmPassword,
   };
 }

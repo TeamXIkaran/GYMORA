@@ -67,7 +67,9 @@ class OwnerLoginService {
   ) async {
     debugPrint('═══════════════════════════════════════════');
     debugPrint('🛒 [OwnerService] PURCHASE');
-    debugPrint('📤 Request: ${request.toJson()}');
+    debugPrint(
+      '📤 Request: ${<String, dynamic>{...request.toJson(), 'password': '***REDACTED***'}}',
+    );
     debugPrint('═══════════════════════════════════════════');
 
     final response = await _api.post<Map<String, dynamic>>(
@@ -187,6 +189,7 @@ class OwnerLoginService {
     final response = await _api.post<Map<String, dynamic>>(
       'api/owner/forgot-password',
       request.toJson(),
+      timeout: const Duration(seconds: 25),
     );
 
     debugPrint('═══════════════════════════════════════════');

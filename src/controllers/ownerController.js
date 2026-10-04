@@ -295,6 +295,7 @@ const updateOwnerProfile = async (req, res) => {
 };
 
 const sendForgotPasswordOTP = async (req, res) => {
+    let otpRecord;
     try {
         const { email } = req.body;
 
@@ -326,7 +327,7 @@ const sendForgotPasswordOTP = async (req, res) => {
             email: owner.email,
         });
 
-        await PasswordResetOTP.create({
+        otpRecord = await PasswordResetOTP.create({
             email: owner.email,
             otp,
             expiresAt,
@@ -345,9 +346,16 @@ const sendForgotPasswordOTP = async (req, res) => {
     } catch (error) {
         console.error("Send forgot password OTP error:", error);
 
+        if (otpRecord) {
+            await PasswordResetOTP.deleteOne({ _id: otpRecord._id }).catch(
+                (cleanupError) =>
+                    console.error("Failed to remove unsent password reset OTP:", cleanupError)
+            );
+        }
+
         return res.status(500).json({
             success: false,
-            message: "Internal server error",
+            message: "Unable to send OTP email. Please try again later.",
         });
     }
 };
@@ -430,12 +438,19 @@ const verifyForgotPasswordOTP = async (req, res) => {
 
 const resetOwnerPassword = async (req, res) => {
     try {
-        const { email, gymId, newPassword } = req.body;
+        const { email, gymId, newPassword, confirmPassword } = req.body;
 
-        if (!email || !gymId || !newPassword) {
+        if (!email || !gymId || !newPassword || !confirmPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Email, Gym ID, and new password are required",
+                message: "Email, Gym ID, new password, and confirm password are required",
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "New password and confirm password do not match",
             });
         }
 

@@ -68,7 +68,10 @@ class AppRouter {
           final params = extra is Map
               ? Map<String, dynamic>.from(extra)
               : const <String, dynamic>{};
-          return OwnerLoginScreen(initialGymId: params['gymId']?.toString());
+          return OwnerLoginScreen(
+            initialGymId: params['gymId']?.toString(),
+            initialPassword: params['password']?.toString(),
+          );
         },
       ),
 

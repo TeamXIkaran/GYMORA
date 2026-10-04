@@ -10,7 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QR PAYMENT SCREEN
-// Automatic payment detection with fast polling
+// Payment status polling until owner verification
 // ═══════════════════════════════════════════════════════════════════════════
 
 class QRPaymentScreen extends StatefulWidget {
@@ -322,14 +322,11 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     debugPrint('Initial Status: ${payment.paymentStatus}');
     debugPrint('═══════════════════════════════════════════');
 
-    // ── If server already approved it instantly ──
-
+    // Only the admin approval endpoint may produce APPROVED. A generic
+    // SUCCESS/PAID response is not sufficient to activate an owner account.
     final initialStatus = payment.paymentStatus.trim().toUpperCase();
 
-    if (initialStatus == 'APPROVED' ||
-        initialStatus == 'PAID' ||
-        initialStatus == 'SUCCESS' ||
-        initialStatus == 'COMPLETED') {
+    if (initialStatus == 'APPROVED') {
       await _handlePaymentSuccess(payment);
       return;
     }
@@ -353,19 +350,19 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
     debugPrint('🔄 Starting automatic payment status checking...');
 
-    // ── Poll every 1.5 seconds ──
+    // ── Poll for payment approval ──
 
     _paymentTimer = Timer.periodic(
-      const Duration(milliseconds: 1500),
+      const Duration(seconds: 10),
       (_) => _checkPaymentStatus(),
     );
 
     // Check immediately as well.
     _checkPaymentStatus();
 
-    // ── Auto-timeout after 5 minutes ──
+    // Keep checking during the manual review window.
 
-    _timeoutTimer = Timer(const Duration(minutes: 5), () {
+    _timeoutTimer = Timer(const Duration(minutes: 30), () {
       if (!_paymentApproved && !_paymentRejected && mounted) {
         _paymentTimer?.cancel();
 
@@ -410,10 +407,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     // PAYMENT APPROVED
     // ─────────────────────────────────────────────
 
-    if (status == 'APPROVED' ||
-        status == 'PAID' ||
-        status == 'SUCCESS' ||
-        status == 'COMPLETED') {
+    if (status == 'APPROVED') {
       await _handlePaymentSuccess(payment);
 
       return;
@@ -471,14 +465,21 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     debugPrint('Membership Status: ${payment.membershipStatus}');
     debugPrint('═══════════════════════════════════════════');
 
-    _showSuccessMessage('Membership purchased successfully!');
+    _showSuccessMessage(
+      'Payment approved. Your login confirmation email has been sent.',
+    );
 
-    // Quick transition — 800ms so user sees the success message
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    context.goNamed('ownerLogin');
+    context.goNamed(
+      'ownerLogin',
+      extra: {
+        'gymId': widget.planData?['gymId']?.toString() ?? '',
+        'password': widget.planData?['password']?.toString() ?? '',
+      },
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -885,7 +886,7 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
     } else if (_paymentTimedOut) {
       statusText = 'Timed Out';
     } else if (_paymentSubmitted) {
-      statusText = 'Waiting for Payment';
+      statusText = 'Awaiting Review';
     } else if (_isProcessing) {
       statusText = 'Creating Payment';
     } else {
@@ -1032,14 +1033,14 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
                 children: [
                   Text(
                     _paymentApproved
-                        ? 'Payment Successful'
+                        ? 'Payment Approved'
                         : _paymentRejected
                         ? 'Payment Rejected'
                         : _paymentTimedOut
                         ? 'Verification Timed Out'
                         : _isProcessing
                         ? 'Preparing Payment'
-                        : 'Waiting for Payment',
+                        : 'Waiting for Payment Review',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -1051,15 +1052,15 @@ class _QRPaymentScreenState extends State<QRPaymentScreen>
 
                   Text(
                     _paymentApproved
-                        ? 'Membership purchased successfully.'
+                        ? 'Check your email for your login details.'
                         : _paymentRejected
                         ? 'Please try the payment again.'
                         : _paymentTimedOut
                         ? 'If you have paid, please contact support.'
                         : _isProcessing
                         ? 'Please wait...'
-                        : 'After your payment is received, '
-                              'we will automatically confirm it.',
+                        : 'After you complete payment, it will be reviewed. '
+                              'We’ll email you when it is approved.',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.55),
                       fontSize: 11,

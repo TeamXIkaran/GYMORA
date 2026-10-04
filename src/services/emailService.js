@@ -9,9 +9,12 @@ const notificationEmail = process.env.PAYMENT_NOTIFICATION_EMAIL?.trim();
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
-        user: emailUser,
-        pass: emailAppPassword,
+      user: emailUser,
+      pass: emailAppPassword,
     },
 });
 
@@ -113,6 +116,10 @@ const sendPasswordResetOTP = async ({
     ownerName,
     otp,
 }) => {
+    if (!emailUser || !emailAppPassword) {
+        throw new Error("Email delivery is not configured: EMAIL_USER and EMAIL_APP_PASSWORD are required");
+    }
+
     const mailOptions = {
         from: emailUser,
         to: email,

@@ -373,6 +373,8 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
         'duration': widget.planData?['duration']?.toString() ?? '',
         'ownerId': ownerProvider.purchaseResponse?.ownerId ?? '',
         'gymId': ownerProvider.purchaseResponse?.gymId ?? gymIdCtrl.text.trim(),
+        // Keep this in route memory only, to prefill login after approval.
+        'password': passwordCtrl.text,
       };
 
       context.pushNamed('qrScreen', extra: paymentData);

@@ -280,9 +280,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     final ownerProvider = context.read<OwnerLoginProvider>();
     final success = await ownerProvider.resetPassword(
       email: widget.email,
-      otp: widget.otp,
       gymId: gymId,
       newPassword: password,
+      confirmPassword: confirmPassword,
     );
 
     if (!mounted) return;

@@ -10,9 +10,10 @@ import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dar
 import 'package:provider/provider.dart';
 
 class OwnerLoginScreen extends StatefulWidget {
-  const OwnerLoginScreen({super.key, this.initialGymId});
+  const OwnerLoginScreen({super.key, this.initialGymId, this.initialPassword});
 
   final String? initialGymId;
+  final String? initialPassword;
 
   @override
   State<OwnerLoginScreen> createState() => _OwnerLoginScreenState();
@@ -32,7 +33,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
   bool _isSubmitting = false;
 
   late final TextEditingController _gymIdCtrl;
-  final _passwordCtrl = TextEditingController();
+  late final TextEditingController _passwordCtrl;
   final _gymIdFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
@@ -60,6 +61,7 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
   void initState() {
     super.initState();
     _gymIdCtrl = TextEditingController(text: widget.initialGymId ?? '');
+    _passwordCtrl = TextEditingController(text: widget.initialPassword ?? '');
     _initAnimations();
     _startSequence();
   }
@@ -70,6 +72,10 @@ class _OwnerLoginScreenState extends State<OwnerLoginScreen>
     if (oldWidget.initialGymId != widget.initialGymId &&
         widget.initialGymId != null) {
       _gymIdCtrl.text = widget.initialGymId!;
+    }
+    if (oldWidget.initialPassword != widget.initialPassword &&
+        widget.initialPassword != null) {
+      _passwordCtrl.text = widget.initialPassword!;
     }
   }
 
