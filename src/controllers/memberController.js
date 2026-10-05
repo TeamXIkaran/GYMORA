@@ -31,6 +31,8 @@ const addMember = async (req, res) => {
 
     const {
       fullName,
+      clientId,
+      trainerId,
       planName,
       phone,
       email,
@@ -42,6 +44,7 @@ const addMember = async (req, res) => {
     // Required fields
     if (
       !fullName ||
+      !clientId ||
       !phone ||
       !email ||
       !password ||
@@ -107,6 +110,7 @@ const addMember = async (req, res) => {
 
     // Create member
     const member = await Member.create({
+      clientId: clientId.trim(),
       fullName: fullName.trim(),
       planName: planName?.trim() || "",
       phone: phone.trim(),
@@ -114,6 +118,7 @@ const addMember = async (req, res) => {
 
       // Gym ID comes from authenticated owner's JWT
       gymId: req.user.gymId,
+      trainerId: trainerId?.trim() || "",
 
       password: hashedPassword,
       membershipPlan: membershipPlan.trim(),
@@ -128,13 +133,15 @@ const addMember = async (req, res) => {
       success: true,
       message: "Member added successfully",
       data: {
-        member: {
+        client: {
           id: member._id,
+          clientId: member.clientId,
           fullName: member.fullName,
           planName: member.planName,
           phone: member.phone,
           email: member.email,
           gymId: member.gymId,
+          trainerId: member.trainerId,
           membershipPlan: member.membershipPlan,
 
           price: selectedPlan.price,
@@ -200,15 +207,11 @@ const deleteMember = async (req, res) => {
     }
 
     const { id } = req.params;
-    if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid member ID",
-      });
-    }
-
+    const memberSelector = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { clientId: id }] }
+      : { clientId: id };
     const member = await Member.findOneAndDelete({
-      _id: id,
+      ...memberSelector,
       gymId: req.user.gymId,
     });
 

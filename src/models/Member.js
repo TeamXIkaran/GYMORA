@@ -39,6 +39,13 @@ const memberSchema = new mongoose.Schema(
       index: true,
     },
 
+    trainerId: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+
     password: {
       type: String,
       required: true,

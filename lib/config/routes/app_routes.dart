@@ -31,6 +31,7 @@ import 'package:gymora_fitness_management/feature/trainer/screens/trainer_dashbo
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_profile_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_progress_screen.dart';
 import 'package:gymora_fitness_management/feature/trainer/screens/trainer_schedule_screen.dart';
+import 'package:gymora_fitness_management/feature/shared/screens/notification_inbox_screen.dart';
 
 // Global Key for Contextless Navigation
 // Useful for session expiry, push notifications, etc.
@@ -239,6 +240,12 @@ class AppRouter {
           return const TrainerProgressScreen();
         },
       ),
+      GoRoute(
+        path: AppRoutes.trainerNotificationsRoute,
+        name: 'trainerNotifications',
+        builder: (context, state) =>
+            const NotificationInboxScreen(trainer: true),
+      ),
       ShellRoute(
         builder: (context, state, child) =>
             MemberDashboardScreen(location: state.uri.path, child: child),
@@ -267,6 +274,12 @@ class AppRouter {
             path: AppRoutes.memberProfileRoute,
             name: AppRoutes.memberProfileName,
             builder: (context, state) => const MemberProfileScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.memberNotificationsRoute,
+            name: 'memberNotifications',
+            builder: (context, state) =>
+                const NotificationInboxScreen(trainer: false),
           ),
         ],
       ),

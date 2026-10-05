@@ -198,7 +198,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '$name added successfully!',
+                  provider.error ?? '$name added successfully!',
                   style: const TextStyle(color: Colors.white, fontSize: 11),
                 ),
               ),

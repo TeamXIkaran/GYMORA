@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/trainer_model.dart';
 import 'package:gymora_fitness_management/feature/trainer/providers/trainer_dashboard_provider.dart';
 
@@ -322,9 +323,7 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
 
         _headerIconButton(
           icon: Icons.notifications_none_rounded,
-          onTap: () {
-            Navigator.pushNamed(context, '/trainerNotifications');
-          },
+          onTap: () => context.pushNamed('trainerNotifications'),
         ),
 
         const SizedBox(width: 8),

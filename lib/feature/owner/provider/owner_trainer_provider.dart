@@ -6,6 +6,7 @@ import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
 class OwnerTrainerProvider extends ChangeNotifier {
   List<OwnerTrainerModel> _trainers = [];
+  final Map<String, OwnerTrainerDetails> _detailsByTrainerId = {};
 
   bool _hasLoaded = false;
   bool _isLoading = false;
@@ -22,6 +23,39 @@ class OwnerTrainerProvider extends ChangeNotifier {
   bool get hasLoaded => _hasLoaded;
 
   String? get error => _error;
+
+  OwnerTrainerDetails? detailsFor(String trainerId) =>
+      _detailsByTrainerId[trainerId];
+
+  Future<void> fetchTrainerDetails(String trainerId) async {
+    try {
+      final details = await OwnerTrainerService.getTrainerDetails(trainerId);
+      _detailsByTrainerId[trainerId] = details;
+      notifyListeners();
+    } catch (error) {
+      _error = cleanError(error);
+      notifyListeners();
+    }
+  }
+
+  Future<bool> assignMember({
+    required String trainerId,
+    required String clientId,
+  }) async {
+    try {
+      await OwnerTrainerService.assignMember(
+        trainerId: trainerId,
+        clientId: clientId,
+      );
+      _detailsByTrainerId.remove(trainerId);
+      await fetchTrainers();
+      return true;
+    } catch (error) {
+      _error = cleanError(error);
+      notifyListeners();
+      return false;
+    }
+  }
 
   Future<void> ensureLoaded() async {
     if (_hasLoaded || _isLoading) return;
@@ -99,8 +133,18 @@ class OwnerTrainerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await OwnerTrainerService.deleteTrainer(id);
-      _trainers.removeWhere((trainer) => trainer.id == id);
+      OwnerTrainerModel? trainer;
+      for (final item in _trainers) {
+        if (item.id == id || item.trainerId == id) {
+          trainer = item;
+          break;
+        }
+      }
+      await OwnerTrainerService.deleteTrainer(
+        trainer?.trainerId.isNotEmpty == true ? trainer!.trainerId : id,
+      );
+      _trainers.removeWhere((item) => item.id == id || item.trainerId == id);
+      if (trainer != null) _detailsByTrainerId.remove(trainer.trainerId);
       _hasLoaded = true;
       return true;
     } catch (error) {
@@ -130,6 +174,7 @@ class OwnerTrainerProvider extends ChangeNotifier {
 
   void reset() {
     _trainers = [];
+    _detailsByTrainerId.clear();
     _hasLoaded = false;
     _isLoading = false;
     _isSubmitting = false;

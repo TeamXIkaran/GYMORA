@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 import Trainer from "../models/Trainer.js";
+import Member from "../models/Member.js";
 
 const addTrainer = async (req, res) => {
   try {
@@ -130,11 +131,23 @@ const getTrainers = async (req, res) => {
       .select("-password")
       .sort({ createdAt: -1 });
 
+    const trainerIds = trainers.map((trainer) => trainer.trainerId);
+    const assignmentCounts = await Member.aggregate([
+      { $match: { gymId: req.user.gymId, trainerId: { $in: trainerIds } } },
+      { $group: { _id: "$trainerId", count: { $sum: 1 } } },
+    ]);
+    const countByTrainerId = new Map(
+      assignmentCounts.map((item) => [item._id, item.count]),
+    );
+
     return res.status(200).json({
       success: true,
       message: "Trainers fetched successfully",
       data: {
-        trainers,
+        trainers: trainers.map((trainer) => ({
+          ...trainer.toObject(),
+          assignedMembersCount: countByTrainerId.get(trainer.trainerId) ?? 0,
+        })),
       },
     });
   } catch (error) {
@@ -144,6 +157,107 @@ const getTrainers = async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+};
+
+const getTrainerDetails = async (req, res, next) => {
+  try {
+    // These are trainer-facing endpoints. Passing them to this generic
+    // /:id handler caused valid trainer requests to be treated as owner-only
+    // trainer-detail requests.
+    const reservedPaths = new Set([
+      "profile",
+      "clients",
+      "sessions",
+      "dashboard",
+      "progress",
+      "workouts",
+    ]);
+    if (reservedPaths.has(req.params.id.toLowerCase())) return next();
+
+    if (req.user.role !== "OWNER") {
+      return res.status(403).json({
+        success: false,
+        message: "Only gym owners can view trainer details",
+      });
+    }
+
+    const trainer = await Trainer.findOne({
+      trainerId: req.params.id,
+      gymId: req.user.gymId,
+    }).select("-password");
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: "Trainer not found" });
+    }
+
+    const assignedMembers = await Member.find({
+      trainerId: trainer.trainerId,
+      gymId: req.user.gymId,
+    }).select("-password").sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Trainer details fetched successfully",
+      data: {
+        trainer: {
+          id: trainer._id,
+          trainerId: trainer.trainerId,
+          fullName: trainer.fullName,
+          phone: trainer.phone,
+          email: trainer.email,
+          specialization: trainer.specialization,
+          experience: trainer.experience,
+          status: trainer.status,
+          assignedMembersCount: assignedMembers.length,
+        },
+        assignedMembers,
+      },
+    });
+  } catch (error) {
+    console.error("Get trainer details error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+const assignMemberToTrainer = async (req, res) => {
+  try {
+    if (req.user.role !== "OWNER") {
+      return res.status(403).json({
+        success: false,
+        message: "Only gym owners can assign members",
+      });
+    }
+
+    const { trainerId, clientId } = req.params;
+    const trainer = await Trainer.findOne({ trainerId, gymId: req.user.gymId });
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: "Trainer not found" });
+    }
+    const member = await Member.findOne({ clientId, gymId: req.user.gymId });
+    if (!member) {
+      return res.status(404).json({ success: false, message: "Member not found in this gym" });
+    }
+    if (member.trainerId === trainer.trainerId) {
+      return res.status(200).json({
+        success: true,
+        message: "Member is already assigned to this trainer",
+        data: { member: { clientId: member.clientId, fullName: member.fullName, trainerId: trainer.trainerId } },
+      });
+    }
+
+    member.trainerId = trainer.trainerId;
+    await member.save();
+    return res.status(200).json({
+      success: true,
+      message: "Member assigned to trainer successfully",
+      data: {
+        member: { clientId: member.clientId, fullName: member.fullName, trainerId: trainer.trainerId },
+        trainer: { trainerId: trainer.trainerId, fullName: trainer.fullName },
+      },
+    });
+  } catch (error) {
+    console.error("Assign member to trainer error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -157,16 +271,9 @@ const deleteTrainer = async (req, res) => {
     }
 
     const { id } = req.params;
-    if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid trainer ID",
-      });
-    }
-
-    const trainer = await Trainer.findOneAndDelete({
-      _id: id,
+    const trainer = await Trainer.findOne({
       gymId: req.user.gymId,
+      $or: [{ trainerId: id }, ...(mongoose.isValidObjectId(id) ? [{ _id: id }] : [])],
     });
 
     if (!trainer) {
@@ -176,10 +283,17 @@ const deleteTrainer = async (req, res) => {
       });
     }
 
+    const assignedMembers = await Member.updateMany({
+      gymId: req.user.gymId,
+      trainerId: trainer.trainerId,
+    }, { $set: { trainerId: "" } });
+
+    await Trainer.deleteOne({ _id: trainer._id, gymId: req.user.gymId });
+
     return res.status(200).json({
       success: true,
       message: "Trainer deleted successfully",
-      data: { id: trainer._id },
+      data: { id: trainer._id, unassignedMembers: assignedMembers.modifiedCount },
     });
   } catch (error) {
     console.error("Delete trainer error:", error);
@@ -274,4 +388,11 @@ const loginTrainer = async (req, res) => {
   }
 };
 
-export { addTrainer, deleteTrainer, getTrainers, loginTrainer };
+export {
+  addTrainer,
+  assignMemberToTrainer,
+  deleteTrainer,
+  getTrainerDetails,
+  getTrainers,
+  loginTrainer,
+};

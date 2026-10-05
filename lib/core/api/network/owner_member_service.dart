@@ -80,7 +80,7 @@ class OwnerMemberService {
   }
 
   /// Delete a member owned by the authenticated gym.
-  /// Endpoint: DELETE /api/members/:id
+  /// Endpoint: DELETE /api/members/:id (Mongo ID or gym client ID)
   static Future<void> deleteMember(String id) async {
     await ApiService.delete('api/members/${Uri.encodeComponent(id)}');
   }

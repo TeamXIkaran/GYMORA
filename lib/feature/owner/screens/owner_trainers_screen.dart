@@ -1059,6 +1059,11 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   // ============================================================
 
   void _showTrainerDetails(OwnerTrainerModel trainer, int index) {
+    if (trainer.trainerId.isNotEmpty) {
+      context.read<OwnerTrainerProvider>().fetchTrainerDetails(
+        trainer.trainerId,
+      );
+    }
     final colors = [AppColors.ownerBright, AppColors.ownerPrimary];
 
     showModalBottomSheet(
@@ -1350,9 +1355,11 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
   }
 
   Widget _assignedMembersSection(OwnerTrainerModel trainer) {
-    return Consumer<OwnerMemberProvider>(
-      builder: (context, provider, _) {
-        final members = _membersForTrainer(trainer, provider.members);
+    return Consumer2<OwnerMemberProvider, OwnerTrainerProvider>(
+      builder: (context, provider, trainerProvider, _) {
+        final details = trainerProvider.detailsFor(trainer.trainerId);
+        final members =
+            details?.members ?? _membersForTrainer(trainer, provider.members);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1548,10 +1555,16 @@ class _OwnerTrainersScreenState extends State<OwnerTrainersScreen>
 
     if (deleted) {
       if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      await context.read<OwnerMemberProvider>().fetchMembers();
+      if (!mounted) return;
       context.read<OwnerDashboardProvider>().fetchDashboard();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${trainer.fullName} was deleted.'),
+          content: Text(
+            trainer.clients > 0
+                ? '${trainer.fullName} was deleted. Assigned members are now unassigned.'
+                : '${trainer.fullName} was deleted.',
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.surfaceHigh,
         ),

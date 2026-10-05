@@ -11,7 +11,7 @@ class AppRoutes {
   static const String purchaseMemberShipRoute = '/purchase-membership';
   static const String gymDetailedRoute = '/gym-detailed';
   static const String qrScreenRoute = '/qr-screen';
-   static const String resetPasswordScreenRoute = '/reset-password';
+  static const String resetPasswordScreenRoute = '/reset-password';
 
   // Owner Routes
   static const String ownerDashboardRoute = '/owner-dashboard';
@@ -30,6 +30,9 @@ class AppRoutes {
   static const String trainerProfileRoute = '/trainer-profile';
   static const String trainerScheduleRoute = '/trainer-schedule';
   static const String trainerProgressRoute = '/trainer-progress';
+  static const String trainerNotificationsRoute = '/trainer-notifications';
+  static const String memberNotificationsRoute =
+      '/member-dashboard/notifications';
 
   // Member Routes
 

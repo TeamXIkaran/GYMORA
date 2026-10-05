@@ -63,7 +63,9 @@ class OwnerTrainerModel {
       specialization: parseString(json['specialization']),
       experienceYears: parseInt(json['experience']),
       rating: json['rating'] == null ? null : parseDouble(json['rating']),
-      clients: json['clients'] == null ? null : parseInt(json['clients']),
+      clients: json['clients'] == null && json['assignedMembersCount'] == null
+          ? null
+          : parseInt(json['clients'] ?? json['assignedMembersCount']),
       status: json['status'] == null ? 'ACTIVE' : parseString(json['status']),
       createdAt: parseDate(json['createdAt']),
       updatedAt: parseDate(json['updatedAt']),

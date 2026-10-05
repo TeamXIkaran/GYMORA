@@ -140,7 +140,7 @@ class MemberProfileScreen extends StatelessWidget {
                   ? '${controller.unreadNotifications} unread'
                   : 'Turned off',
               color: GymColors.blue,
-              onTap: () => showNotificationsSheet(context),
+              onTap: () => context.pushNamed('memberNotifications'),
               trailing: Switch.adaptive(
                 value: controller.notificationsEnabled,
                 onChanged: controller.setNotificationsEnabled,

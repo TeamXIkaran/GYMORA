@@ -64,18 +64,27 @@ class TrainerLoginService {
       //   }
       // }
 
-      final trainerData = data['data'] is Map<String, dynamic>
-          ? Map<String, dynamic>.from(data['data'])
+      final payload = data['data'] is Map
+          ? Map<String, dynamic>.from(data['data'] as Map)
           : data;
+      final nestedTrainer = payload['trainer'];
+      final trainerData = nestedTrainer is Map
+          ? Map<String, dynamic>.from(nestedTrainer)
+          : Map<String, dynamic>.from(payload);
 
-      // If token is at root but trainer data is nested,
-      // copy token into trainerData.
+      // The current API returns the token beside `trainer` inside `data`.
       final rootToken =
-          data['token'] ?? data['accessToken'] ?? data['access_token'];
+          payload['token'] ??
+          payload['accessToken'] ??
+          payload['access_token'] ??
+          data['token'] ??
+          data['accessToken'] ??
+          data['access_token'];
 
       if (!trainerData.containsKey('token') && rootToken != null) {
         trainerData['token'] = rootToken;
       }
+      trainerData.putIfAbsent('role', () => 'TRAINER');
 
       final trainer = TrainerLoginModel.fromJson(trainerData);
 

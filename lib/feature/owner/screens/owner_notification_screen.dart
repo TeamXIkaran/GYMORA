@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
+import 'package:gymora_fitness_management/core/api/network/notification_service.dart';
+import 'package:gymora_fitness_management/core/model/notification_model.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +26,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
   final _messageController = TextEditingController();
   final _selectedRecipients = <String>{};
   final _history = <_SentNotification>[];
+  final _notificationService = const NotificationService();
   late final AnimationController _shimmerController;
 
   _Audience _audience = _Audience.members;
@@ -42,6 +45,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
       if (!mounted) return;
       context.read<OwnerMemberProvider>().ensureLoaded();
       context.read<OwnerTrainerProvider>().ensureLoaded();
+      _loadHistory();
     });
   }
 
@@ -61,7 +65,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
       return members.members
           .map(
             (member) => _Recipient(
-              id: member.id,
+              id: member.clientId.isNotEmpty ? member.clientId : member.id,
               name: member.fullName,
               subtitle: '${member.planDisplayName} · ${member.displayStatus}',
             ),
@@ -72,7 +76,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
     return trainers.trainers
         .map(
           (trainer) => _Recipient(
-            id: trainer.id,
+            id: trainer.trainerId.isNotEmpty ? trainer.trainerId : trainer.id,
             name: trainer.fullName,
             subtitle: trainer.specialization,
           ),
@@ -151,8 +155,6 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
   Future<void> _send(List<_Recipient> recipients) async {
     final title = _titleController.text.trim();
     final message = _messageController.text.trim();
-    final sentAudience = _audience;
-    final sentAudienceLabel = _audienceLabel;
     final audience = _sendToEveryone
         ? recipients
         : recipients.where((item) => _selectedRecipients.contains(item.id));
@@ -168,31 +170,46 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
     }
 
     setState(() => _isSending = true);
-    // Temporary local response while the notification API is being built.
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    if (!mounted) return;
-
-    setState(() {
-      _history.insert(
-        0,
-        _SentNotification(
-          title: title,
-          message: message,
-          audience: sentAudience,
-          recipientCount: selected.length,
-          sentAt: DateTime.now(),
-        ),
+    try {
+      final count = await _notificationService.send(
+        audience: _audience == _Audience.members ? 'MEMBERS' : 'TRAINERS',
+        everyone: _sendToEveryone,
+        recipientIds: selected.map((item) => item.id).toList(),
+        title: title,
+        message: message,
       );
-      _isSending = false;
-      _titleController.clear();
-      _messageController.clear();
-      _selectedRecipients.clear();
-      _sendToEveryone = true;
-      _selectedTemplate = null;
-    });
-    _showSnack(
-      'Demo notification sent to ${selected.length} ${sentAudienceLabel.toLowerCase()}.',
-    );
+      await _loadHistory();
+      if (!mounted) return;
+      setState(() {
+        _isSending = false;
+        _titleController.clear();
+        _messageController.clear();
+        _selectedRecipients.clear();
+        _sendToEveryone = true;
+        _selectedTemplate = null;
+      });
+      _showSnack(
+        'Notification sent to $count ${_audienceLabel.toLowerCase()}.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSending = false);
+      _showSnack('Could not send notification: $error');
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final items = await _notificationService.getSent();
+      if (!mounted) return;
+      setState(() {
+        _history
+          ..clear()
+          ..addAll(items.map(_SentNotification.fromApi));
+      });
+    } catch (error) {
+      debugPrint('Could not load sent notifications: $error');
+    }
   }
 
   String get _audienceLabel =>
@@ -318,7 +335,6 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
               ],
             ),
           ),
-          const _DemoBadge(),
         ],
       ),
     );
@@ -493,7 +509,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
                   const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                 const SizedBox(width: 9),
                 Text(
-                  _isSending ? 'Preparing demo send...' : 'Send notification',
+                  _isSending ? 'Sending notification...' : 'Send notification',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -502,12 +518,6 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 9),
-          const Text(
-            'Demo only · Nothing is delivered outside this screen yet.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white38, fontSize: 9),
           ),
         ],
       ),
@@ -667,7 +677,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
             const Expanded(
               child: _SectionHeading(
                 title: 'Recent sends',
-                subtitle: 'Local demo activity',
+                subtitle: 'Notifications sent to your team',
                 icon: Icons.schedule_rounded,
               ),
             ),
@@ -703,7 +713,7 @@ class _OwnerNotificationScreenState extends State<OwnerNotificationScreen>
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Your demo sends will appear here after you send an update.',
+                    'Your sent notifications will appear here after you send an update.',
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 10,
@@ -811,6 +821,18 @@ class _SentNotification {
     required this.recipientCount,
     required this.sentAt,
   });
+
+  factory _SentNotification.fromApi(SentNotificationItem item) {
+    return _SentNotification(
+      title: item.title,
+      message: item.message,
+      audience: item.audience == 'TRAINERS'
+          ? _Audience.trainers
+          : _Audience.members,
+      recipientCount: item.recipientCount,
+      sentAt: item.createdAt ?? DateTime.now(),
+    );
+  }
 
   final String title;
   final String message;
@@ -1144,7 +1166,6 @@ class _HistoryCard extends StatelessWidget {
                       label: '${notification.recipientCount} recipients',
                     ),
                     _HistoryTag(label: timeLabel),
-                    const _DemoBadge(compact: true),
                   ],
                 ),
               ],
@@ -1175,36 +1196,6 @@ class _HistoryTag extends StatelessWidget {
           color: Colors.white60,
           fontSize: 8,
           fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _DemoBadge extends StatelessWidget {
-  const _DemoBadge({this.compact = false});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 7 : 9,
-        vertical: compact ? 4 : 6,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF3158).withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0x55FF3158)),
-      ),
-      child: Text(
-        'DEMO',
-        style: TextStyle(
-          color: const Color(0xFFFF8194),
-          fontSize: compact ? 7 : 8,
-          fontWeight: FontWeight.w900,
-          letterSpacing: .8,
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:gymora_fitness_management/core/api/network/owner_member_service.dart';
+import 'package:gymora_fitness_management/core/api/network/owner_trainer_service.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
@@ -113,13 +114,31 @@ class OwnerMemberProvider extends ChangeNotifier {
         phone: phone,
         email: email,
         password: password,
-        trainerId: trainerId,
+        // Trainer assignment uses the dedicated API below.
+        trainerId: '',
         membershipPlan: membershipPlan,
         startDate: startDate,
       );
 
-      // Add newly created member at the top.
       _members = [newMember, ..._members];
+
+      if (trainerId.trim().isNotEmpty) {
+        try {
+          await OwnerTrainerService.assignMember(
+            trainerId: trainerId.trim(),
+            clientId: clientId.trim(),
+          );
+          try {
+            _members = await OwnerMemberService.getMembers();
+          } catch (refreshError) {
+            debugPrint(
+              'Member list refresh after assignment failed: $refreshError',
+            );
+          }
+        } catch (error) {
+          _error = 'Member was added, but trainer assignment failed: $error';
+        }
+      }
 
       // Data is now available locally.
       _hasLoaded = true;
@@ -144,8 +163,26 @@ class OwnerMemberProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await OwnerMemberService.deleteMember(id);
-      _members.removeWhere((member) => member.id == id);
+      OwnerMemberModel? target;
+      for (final member in _members) {
+        if (member.id == id || member.clientId == id) {
+          target = member;
+          break;
+        }
+      }
+      final apiId = target == null
+          ? id
+          : target.id.isNotEmpty
+          ? target.id
+          : target.clientId;
+      final targetId = target?.id;
+      await OwnerMemberService.deleteMember(apiId);
+      _members.removeWhere(
+        (member) =>
+            member.id == id ||
+            member.clientId == id ||
+            (targetId != null && member.id == targetId),
+      );
       _hasLoaded = true;
       return true;
     } catch (error) {

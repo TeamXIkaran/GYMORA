@@ -465,12 +465,22 @@ class MemberController extends ChangeNotifier {
   // Preferences & notifications
   // ---------------------------------------------------------------------------
 
-  void markAllNotificationsRead() {
+  Future<void> markAllNotificationsRead() async {
     if (unreadNotifications == 0) return;
+    final unread = notifications
+        .where((notification) => !notification.read)
+        .toList();
     _data = data.copyWith(
       notifications: [for (final n in notifications) n.copyWith(read: true)],
     );
     _notify();
+    for (final notification in unread) {
+      try {
+        await _service.markNotificationRead(notification.id);
+      } catch (error) {
+        debugPrint('Could not mark notification read: $error');
+      }
+    }
   }
 
   void setNotificationsEnabled(bool value) {

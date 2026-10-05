@@ -1,5 +1,6 @@
 import 'package:gymora_fitness_management/core/api/base_api/api_service.dart';
 import 'package:gymora_fitness_management/core/model/user_model.dart';
+import 'package:gymora_fitness_management/core/api/network/notification_service.dart';
 
 class MemberService {
   const MemberService();
@@ -24,6 +25,7 @@ class MemberService {
       _optional('api/client/progress/measurements'),
       _optional('api/client/nutrition'),
       ApiService.get('api/client/profile'),
+      _optional('api/notifications'),
     ]);
     final dashboard = _data(responses[0]);
     final workoutsData = _data(responses[1]);
@@ -31,6 +33,7 @@ class MemberService {
     final measurementData = _data(responses[3]);
     final nutrition = _data(responses[4]);
     final profileData = _data(responses[5]);
+    final notificationData = _data(responses[6]);
 
     final personal = _asMap(profileData['personalInfo']);
     final membership = _asMap(profileData['membership']);
@@ -93,7 +96,17 @@ class MemberService {
       meals: meals,
       measurements: measurements,
       achievements: const [],
-      notifications: const [],
+      notifications: _asList(notificationData['notifications']).map((item) {
+        final notification = _asMap(item);
+        final createdAt = DateTime.tryParse(
+          '${notification['createdAt'] ?? ''}',
+        );
+        return MemberNotification.fromJson({
+          ...notification,
+          'kind': 'trainer',
+          'timeAgo': _notificationTimeAgo(createdAt),
+        });
+      }).toList(),
       activity: DailyActivity(
         steps: 0,
         stepGoal: 0,
@@ -173,6 +186,9 @@ class MemberService {
     final response = await ApiService.patch('api/client/profile', changes);
     return _data(response);
   }
+
+  Future<void> markNotificationRead(String id) =>
+      const NotificationService().markRead(id);
 }
 
 /// GET that never throws: used for endpoints the dashboard can live without.
@@ -182,6 +198,16 @@ Future<Map<String, dynamic>> _optional(String endpoint) async {
   } catch (_) {
     return <String, dynamic>{};
   }
+}
+
+String _notificationTimeAgo(DateTime? date) {
+  if (date == null) return '';
+  final elapsed = DateTime.now().difference(date.toLocal());
+  if (elapsed.inMinutes < 1) return 'now';
+  if (elapsed.inHours < 1) return '${elapsed.inMinutes}m';
+  if (elapsed.inDays < 1) return '${elapsed.inHours}h';
+  if (elapsed.inDays < 7) return '${elapsed.inDays}d';
+  return '${date.day}/${date.month}/${date.year}';
 }
 
 Map<String, dynamic> _data(Map<String, dynamic> response) =>

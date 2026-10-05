@@ -1,10 +1,12 @@
 import express from "express";
 
 import {
-  addTrainer,
-  deleteTrainer,
-  getTrainers,
-  loginTrainer,
+    addTrainer,
+    assignMemberToTrainer,
+    deleteTrainer,
+    getTrainerDetails,
+    getTrainers,
+    loginTrainer,
 } from "../controllers/trainerController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -19,6 +21,12 @@ router.get("/", authMiddleware, getTrainers);
 
 router.post("/", authMiddleware, addTrainer);
 
+router.get("/:id", authMiddleware, getTrainerDetails);
+router.put(
+  "/:trainerId/members/:clientId",
+  authMiddleware,
+  assignMemberToTrainer,
+);
 router.delete("/:id", authMiddleware, deleteTrainer);
 
 export default router;
