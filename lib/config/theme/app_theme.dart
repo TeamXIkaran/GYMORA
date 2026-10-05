@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gymora_fitness_management/config/theme/gym_colors.dart';
+import 'package:gymora_fitness_management/core/widgets/shimmer_ink_splash.dart';
 
 import 'app_text.dart';
 
@@ -211,6 +212,6 @@ class AppTheme {
     // ==========================================================
     // RIPPLE
     // ==========================================================
-    splashFactory: InkRipple.splashFactory,
+    splashFactory: ShimmerInkSplash.splashFactory,
   );
 }

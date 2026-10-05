@@ -140,10 +140,20 @@ class OwnerTrainerProvider extends ChangeNotifier {
           break;
         }
       }
-      await OwnerTrainerService.deleteTrainer(
+      final deletedTrainer = await OwnerTrainerService.deleteTrainer(
         trainer?.trainerId.isNotEmpty == true ? trainer!.trainerId : id,
       );
-      _trainers.removeWhere((item) => item.id == id || item.trainerId == id);
+      final deletedId = deletedTrainer['id']?.toString();
+      final deletedTrainerId = deletedTrainer['trainerId']?.toString();
+      _trainers.removeWhere(
+        (item) =>
+            item.id == id ||
+            item.trainerId == id ||
+            (deletedId != null && item.id == deletedId) ||
+            (deletedTrainerId != null &&
+                deletedTrainerId.isNotEmpty &&
+                item.trainerId == deletedTrainerId),
+      );
       if (trainer != null) _detailsByTrainerId.remove(trainer.trainerId);
       _hasLoaded = true;
       return true;

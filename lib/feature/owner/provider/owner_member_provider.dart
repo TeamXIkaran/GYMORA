@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:gymora_fitness_management/core/api/network/owner_member_service.dart';
-import 'package:gymora_fitness_management/core/api/network/owner_trainer_service.dart';
 import 'package:gymora_fitness_management/core/model/owner_member_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 
@@ -74,29 +73,18 @@ class OwnerMemberProvider extends ChangeNotifier {
 
   // ── Add Member ──────────────────────────────────────────────
 
-  /// Add a new member.
+  /// Add a new member. [trainerId] is optional — pass null for a
+  /// self-guided member.
   ///
   /// Backend request:
   /// POST /api/members
-  ///
-  /// Body:
-  /// {
-  ///   "clientId": "0001",
-  ///   "fullName": "Aarav Sharma",
-  ///   "phone": "9876543210",
-  ///   "email": "aarav@gmail.com",
-  ///   "password": "Aarav123",
-  ///   "trainerId": "0003",
-  ///   "membershipPlan": "PREMIUM",
-  ///   "startDate": "2026-09-27"
-  /// }
   Future<bool> addMember({
     required String clientId,
     required String fullName,
     required String phone,
     required String email,
     required String password,
-    required String trainerId,
+    String? trainerId,
     required String membershipPlan,
     required String startDate,
   }) async {
@@ -114,30 +102,19 @@ class OwnerMemberProvider extends ChangeNotifier {
         phone: phone,
         email: email,
         password: password,
-        // Trainer assignment uses the dedicated API below.
-        trainerId: '',
+        trainerId: trainerId,
         membershipPlan: membershipPlan,
         startDate: startDate,
       );
 
       _members = [newMember, ..._members];
 
-      if (trainerId.trim().isNotEmpty) {
-        try {
-          await OwnerTrainerService.assignMember(
-            trainerId: trainerId.trim(),
-            clientId: clientId.trim(),
-          );
-          try {
-            _members = await OwnerMemberService.getMembers();
-          } catch (refreshError) {
-            debugPrint(
-              'Member list refresh after assignment failed: $refreshError',
-            );
-          }
-        } catch (error) {
-          _error = 'Member was added, but trainer assignment failed: $error';
-        }
+      // Always re-fetch so the list carries the server's populated
+      // trainer data (name / ids) instead of the raw create response.
+      try {
+        _members = await OwnerMemberService.getMembers();
+      } catch (refreshError) {
+        debugPrint('Member list refresh after creation failed: $refreshError');
       }
 
       // Data is now available locally.
@@ -170,18 +147,21 @@ class OwnerMemberProvider extends ChangeNotifier {
           break;
         }
       }
-      final apiId = target == null
-          ? id
-          : target.id.isNotEmpty
-          ? target.id
-          : target.clientId;
-      final targetId = target?.id;
-      await OwnerMemberService.deleteMember(apiId);
+      // The public API accepts the client's business ID (for example "0004").
+      final apiId = target != null && target.clientId.isNotEmpty
+          ? target.clientId
+          : id;
+      final deletedMember = await OwnerMemberService.deleteMember(apiId);
+      final deletedId = deletedMember['id']?.toString();
+      final deletedClientId = deletedMember['clientId']?.toString();
       _members.removeWhere(
         (member) =>
             member.id == id ||
             member.clientId == id ||
-            (targetId != null && member.id == targetId),
+            (deletedId != null && member.id == deletedId) ||
+            (deletedClientId != null &&
+                deletedClientId.isNotEmpty &&
+                member.clientId == deletedClientId),
       );
       _hasLoaded = true;
       return true;

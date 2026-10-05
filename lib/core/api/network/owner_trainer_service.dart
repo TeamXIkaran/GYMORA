@@ -115,7 +115,12 @@ class OwnerTrainerService {
 
   /// Delete a trainer owned by the authenticated gym.
   /// Endpoint: DELETE /api/trainers/:id
-  static Future<void> deleteTrainer(String id) async {
-    await ApiService.delete('api/trainers/${Uri.encodeComponent(id)}');
+  static Future<Map<String, dynamic>> deleteTrainer(String id) async {
+    final response = await ApiService.delete(
+      'api/trainers/${Uri.encodeComponent(id)}',
+    );
+    final data = response['data'];
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw Exception(response['message'] ?? 'Deleted trainer was not returned');
   }
 }

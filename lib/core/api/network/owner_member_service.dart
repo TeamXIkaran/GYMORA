@@ -39,7 +39,7 @@ class OwnerMemberService {
   ///   "phone": "9876543210",
   ///   "email": "aarav@gmail.com",
   ///   "password": "Aarav123",
-  ///   "trainerId": "0003",
+  ///   "trainerId": "0003",        // optional
   ///   "membershipPlan": "PREMIUM",
   ///   "startDate": "2026-09-27"
   /// }
@@ -49,17 +49,20 @@ class OwnerMemberService {
     required String phone,
     required String email,
     required String password,
-    required String trainerId,
+    String? trainerId,
     required String membershipPlan,
     required String startDate,
   }) async {
+    final trimmedTrainerId = trainerId?.trim() ?? '';
+
     final response = await ApiService.post('api/members', {
       'clientId': clientId,
       'fullName': fullName,
       'phone': phone,
       'email': email,
       'password': password,
-      'trainerId': trainerId,
+      // Only send trainerId when a trainer was actually chosen.
+      if (trimmedTrainerId.isNotEmpty) 'trainerId': trimmedTrainerId,
       'membershipPlan': membershipPlan,
       'startDate': startDate,
     });
@@ -72,16 +75,25 @@ class OwnerMemberService {
 
     final member = data['client'];
 
-    if (member is! Map<String, dynamic>) {
+    if (member is! Map) {
       throw Exception('Member data not found in response');
     }
 
-    return OwnerMemberModel.fromJson(member);
+    return OwnerMemberModel.fromJson(Map<String, dynamic>.from(member));
   }
 
   /// Delete a member owned by the authenticated gym.
   /// Endpoint: DELETE /api/members/:id (Mongo ID or gym client ID)
-  static Future<void> deleteMember(String id) async {
-    await ApiService.delete('api/members/${Uri.encodeComponent(id)}');
+  static Future<Map<String, dynamic>> deleteMember(String id) async {
+    final response = await ApiService.delete(
+      'api/members/${Uri.encodeComponent(id)}',
+    );
+    final data = response['data'];
+    final member = data is Map ? data['member'] : null;
+    if (member is Map) return Map<String, dynamic>.from(member);
+
+    // Accept older server responses while the API is being rolled out.
+    if (data is Map && data['id'] != null) return {'id': data['id']};
+    throw Exception(response['message'] ?? 'Deleted member was not returned');
   }
 }

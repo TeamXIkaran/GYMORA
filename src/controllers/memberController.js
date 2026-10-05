@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import Member from "../models/Member.js";
+import Trainer from "../models/Trainer.js";
 
 const MEMBER_PLANS = {
   BASIC: {
@@ -92,6 +93,20 @@ const addMember = async (req, res) => {
       membershipEndDate.getMonth() + selectedPlan.durationMonths,
     );
 
+    const assignedTrainerId = trainerId?.trim() || "";
+    if (assignedTrainerId) {
+      const trainer = await Trainer.findOne({
+        trainerId: assignedTrainerId,
+        gymId: req.user.gymId,
+      });
+      if (!trainer) {
+        return res.status(404).json({
+          success: false,
+          message: "Trainer not found in this gym",
+        });
+      }
+    }
+
     // Check whether email already exists in this gym
     const existingMember = await Member.findOne({
       gymId: req.user.gymId,
@@ -118,7 +133,7 @@ const addMember = async (req, res) => {
 
       // Gym ID comes from authenticated owner's JWT
       gymId: req.user.gymId,
-      trainerId: trainerId?.trim() || "",
+      trainerId: assignedTrainerId,
 
       password: hashedPassword,
       membershipPlan: membershipPlan.trim(),
@@ -174,17 +189,28 @@ const getMembers = async (req, res) => {
     }
 
     // Get only members belonging to the logged-in owner's gym
-    const members = await Member.find({
-      gymId: req.user.gymId,
-    })
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const [members, trainers] = await Promise.all([
+      Member.find({ gymId: req.user.gymId })
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .lean(),
+      Trainer.find({ gymId: req.user.gymId })
+        .select("trainerId fullName")
+        .lean(),
+    ]);
+    const trainerNames = new Map(
+      trainers.map((trainer) => [trainer.trainerId, trainer.fullName]),
+    );
+    const membersWithTrainerNames = members.map((member) => ({
+      ...member,
+      trainerName: trainerNames.get(member.trainerId) ?? "",
+    }));
 
     return res.status(200).json({
       success: true,
       message: "Members fetched successfully",
       data: {
-        members,
+        members: membersWithTrainerNames,
       },
     });
   } catch (error) {
@@ -225,7 +251,12 @@ const deleteMember = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Member deleted successfully",
-      data: { id: member._id },
+      data: {
+        member: {
+          clientId: member.clientId,
+          fullName: member.fullName,
+        },
+      },
     });
   } catch (error) {
     console.error("Delete member error:", error);

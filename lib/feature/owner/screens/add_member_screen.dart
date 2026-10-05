@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gymora_fitness_management/core/model/membership_plan_model.dart';
+import 'package:gymora_fitness_management/core/model/owner_trainer_model.dart';
 import 'package:gymora_fitness_management/core/utils/formatters.dart';
 import 'package:gymora_fitness_management/core/widgets/shimmer_button_widget.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_dashboard_provider.dart';
 import 'package:gymora_fitness_management/feature/owner/provider/owner_member_provider.dart';
+import 'package:gymora_fitness_management/feature/owner/provider/owner_trainer_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gymora_fitness_management/config/theme/app_colors.dart';
 import 'package:gymora_fitness_management/feature/owner/widgets/circule_button.dart';
@@ -33,9 +35,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   /// Backend expects clientId, not gymId.
   final _clientIdController = TextEditingController();
 
-  /// Backend expects trainerId.
-  final _trainerIdController = TextEditingController();
-
   final _passwordController = TextEditingController();
 
   // ── Focus Nodes ────────────────────────────────────────────
@@ -44,7 +43,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   final _emailFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _clientIdFocus = FocusNode();
-  final _trainerIdFocus = FocusNode();
   final _passwordFocus = FocusNode();
 
   // ── State ──────────────────────────────────────────────────
@@ -52,6 +50,10 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   String _selectedPlan = 'BASIC';
   int _currentStep = 0;
   bool _isSubmitting = false;
+
+  /// Selected trainer's ID as the backend expects it.
+  /// null = no trainer (self-guided).
+  String? _selectedTrainerId;
 
   // ── Animations ─────────────────────────────────────────────
 
@@ -75,7 +77,9 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   @override
   void initState() {
     super.initState();
-    _trainerIdController.text = widget.initialTrainerId ?? '';
+
+    final initial = widget.initialTrainerId?.trim();
+    _selectedTrainerId = (initial == null || initial.isEmpty) ? null : initial;
 
     _glowController = AnimationController(
       vsync: this,
@@ -97,11 +101,17 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       _emailFocus,
       _phoneFocus,
       _clientIdFocus,
-      _trainerIdFocus,
       _passwordFocus,
     ]) {
       node.addListener(() => setState(() {}));
     }
+
+    // Make sure the trainer list is available for the picker.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<OwnerTrainerProvider>().ensureLoaded();
+      }
+    });
   }
 
   @override
@@ -111,7 +121,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     _emailController.dispose();
     _phoneController.dispose();
     _clientIdController.dispose();
-    _trainerIdController.dispose();
     _passwordController.dispose();
 
     // Focus nodes
@@ -119,7 +128,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     _emailFocus.dispose();
     _phoneFocus.dispose();
     _clientIdFocus.dispose();
-    _trainerIdFocus.dispose();
     _passwordFocus.dispose();
 
     // Animations
@@ -134,10 +142,6 @@ class _AddMemberScreenState extends State<AddMemberScreen>
 
   Future<void> _submitForm() async {
     FocusScope.of(context).unfocus();
-
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return;
-    }
 
     if (_isSubmitting) {
       return;
@@ -166,7 +170,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      trainerId: _trainerIdController.text.trim(),
+      trainerId: _selectedTrainerId,
       membershipPlan: _selectedPlan,
       startDate: startDate,
     );
@@ -181,60 +185,46 @@ class _AddMemberScreenState extends State<AddMemberScreen>
       // Refresh dashboard stats and recent members.
       dashboardProvider.fetchDashboard();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFF151923),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Color(0xFF3EE07F),
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  provider.error ?? '$name added successfully!',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-              ),
-            ],
-          ),
-        ),
+      _showSnack(
+        message: '$name added successfully!',
+        icon: Icons.check_circle_rounded,
+        iconColor: const Color(0xFF3EE07F),
       );
 
       context.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFF151923),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          content: Row(
-            children: [
-              const Icon(
-                Icons.error_rounded,
-                color: Color(0xFFFF536F),
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  provider.error ?? 'Failed to add member',
-                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                ),
-              ),
-            ],
-          ),
-        ),
+      _showSnack(
+        message: provider.error ?? 'Failed to add member',
+        icon: Icons.error_rounded,
+        iconColor: const Color(0xFFFF536F),
       );
     }
+  }
+
+  void _showSnack({
+    required String message,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF151923),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -405,28 +395,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
 
                             const SizedBox(height: 12),
 
-                            // ── Trainer ID ──────────────────────
-                            _buildTextField(
-                              controller: _trainerIdController,
-                              focusNode: _trainerIdFocus,
-                              label: 'Trainer ID',
-                              hint: 'Enter trainer ID e.g. 0003',
-                              icon: Icons.fitness_center_rounded,
-                              keyboardType: TextInputType.text,
-                              validator: (v) {
-                                final t = v?.trim() ?? '';
-
-                                if (t.isEmpty) {
-                                  return 'Please enter trainer ID';
-                                }
-
-                                if (t.length < 3) {
-                                  return 'Please enter a valid trainer ID';
-                                }
-
-                                return null;
-                              },
-                            ),
+                            // ── Assigned Trainer (optional) ─────
+                            _buildTrainerPicker(),
 
                             const SizedBox(height: 12),
 
@@ -477,7 +447,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
-  // ── Header ─────────────────────────────────────────────────
+  // ── Step Indicator ─────────────────────────────────────────
 
   Widget _buildStepIndicator() {
     const labels = ['Personal', 'Plan', 'Review'];
@@ -561,8 +531,12 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
+  // ── Review Card ────────────────────────────────────────────
+
   Widget _buildReviewCard() {
     final plan = _plans[_selectedPlan]!;
+    final trainers = context.watch<OwnerTrainerProvider>().trainers;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -609,8 +583,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
           ),
           _reviewRow(
             Icons.fitness_center_rounded,
-            'Trainer ID',
-            _trainerIdController.text,
+            'Trainer',
+            _selectedTrainerLabel(trainers),
           ),
           const Divider(color: Color(0xFF29456B), height: 22),
           _reviewRow(
@@ -664,6 +638,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
+  // ── Step Navigation ────────────────────────────────────────
+
   Future<void> _handleStepAction() async {
     if (_currentStep == 0) {
       if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -679,6 +655,8 @@ class _AddMemberScreenState extends State<AddMemberScreen>
   void _previousStep() {
     if (_currentStep > 0) setState(() => _currentStep--);
   }
+
+  // ── Header ─────────────────────────────────────────────────
 
   Widget _buildHeader() {
     return Padding(
@@ -740,7 +718,7 @@ class _AddMemberScreenState extends State<AddMemberScreen>
     );
   }
 
-  // ── Hero Card ──────────────────────────────────────────────
+  // ── Section Title ──────────────────────────────────────────
 
   Widget _buildSectionTitle(String title, String subtitle) {
     return Column(
@@ -907,6 +885,247 @@ class _AddMemberScreenState extends State<AddMemberScreen>
         ],
       ),
     );
+  }
+
+  // ── Trainer Picker ─────────────────────────────────────────
+
+  /// The value the backend expects for trainerId: the business ID
+  /// (e.g. "0003"), falling back to the Mongo id.
+  String _trainerKey(OwnerTrainerModel t) =>
+      t.trainerId.trim().isNotEmpty ? t.trainerId.trim() : t.id;
+
+  OwnerTrainerModel? _findTrainer(
+    List<OwnerTrainerModel> trainers,
+    String? id,
+  ) {
+    if (id == null) return null;
+    for (final t in trainers) {
+      if (t.id == id || t.trainerId == id) return t;
+    }
+    return null;
+  }
+
+  String _selectedTrainerLabel(List<OwnerTrainerModel> trainers) {
+    if (_selectedTrainerId == null) return 'Not assigned · Self-guided';
+    final t = _findTrainer(trainers, _selectedTrainerId);
+    return t?.fullName ?? 'Trainer ID $_selectedTrainerId';
+  }
+
+  Widget _buildTrainerPicker() {
+    return Consumer<OwnerTrainerProvider>(
+      builder: (context, trainerProvider, _) {
+        final trainers = trainerProvider.trainers;
+        final hasTrainer = _selectedTrainerId != null;
+
+        return GestureDetector(
+          onTap: () => _openTrainerSheet(trainers),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1726).withValues(alpha: .82),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: hasTrainer
+                    ? AppColors.primary.withValues(alpha: 0.35)
+                    : const Color(0xFF29456B),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: hasTrainer
+                              ? [
+                                  AppColors.primary.withValues(alpha: 0.18),
+                                  AppColors.primary.withValues(alpha: 0.08),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.06),
+                                  Colors.white.withValues(alpha: 0.03),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.fitness_center_rounded,
+                        size: 14,
+                        color: hasTrainer
+                            ? AppColors.primary
+                            : const Color(0xFF75A9E8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Assigned Trainer (optional)',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedTrainerLabel(trainers),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: hasTrainer ? Colors.white : Colors.white54,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white38,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openTrainerSheet(List<OwnerTrainerModel> trainers) async {
+    FocusScope.of(context).unfocus();
+
+    // '' = "No trainer" chosen, null = sheet dismissed without choosing.
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.background,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        Widget option({
+          required String value,
+          required String title,
+          String? subtitle,
+          required IconData icon,
+        }) {
+          final selected =
+              (_selectedTrainerId ?? '') == value ||
+              (_selectedTrainerId != null &&
+                  _findTrainer(trainers, _selectedTrainerId) != null &&
+                  _trainerKey(_findTrainer(trainers, _selectedTrainerId)!) ==
+                      value);
+
+          return ListTile(
+            onTap: () => Navigator.of(sheetContext).pop(value),
+            leading: Icon(
+              icon,
+              color: selected ? AppColors.primary : const Color(0xFF75A9E8),
+            ),
+            title: Text(
+              title,
+              style: TextStyle(
+                color: selected ? Colors.white : Colors.white70,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            subtitle: subtitle == null
+                ? null
+                : Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+            trailing: selected
+                ? const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.primary,
+                  )
+                : null,
+          );
+        }
+
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Assign Trainer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      option(
+                        value: '',
+                        title: 'No trainer',
+                        subtitle: 'Self-guided workouts',
+                        icon: Icons.person_off_outlined,
+                      ),
+                      for (final t in trainers)
+                        option(
+                          value: _trainerKey(t),
+                          title: t.fullName,
+                          subtitle: t.trainerId.isNotEmpty
+                              ? 'ID ${t.trainerId}'
+                              : null,
+                          icon: Icons.fitness_center_rounded,
+                        ),
+                      if (trainers.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text(
+                            'No trainers found. Add a trainer first.',
+                            style: TextStyle(color: Colors.white38),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result == null || !mounted) return;
+    setState(() => _selectedTrainerId = result.isEmpty ? null : result);
   }
 
   // ── Plan Selector ──────────────────────────────────────────

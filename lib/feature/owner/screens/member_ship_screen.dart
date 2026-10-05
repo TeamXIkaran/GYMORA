@@ -1509,7 +1509,9 @@ class _MembershipScreenState extends State<MembershipScreen>
     if (confirmed != true || !mounted) return;
 
     final provider = context.read<OwnerMemberProvider>();
-    final deleted = await provider.deleteMember(member.id);
+    final deleted = await provider.deleteMember(
+      member.clientId.isNotEmpty ? member.clientId : member.id,
+    );
     if (!mounted) return;
 
     if (deleted) {

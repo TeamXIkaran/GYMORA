@@ -327,13 +327,6 @@ class _TrainerDashboardScreenState extends State<TrainerDashboardScreen>
         ),
 
         const SizedBox(width: 8),
-
-        _headerIconButton(
-          icon: Icons.settings_outlined,
-          onTap: () {
-            Navigator.pushNamed(context, '/trainerSettings');
-          },
-        ),
       ],
     );
   }
