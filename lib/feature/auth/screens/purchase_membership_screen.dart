@@ -25,10 +25,12 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
   int? _pressedPlanIndex;
 
   // Plan data
+  // 'price' is the formatted display value; commas are stripped to get the
+  // raw 'amount' sent to the payment / QR screen.
   final List<Map<String, dynamic>> _plans = [
     {
       'name': 'STARTER',
-      'price': '5',
+      'price': '500',
       'duration': '1 Month',
       'icon': Icons.flash_on_rounded,
       'gradient': [const Color(0xFFE62B52), const Color(0xFF8B1528)],
@@ -36,7 +38,7 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
     },
     {
       'name': 'PRO',
-      'price': '10',
+      'price': '1,000',
       'duration': '3 Months',
       'icon': Icons.star_rounded,
       'gradient': [const Color(0xFF2196F3), const Color(0xFF1565C0)],
@@ -49,7 +51,7 @@ class _PurchaseMembershipScreenState extends State<PurchaseMembershipScreen>
     },
     {
       'name': 'ELITE',
-      'price': '15',
+      'price': '2,000',
       'duration': '6 Months',
       'icon': Icons.workspace_premium_rounded,
       'gradient': [const Color(0xFFFFD700), const Color(0xFFFF8C00)],

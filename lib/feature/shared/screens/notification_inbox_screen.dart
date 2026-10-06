@@ -71,8 +71,9 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
         _loading = false;
         if (_items.isEmpty) _error = _readable(error);
       });
-      if (_items.isNotEmpty)
+      if (_items.isNotEmpty) {
         _showSnack('Could not refresh: ${_readable(error)}');
+      }
     }
   }
 
@@ -103,15 +104,25 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
   }
 
   Future<void> _markAllRead() async {
-    final ids = _items.where((i) => !i.read).map((i) => i.id).toSet();
+    final ids = _items
+        .where((i) => !i.read && !_pending.contains(i.id))
+        .map((i) => i.id)
+        .toSet();
     if (ids.isEmpty || _markingAll) return;
     setState(() => _markingAll = true);
     _pending.addAll(ids);
-    _setRead(ids, true);
+    _setRead(ids, true); // optimistic
     try {
-      await _service.markAllRead(ids.toList());
+      final failed = await _service.markAllRead(ids.toList());
       if (!mounted) return;
-      _showSnack('All notifications marked as read');
+      if (failed.isEmpty) {
+        _showSnack('All notifications marked as read');
+      } else {
+        _setRead(failed, false); // revert only the ones that failed
+        _showSnack(
+          'Could not mark ${failed.length} of ${ids.length} as read. Try again.',
+        );
+      }
     } catch (error) {
       if (!mounted) return;
       _setRead(ids, false);
@@ -253,7 +264,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
               ),
             IconButton(
               tooltip: 'Refresh',
-              onPressed: _loading ? null : _load,
+              onPressed: _loading ? null : () => _load(),
               icon: const Icon(Icons.refresh_rounded),
             ),
           ],
@@ -283,7 +294,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: _load,
+                onPressed: () => _load(),
                 style: TextButton.styleFrom(foregroundColor: _accent),
                 child: const Text('Retry'),
               ),
@@ -316,7 +327,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
         Text(
           widget.trainer
               ? 'Schedule and member updates from your gym owner appear here.'
-              : 'Updates sent by your gym owner appear here.',
+              : 'Updates from your gym owner and trainer appear here.',
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white60),
         ),
